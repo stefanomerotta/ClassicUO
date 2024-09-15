@@ -31,13 +31,12 @@
 #endregion
 
 using ClassicUO.Network.Encryption;
+using ClassicUO.Network.Socket;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Logging;
 using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Net.WebSockets;
-using ClassicUO.Network.Socket;
 
 namespace ClassicUO.Network
 {
@@ -54,7 +53,6 @@ namespace ClassicUO.Network
         private readonly CircularBuffer _sendStream;
         private SocketWrapper _socket = null;
         private SocketWrapperType? _socketType;
-
 
         public NetClient()
         {
@@ -126,14 +124,14 @@ namespace ClassicUO.Network
         public event EventHandler Connected;
         public event EventHandler<SocketError> Disconnected;
 
-        private void SetupSocket(SocketWrapperType wrapperType)
+        private void SetupSocket(SocketWrapperType wrapperType, bool ignoreServerClose)
         {
             _socket?.Dispose();
 
             _socket = wrapperType switch
             {
                 SocketWrapperType.TcpSocket => new TcpSocketWrapper(),
-                SocketWrapperType.WebSocket => new WebSocketWrapper(),
+                SocketWrapperType.WebSocket => new WebSocketWrapper(ignoreServerClose),
                 _ => throw new ArgumentOutOfRangeException(nameof(wrapperType), wrapperType, null)
             };
 
@@ -147,7 +145,7 @@ namespace ClassicUO.Network
             _socket.OnError += (_, e) => Disconnected?.Invoke(this, e);
         }
 
-        public void Connect(string ip, ushort port)
+        public void Connect(string ip, ushort port, bool ignoreServerClose = false)
         {
             _sendStream.Clear();
             _huffman.Reset();
@@ -166,7 +164,7 @@ namespace ClassicUO.Network
 
             // First connected socket sets the type for any future sockets.
             // This prevents the client from swapping from WS -> TCP on game server login
-            SetupSocket(_socketType ??= isWebsocketAddress ? SocketWrapperType.WebSocket : SocketWrapperType.TcpSocket);
+            SetupSocket(_socketType ??= isWebsocketAddress ? SocketWrapperType.WebSocket : SocketWrapperType.TcpSocket, ignoreServerClose);
             _socket.Connect(uri);
         }
 

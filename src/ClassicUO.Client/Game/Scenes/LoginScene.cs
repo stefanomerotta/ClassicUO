@@ -345,10 +345,8 @@ namespace ClassicUO.Game.Scenes
             NetClient.Socket.Disconnected -= OnNetClientDisconnected;
             NetClient.Socket.Connected += OnNetClientConnected;
             NetClient.Socket.Disconnected += OnNetClientDisconnected;
-            NetClient.Socket.Connect(Settings.GlobalSettings.IP, Settings.GlobalSettings.Port);
+            NetClient.Socket.Connect(Settings.GlobalSettings.IP, Settings.GlobalSettings.Port, true);
         }
-
-
 
         public int GetServerIndexByName(string name)
         {

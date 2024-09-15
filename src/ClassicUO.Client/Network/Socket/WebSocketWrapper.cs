@@ -25,10 +25,16 @@ internal sealed class WebSocketWrapper : SocketWrapper
     private CancellationTokenSource _tokenSource;
     private CircularBuffer _receiveStream;
     private Task _webSocketClientTask;
+    private bool _errorOnServerClose;
 
     public override bool IsConnected => _webSocket?.State is WebSocketState.Connecting or WebSocketState.Open;
     public override EndPoint LocalEndPoint => _rawSocket?.LocalEndPoint;
     public bool IsCanceled => _tokenSource.IsCancellationRequested;
+
+    public WebSocketWrapper(bool ignoreServerClose)
+    {
+        _errorOnServerClose = !ignoreServerClose;
+    }
 
     public override void Send(byte[] buffer, int offset, int count)
     {
@@ -78,7 +84,6 @@ internal sealed class WebSocketWrapper : SocketWrapper
         }
     }
 
-
     private async Task ConnectWebSocketCore(Uri uri, CancellationToken token)
     {
         // Take control of creating the raw socket, turn off Nagle, also lets us peek at `Available` bytes.
@@ -127,19 +132,16 @@ internal sealed class WebSocketWrapper : SocketWrapper
         var rawSocket = _rawSocket;
         var buffer = Shared.Rent(4096);
         var position = 0;
-        var lastState = WebSocketState.Open;
+        var errorOnServerClose = _errorOnServerClose;
 
         try
         {
-            while (!token.IsCancellationRequested && socket.State is WebSocketState.Open)
+            while (!token.IsCancellationRequested && socket.State == WebSocketState.Open)
             {
                 GrowReceiveBufferIfNeeded(ref buffer, position, position + rawSocket.Available);
-
+                
                 var receiveResult = await socket.ReceiveAsync(new ArraySegment<byte>(buffer, position, buffer.Length - position), token);
 
-                // Ignoring message types:
-                // 1. WebSocketMessageType.Text: shouldn't be sent by the server, though might be useful for multiplexing commands
-                // 2. WebSocketMessageType.Close: will be handled by IsConnected
                 if (receiveResult.MessageType == WebSocketMessageType.Binary)
                     position += receiveResult.Count;
 
@@ -154,15 +156,24 @@ internal sealed class WebSocketWrapper : SocketWrapper
                 position = 0;
             }
 
-            lastState = socket.State;
+            if (socket.State != WebSocketState.CloseReceived || errorOnServerClose)
+                InvokeOnError(SocketError.SocketError);
         }
         catch (OperationCanceledException)
         {
-            Log.Trace("WebSocket OperationCanceledException on websocket " + (token.IsCancellationRequested ? "(was requested)" : "(remote cancelled)"));
+            if (token.IsCancellationRequested)
+            {
+                Log.Trace("WebSocket OperationCanceledException on websocket (was requested)");
+            }
+            else
+            {
+                Log.Trace("WebSocket OperationCanceledException on websocket (remote cancelled)");
+                InvokeOnError(SocketError.SocketError);
+            }
         }
         catch (Exception e)
         {
-            Log.Trace($"WebSocket error in StartReceiveAsync {e}");
+            Log.Trace($"WebSocket error in {nameof(StartReceiveAsync)} {e}");
             socket.Abort();
 
             InvokeOnError(SocketError.SocketError);
@@ -171,14 +182,6 @@ internal sealed class WebSocketWrapper : SocketWrapper
         {
             Shared.Return(buffer);
             socket.Dispose();
-        }
-
-        if (!token.IsCancellationRequested)
-        {
-            if (lastState == WebSocketState.CloseReceived)
-                InvokeOnDisconnected();
-            else
-                InvokeOnError(SocketError.ConnectionReset);
         }
     }
 
