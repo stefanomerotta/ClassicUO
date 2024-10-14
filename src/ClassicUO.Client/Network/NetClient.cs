@@ -155,7 +155,7 @@ internal sealed class NetClient
         _huffman.Reset();
     }
 
-    public void Send(Span<byte> message, bool ignorePlugin = false, bool skipEncryption = false)
+    public void Send(Span<byte> message, bool ignorePlugin = false)
     {
         if (!IsConnected || message.IsEmpty)
             return;
@@ -168,8 +168,7 @@ internal sealed class NetClient
 
         PacketLogger.Default?.Log(message, true);
 
-        if (!skipEncryption)
-            Encryption?.Encrypt(!_isCompressionEnabled, message, message, message.Length);
+        Encryption?.Encrypt(!_isCompressionEnabled, message, message, message.Length);
 
         int messageLength = message.Length;
 
