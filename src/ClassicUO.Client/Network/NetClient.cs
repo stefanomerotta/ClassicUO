@@ -46,16 +46,16 @@ namespace ClassicUO.Network;
 internal sealed class NetClient
 {
     private const int BUFF_SIZE = 4096;
+    private const int RECV_SIZE = BUFF_SIZE * 3;
 
     public static NetClient Socket { get; } = new();
 
     private readonly byte[] _receiveBuffer = new byte[BUFF_SIZE];
-    private readonly byte[] _decompressionBuffer = new byte[BUFF_SIZE * 3];
-    private readonly Pipe _receivePipe = new(BUFF_SIZE * 3);
-    private readonly Pipe _sendPipe = new(BUFF_SIZE);
-    private readonly SendTrigger _sendTrigger;
+    private readonly byte[] _decompressionBuffer = new byte[RECV_SIZE];
     private readonly Huffman _huffman = new();
 
+    private Pipe _receivePipe;
+    private AsyncPipe _sendPipe;
     private bool _isCompressionEnabled;
     private uint? _localIP;
     private NetSocket? _socket;
@@ -77,8 +77,10 @@ internal sealed class NetClient
     public NetClient()
     {
         Statistics = new NetStatistics(this);
-        _sendTrigger = new(_sendPipe);
         _source = new();
+
+        _receivePipe = new(0);
+        _sendPipe = new(0, CancellationToken.None);
     }
 
     public EncryptionType Load(ClientVersion clientVersion, EncryptionType encryption)
@@ -122,20 +124,23 @@ internal sealed class NetClient
         IsConnected = false;
         _isCompressionEnabled = false;
         _source.Cancel();
-        _sendTrigger.Cancel();
         _readLoopTask?.Wait();
         _writeLoopTask?.Wait();
 
-        _sendPipe.Clear();
-        _receivePipe.Clear();
         _socket!.Dispose();
 
         Statistics.Reset();
+        Encryption?.Reset();
         Disconnected?.Invoke(this, error);
     }
 
     public Span<byte> CollectAvailableData()
     {
+        Span<byte> span = _receivePipe.GetAvailableSpanToRead();
+        if (!span.IsEmpty || _receivePipe.Next is null)
+            return span;
+
+        _receivePipe = _receivePipe.Next;
         return _receivePipe.GetAvailableSpanToRead();
     }
 
@@ -168,35 +173,37 @@ internal sealed class NetClient
 
         int messageLength = message.Length;
 
-        lock (_sendPipe)
+        lock (this)
         {
-            Span<byte> span = _sendPipe.GetAvailableSpanToWrite();
+            Span<byte> span = getSpan();
 
-            if (span.Length >= messageLength)
-            {
-                message.CopyTo(span);
-                _sendPipe.CommitWrited(messageLength);
-            }
-            else
+            while (span.Length < message.Length)
             {
                 message[..span.Length].CopyTo(span);
                 _sendPipe.CommitWrited(span.Length);
 
                 message = message[span.Length..];
-                span = _sendPipe.GetAvailableSpanToWrite();
-
-                if (span.Length < message.Length)
-                    throw new Exception("Send pipe is full");
-
-                message.CopyTo(span);
-                _sendPipe.CommitWrited(message.Length);
+                span = getSpan();
             }
 
-            _sendTrigger.Trigger(messageLength);
+            message.CopyTo(span);
+            _sendPipe.CommitWrited(message.Length);
         }
 
         Statistics.TotalBytesSent += (uint)messageLength;
         Statistics.TotalPacketsSent++;
+
+        Span<byte> getSpan()
+        {
+            Span<byte> span = _sendPipe.GetAvailableSpanToWrite();
+            if (!span.IsEmpty)
+                return span;
+
+            _sendPipe.Next = new(BUFF_SIZE, _sendPipe.Token);
+            _sendPipe = _sendPipe.Next;
+
+            return _sendPipe.GetAvailableSpanToWrite();
+        }
     }
 
     public void SendPing()
@@ -218,7 +225,7 @@ internal sealed class NetClient
         Statistics.Update();
     }
 
-    private void ProcessEncryption(Span<byte> buffer)
+    private void Decrypt(Span<byte> buffer)
     {
         if (!_isCompressionEnabled)
             return;
@@ -271,9 +278,11 @@ internal sealed class NetClient
 
         _source = new();
         _socket = isWebSocket ? new WebSocket() : new TcpSocket();
-        _sendTrigger.Reset();
 
         CancellationToken token = _source.Token;
+
+        _sendPipe = new(BUFF_SIZE, token);
+        _receivePipe = new(RECV_SIZE);
 
         try
         {
@@ -298,6 +307,8 @@ internal sealed class NetClient
     {
         try
         {
+            Pipe pipe = _receivePipe;
+
             while (!token.IsCancellationRequested)
             {
                 Memory<byte> buffer = _receiveBuffer.AsMemory();
@@ -308,52 +319,51 @@ internal sealed class NetClient
 
                 Span<byte> span = buffer.Span[..bytesRead];
 
-                Statistics.TotalBytesReceived += (uint)buffer.Length;
+                Statistics.TotalBytesReceived += (uint)span.Length;
 
-                ProcessEncryption(span);
+                Decrypt(span);
                 span = ProcessCompression(span);
 
                 if (span.IsEmpty)
                     throw new Exception("Huffman decompression failed");
 
-                Span<byte> targetSpan = _receivePipe.GetAvailableSpanToWrite();
-                if (targetSpan.IsEmpty)
-                    throw new Exception("Receive pipe is full");
+                Span<byte> targetSpan = getSpan(ref pipe);
 
-                if (span.Length <= targetSpan.Length)
-                {
-                    span.CopyTo(targetSpan);
-                    _receivePipe.CommitWrited(span.Length);
-                }
-                else
+                while (span.Length > targetSpan.Length)
                 {
                     span[..targetSpan.Length].CopyTo(targetSpan);
-                    _receivePipe.CommitWrited(targetSpan.Length);
+                    pipe.CommitWrited(targetSpan.Length);
                     span = span[targetSpan.Length..];
 
-                    targetSpan = _receivePipe.GetAvailableSpanToWrite();
-                    if (span.Length > targetSpan.Length)
-                        throw new Exception("Receive pipe is full");
-
-                    span.CopyTo(targetSpan);
-                    _receivePipe.CommitWrited(span.Length);
+                    targetSpan = getSpan(ref pipe);
                 }
-            }
 
-            Disconnect();
+                span.CopyTo(targetSpan);
+                pipe.CommitWrited(span.Length);
+            }
         }
         catch (OperationCanceledException)
         { }
         catch (SocketException se)
         {
-            if (se.SocketErrorCode == SocketError.ConnectionReset && ServerDisconnectionExpected)
-                Disconnect();
-            else
+            if (se.SocketErrorCode != SocketError.ConnectionReset || !ServerDisconnectionExpected)
                 Disconnect(se.SocketErrorCode);
         }
         catch
         {
             Disconnect(SocketError.Fault);
+        }
+
+        static Span<byte> getSpan(ref Pipe pipe)
+        {
+            Span<byte> span = pipe.GetAvailableSpanToWrite();
+            if (!span.IsEmpty)
+                return span;
+
+            Pipe newPipe = pipe.Next = new(RECV_SIZE);
+            pipe = newPipe;
+
+            return pipe.GetAvailableSpanToWrite();
         }
     }
 
@@ -361,15 +371,20 @@ internal sealed class NetClient
     {
         try
         {
+            AsyncPipe pipe = _sendPipe;
+
             while (!token.IsCancellationRequested)
             {
-                await _sendTrigger.Wait();
-
-                Memory<byte> buffer = _sendPipe.GetAvailableMemoryToRead();
+                Memory<byte> buffer = await pipe.GetAvailableMemoryToRead();
 
                 int bufferLength = buffer.Length;
                 if (bufferLength == 0)
+                {
+                    if (pipe.Next is not null)
+                        pipe = pipe.Next;
+
                     continue;
+                }
 
                 while (!buffer.IsEmpty)
                 {
@@ -377,10 +392,12 @@ internal sealed class NetClient
                     buffer = buffer[bytesWritten..];
                 }
 
-                _sendPipe.CommitRead(bufferLength);
+                pipe.CommitRead(bufferLength);
             }
         }
-        catch (Exception e) when (e is OperationCanceledException or SocketException)
+        catch (OperationCanceledException)
+        { }
+        catch (SocketException)
         {
             // ignored: socket errors are handled by ReadLoop
         }

@@ -218,7 +218,7 @@ namespace ClassicUO.Network
                 writer.WriteZero(length - writer.BytesWritten);
             }
 
-            socket.Send(writer.BufferWritten, true, true);
+            socket.Send(writer.BufferWritten, true);
 
             writer.Dispose();
         }
@@ -228,7 +228,7 @@ namespace ClassicUO.Network
             var writer = new StackDataWriter(4);
             writer.WriteUInt32BE(v);
 
-            socket.Send(writer.BufferWritten, true, true);
+            socket.Send(writer.BufferWritten, true);
 
             writer.Dispose();
         }

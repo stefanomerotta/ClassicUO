@@ -37,13 +37,14 @@ namespace ClassicUO.Network.Sockets;
 
 #nullable enable
 
-internal sealed class Pipe
+internal class Pipe
 {
-    private readonly byte[] _buffer;
-    private readonly uint _mask;
-    private uint _readIndex;
-    private uint _writeIndex;
+    protected readonly byte[] _buffer;
+    protected readonly uint _mask;
+    protected uint _readIndex;
+    protected uint _writeIndex;
 
+    public Pipe? Next { get; set; }
     public int Length => (int)(_writeIndex - _readIndex);
 
     public Pipe(uint size = 4096)
@@ -55,12 +56,6 @@ internal sealed class Pipe
         _buffer = new byte[roundedSize];
     }
 
-    public void Clear()
-    {
-        _readIndex = 0;
-        _writeIndex = 0;
-    }
-
     public Span<byte> GetAvailableSpanToWrite()
     {
         int readIndex = (int)(_readIndex & _mask);
@@ -69,10 +64,13 @@ internal sealed class Pipe
         if (readIndex > writeIndex)
             return _buffer.AsSpan(writeIndex..readIndex);
 
+        if (Length == _buffer.Length)
+            return [];
+
         return _buffer.AsSpan(writeIndex);
     }
 
-    public void CommitWrited(int size)
+    public virtual void CommitWrited(int size)
     {
         ArgumentOutOfRangeException.ThrowIfGreaterThan(size, _buffer.Length - Length);
 
@@ -87,18 +85,10 @@ internal sealed class Pipe
         if (readIndex > writeIndex)
             return _buffer.AsSpan(readIndex);
 
+        if (Length == _buffer.Length)
+            return _buffer.AsSpan(readIndex);
+
         return _buffer.AsSpan(readIndex..writeIndex);
-    }
-
-    public Memory<byte> GetAvailableMemoryToRead()
-    {
-        int readIndex = (int)(_readIndex & _mask);
-        int writeIndex = (int)(_writeIndex & _mask);
-
-        if (readIndex > writeIndex)
-            return _buffer.AsMemory(readIndex);
-
-        return _buffer.AsMemory(readIndex..writeIndex);
     }
 
     public void CommitRead(int size)

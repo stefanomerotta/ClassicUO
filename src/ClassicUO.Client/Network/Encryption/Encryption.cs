@@ -54,10 +54,12 @@ namespace ClassicUO.Network.Encryption
 
         private readonly ClientVersion _clientVersion;
         private readonly uint[] _keys;
+        private EncryptionType _encryptionType;
 
         public EncryptionHelper(ClientVersion clientVersion)
         {
             _clientVersion = clientVersion;
+            _encryptionType = EncryptionType.NONE;
             (EncryptionType, _keys) = CalculateEncryption(clientVersion);
         }
 
@@ -97,6 +99,10 @@ namespace ClassicUO.Network.Encryption
             }
         }
 
+        public void Reset()
+        {
+            _encryptionType = EncryptionType.NONE;
+        }
 
         public void Initialize(bool isLogin, uint seed)
         {
@@ -104,6 +110,8 @@ namespace ClassicUO.Network.Encryption
             {
                 return;
             }
+
+            _encryptionType = EncryptionType;
 
             if (isLogin)
             {
@@ -123,29 +131,29 @@ namespace ClassicUO.Network.Encryption
             }
         }
 
-        public void Encrypt(bool is_login, Span<byte> src, Span<byte> dst, int size)
+        public void Encrypt(bool isLogin, Span<byte> src, Span<byte> dst, int size)
         {
-            if (EncryptionType == EncryptionType.NONE)
+            if (_encryptionType == EncryptionType.NONE)
             {
                 return;
             }
 
-            if (is_login)
+            if (isLogin)
             {
-                if (EncryptionType == EncryptionType.OLD_BFISH)
+                if (_encryptionType == EncryptionType.OLD_BFISH)
                 {
                     _loginCrypt.Encrypt_OLD(src, dst, size);
                 }
-                else if (EncryptionType == EncryptionType.BLOWFISH__1_25_36)
+                else if (_encryptionType == EncryptionType.BLOWFISH__1_25_36)
                 {
                     _loginCrypt.Encrypt_1_25_36(src, dst, size);
                 }
-                else if (EncryptionType != EncryptionType.NONE)
+                else if (_encryptionType != EncryptionType.NONE)
                 {
                     _loginCrypt.Encrypt(src, dst, size);
                 }
             }
-            else if (EncryptionType == EncryptionType.BLOWFISH__2_0_3)
+            else if (_encryptionType == EncryptionType.BLOWFISH__2_0_3)
             {
                 int index_s = 0, index_d = 0;
 
@@ -160,7 +168,7 @@ namespace ClassicUO.Network.Encryption
 
                 _twoFishBehaviour.Encrypt(dst, dst, size);
             }
-            else if (EncryptionType == EncryptionType.TWOFISH_MD5)
+            else if (_encryptionType == EncryptionType.TWOFISH_MD5)
             {
                 _twoFishBehaviour.Encrypt(src, dst, size);
             }

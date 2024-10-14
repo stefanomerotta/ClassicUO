@@ -518,8 +518,6 @@ namespace ClassicUO.Game.Scenes
 
             uint address = NetClient.Socket.LocalIP;
 
-            NetClient.Socket.Encryption?.Initialize(true, address);
-
             if (Client.Game.UO.Version >= ClientVersion.CV_6040)
             {
                 uint clientVersion = (uint)Client.Game.UO.Version;
@@ -537,6 +535,7 @@ namespace ClassicUO.Game.Scenes
                 NetClient.Socket.Send_Seed_Old(address);
             }
 
+            NetClient.Socket.Encryption?.Initialize(true, address);
             NetClient.Socket.Send_FirstLogin(Account, Password);
         }
 
@@ -702,11 +701,12 @@ namespace ClassicUO.Game.Scenes
 
             if (socket.IsConnected)
             {
-                socket.Encryption?.Initialize(false, seed);
                 socket.EnableCompression();
 
                 Span<byte> b = [(byte)(seed >> 24), (byte)(seed >> 16), (byte)(seed >> 8), (byte)seed];
-                socket.Send(b, true, true);
+                socket.Send(b, true);
+
+                socket.Encryption?.Initialize(false, seed);
 
                 socket.Send_SecondLogin(Account, Password, seed);
             }
