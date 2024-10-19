@@ -36,7 +36,7 @@ using System.Runtime.InteropServices;
 
 namespace ClassicUO.Network.Encryption
 {
-    unsafe static class MD5Behaviour
+    internal static unsafe class MD5Behaviour
     {
         [StructLayout(LayoutKind.Sequential)]
         internal unsafe struct MD5Context
@@ -74,22 +74,21 @@ namespace ClassicUO.Network.Encryption
             }
         }
 
+        private const uint A = 0x67452301;
+        private const uint B = 0xefcdab89;
+        private const uint C = 0x98badcfe;
+        private const uint D = 0x10325476;
 
-        const uint A = 0x67452301;
-        const uint B = 0xefcdab89;
-        const uint C = 0x98badcfe;
-        const uint D = 0x10325476;
-
-        static uint[] _s =
-        {
+        private static readonly uint[] _s =
+        [
             7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
             5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20,
             4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
             6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21
-        };
+        ];
 
-        static uint[] _k =
-        {
+        private static readonly uint[] _k =
+        [
             0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,
             0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
             0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be,
@@ -106,10 +105,10 @@ namespace ClassicUO.Network.Encryption
             0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1,
             0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1,
             0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391
-        };
+        ];
 
-        static byte[] _padding =
-        {
+        private static readonly byte[] _padding =
+        [
             0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -118,23 +117,19 @@ namespace ClassicUO.Network.Encryption
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-        };
+        ];
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static uint F(uint x, uint y, uint z)
-            => ((x & y) | (~x & z));
+        private static uint F(uint x, uint y, uint z) => x & y | ~x & z;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static uint G(uint x, uint y, uint z)
-           => ((x & z) | (y & ~z));
+        private static uint G(uint x, uint y, uint z) => x & z | y & ~z;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static uint H(uint x, uint y, uint z)
-           => (x ^ y ^ z);
+        private static uint H(uint x, uint y, uint z) => x ^ y ^ z;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static uint I(uint x, uint y, uint z)
-           => (y ^ (x | ~z));
+        private static uint I(uint x, uint y, uint z) => y ^ (x | ~z);
 
 
         public static void Initialize(ref MD5Context ctx)
@@ -157,16 +152,13 @@ namespace ClassicUO.Network.Encryption
             {
                 ctx.Input(offset++) = inputBuffer[i];
 
-                if ((offset % 64) == 0)
+                if (offset % 64 == 0)
                 {
                     for (int j = 0; j < 16; ++j)
-                    {
-                        input[j] =
-                            (uint)(ctx.Input((j * 4) + 3)) << 24 |
-                            (uint)(ctx.Input((j * 4) + 2)) << 16 |
-                            (uint)(ctx.Input((j * 4) + 1)) << 8 |
-                            (uint)(ctx.Input((j * 4)));
-                    }
+                        input[j] = (uint)ctx.Input(j * 4 + 3) << 24 |
+                                   (uint)ctx.Input(j * 4 + 2) << 16 |
+                                   (uint)ctx.Input(j * 4 + 1) << 8 |
+                                   ctx.Input(j * 4);
 
                     Step(ref ctx, input);
                     offset = 0;
@@ -179,31 +171,28 @@ namespace ClassicUO.Network.Encryption
             Span<uint> input = stackalloc uint[16];
             int offset = (int)(ctx.Size % 64);
 
-            uint paddingLength = (uint)(offset < 56 ? 56 - offset : (56 + 64) - offset);
+            uint paddingLength = (uint)(offset < 56 ? 56 - offset : 56 + 64 - offset);
 
             Update(ref ctx, _padding.AsSpan(0, (int)paddingLength));
-            ctx.Size -= (ulong)paddingLength;
+            ctx.Size -= paddingLength;
 
             for (int j = 0; j < 14; ++j)
-            {
-                input[j] =
-                            (uint)(ctx.Input((j * 4) + 3)) << 24 |
-                            (uint)(ctx.Input((j * 4) + 2)) << 16 |
-                            (uint)(ctx.Input((j * 4) + 1)) << 8 |
-                            (uint)(ctx.Input((j * 4)));
-            }
+                input[j] = (uint)ctx.Input(j * 4 + 3) << 24 |
+                           (uint)ctx.Input(j * 4 + 2) << 16 |
+                           (uint)ctx.Input(j * 4 + 1) << 8 |
+                           ctx.Input(j * 4);
 
             input[14] = (uint)(ctx.Size * 8);
-            input[15] = (uint)((ctx.Size * 8) >> 32);
+            input[15] = (uint)(ctx.Size * 8 >> 32);
 
             Step(ref ctx, input);
 
             for (int i = 0; i < 4; ++i)
             {
-                ctx.Digest((i * 4) + 0) = (byte)((ctx.Buffer(i) & 0x000000FF));
-                ctx.Digest((i * 4) + 1) = (byte)((ctx.Buffer(i) & 0x0000FF00) >> 8);
-                ctx.Digest((i * 4) + 2) = (byte)((ctx.Buffer(i) & 0x00FF0000) >> 16);
-                ctx.Digest((i * 4) + 3) = (byte)((ctx.Buffer(i) & 0xFF000000) >> 24);
+                ctx.Digest(i * 4 + 0) = (byte)(ctx.Buffer(i) & 0x000000FF);
+                ctx.Digest(i * 4 + 1) = (byte)((ctx.Buffer(i) & 0x0000FF00) >> 8);
+                ctx.Digest(i * 4 + 2) = (byte)((ctx.Buffer(i) & 0x00FF0000) >> 16);
+                ctx.Digest(i * 4 + 3) = (byte)((ctx.Buffer(i) & 0xFF000000) >> 24);
             }
         }
 
@@ -221,28 +210,16 @@ namespace ClassicUO.Network.Encryption
             {
                 switch (i / 16)
                 {
-                    case 0:
-                        E = F(BB, CC, DD);
-                        j = i;
-                        break;
-                    case 1:
-                        E = G(BB, CC, DD);
-                        j = ((i * 5) + 1) % 16;
-                        break;
-                    case 2:
-                        E = H(BB, CC, DD);
-                        j = ((i * 3) + 5) % 16;
-                        break;
-                    default:
-                        E = I(BB, CC, DD);
-                        j = (i * 7) % 16;
-                        break;
+                    case 0: E = F(BB, CC, DD); j = i; break;
+                    case 1: E = G(BB, CC, DD); j = (i * 5 + 1) % 16; break;
+                    case 2: E = H(BB, CC, DD); j = (i * 3 + 5) % 16; break;
+                    default: E = I(BB, CC, DD); j = i * 7 % 16; break;
                 }
 
                 uint temp = DD;
                 DD = CC;
                 CC = BB;
-                BB = BB + RotateLeft(AA + E + _k[i] + input[j], _s[i]);
+                BB += RotateLeft(AA + E + _k[i] + input[j], _s[i]);
                 AA = temp;
             }
 
@@ -253,7 +230,6 @@ namespace ClassicUO.Network.Encryption
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static uint RotateLeft(uint x, uint n)
-            => (uint)((x << (int)n) | (x >> (int)(32 - n)));
+        private static uint RotateLeft(uint x, uint n) => x << (int)n | x >> (int)(32 - n);
     }
 }

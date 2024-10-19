@@ -535,7 +535,7 @@ namespace ClassicUO.Game.Scenes
                 NetClient.Socket.Send_Seed_Old(address);
             }
 
-            NetClient.Socket.Encryption?.Initialize(true, address);
+            NetClient.Socket.EnableEncryption(true, address);
             NetClient.Socket.Send_FirstLogin(Account, Password);
         }
 
@@ -706,8 +706,7 @@ namespace ClassicUO.Game.Scenes
                 Span<byte> b = [(byte)(seed >> 24), (byte)(seed >> 16), (byte)(seed >> 8), (byte)seed];
                 socket.Send(b, true);
 
-                socket.Encryption?.Initialize(false, seed);
-
+                socket.EnableEncryption(false, seed);
                 socket.Send_SecondLogin(Account, Password, seed);
             }
         }

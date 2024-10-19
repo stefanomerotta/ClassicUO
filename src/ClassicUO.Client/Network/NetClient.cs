@@ -30,7 +30,7 @@
 
 #endregion
 
-using ClassicUO.Network.Encryption;
+using EncryptionClass = ClassicUO.Network.Encryption.Encryption;
 using ClassicUO.Network.Sockets;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Logging;
@@ -38,6 +38,8 @@ using System;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using ClassicUO.Network.Encryption;
+using CUO_API;
 
 namespace ClassicUO.Network;
 
@@ -62,14 +64,17 @@ internal sealed class NetClient
     private CancellationTokenSource _source;
     private Task? _readLoopTask;
     private Task? _writeLoopTask;
+    private ClientVersion _clientVersion;
+    private SocketError _socketError;
 
     public bool IsConnected { get; private set; }
     public bool IsWebSocket { get; private set; }
     public NetStatistics Statistics { get; }
-    public EncryptionHelper? Encryption { get; private set; }
+    public EncryptionClass? Encryption { get; private set; }
     public PacketsTable? PacketsTable { get; private set; }
     public bool ServerDisconnectionExpected { get; set; }
     public uint LocalIP => GetLocalIP();
+    public EncryptionType EncryptionType { get; private set; }
 
     public event EventHandler? Connected;
     public event EventHandler<SocketError>? Disconnected;
@@ -86,18 +91,20 @@ internal sealed class NetClient
     public EncryptionType Load(ClientVersion clientVersion, EncryptionType encryption)
     {
         PacketsTable = new PacketsTable(clientVersion);
+        _clientVersion = clientVersion;
+        EncryptionType = encryption;
 
-        if (encryption == 0)
+        if (encryption == EncryptionType.NONE)
             return encryption;
 
-        Encryption = new EncryptionHelper(clientVersion);
+        EncryptionType = EncryptionClass.GetType(clientVersion);
         Log.Trace("Calculating encryption by client version...");
-        Log.Trace($"encryption: {Encryption.EncryptionType}");
+        Log.Trace($"encryption: {EncryptionType}");
 
-        if (Encryption.EncryptionType != encryption)
+        if (EncryptionType != encryption)
         {
-            Log.Warn($"Encryption found: {Encryption.EncryptionType}");
-            encryption = Encryption.EncryptionType;
+            Log.Warn($"Encryption found: {EncryptionType}");
+            encryption = EncryptionType;
         }
 
         return encryption;
@@ -116,26 +123,32 @@ internal sealed class NetClient
         ConnectAsyncCore(uri, IsWebSocket).Wait();
     }
 
-    public void Disconnect(SocketError error = SocketError.Success)
+    public bool Disconnect(SocketError error = SocketError.Success)
     {
         if (!IsConnected)
-            return;
+            return false;
 
         IsConnected = false;
+        _socketError = error;
         _isCompressionEnabled = false;
         _source.Cancel();
         _readLoopTask?.Wait();
         _writeLoopTask?.Wait();
-
         _socket!.Dispose();
-
         Statistics.Reset();
-        Encryption?.Reset();
-        Disconnected?.Invoke(this, error);
+        Encryption = null;
+
+        return true;
     }
 
     public Span<byte> CollectAvailableData()
     {
+        if (!IsConnected && _socketError != SocketError.Success)
+        {
+            Disconnected?.Invoke(this, _socketError);
+            _socketError = SocketError.Success;
+        }
+
         Span<byte> span = _receivePipe.GetAvailableSpanToRead();
         if (!span.IsEmpty || _receivePipe.Next is null)
             return span;
@@ -155,6 +168,16 @@ internal sealed class NetClient
         _huffman.Reset();
     }
 
+    public void EnableEncryption(bool login, uint seed)
+    {
+        if (EncryptionType == EncryptionType.NONE)
+            return;
+
+        Encryption = login ?
+            EncryptionClass.CreateForLogin(_clientVersion, seed)
+            : EncryptionClass.CreateForGame(EncryptionType, seed);
+    }
+
     public void Send(Span<byte> message, bool ignorePlugin = false)
     {
         if (!IsConnected || message.IsEmpty)
@@ -167,8 +190,7 @@ internal sealed class NetClient
             return;
 
         PacketLogger.Default?.Log(message, true);
-
-        Encryption?.Encrypt(!_isCompressionEnabled, message, message, message.Length);
+        Encryption?.Encrypt(message);
 
         int messageLength = message.Length;
 
@@ -229,7 +251,7 @@ internal sealed class NetClient
         if (!_isCompressionEnabled)
             return;
 
-        Encryption?.Decrypt(buffer, buffer, buffer.Length);
+        Encryption?.Decrypt(buffer);
     }
 
     private Span<byte> ProcessCompression(Span<byte> buffer)

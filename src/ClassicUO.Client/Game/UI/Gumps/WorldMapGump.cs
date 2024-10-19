@@ -56,9 +56,9 @@ using System.Text.Json.Serialization;
 using static ClassicUO.Game.UI.Gumps.WorldMapGump;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Formats.Png;
-using ClassicUO.Network.Encryption;
 using System.Text;
 using System.Runtime.InteropServices;
+using ClassicUO.Network.Encryption;
 
 namespace ClassicUO.Game.UI.Gumps
 {
