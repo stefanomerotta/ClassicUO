@@ -1,6 +1,6 @@
 using System;
 using ClassicUO.Configuration;
-using ClassicUO.Network.Encryption;
+using ClassicUO.Network.Encryptions;
 using ClassicUO.Network;
 using ClassicUO.Renderer;
 using Microsoft.Xna.Framework;

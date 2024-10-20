@@ -1,4 +1,4 @@
-﻿namespace ClassicUO.Network.Encryption
+﻿namespace ClassicUO.Network.Encryptions
 {
     internal enum EncryptionType
     {

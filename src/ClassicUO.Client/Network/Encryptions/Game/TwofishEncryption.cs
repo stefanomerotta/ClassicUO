@@ -34,7 +34,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace ClassicUO.Network.Encryption.Game
+namespace ClassicUO.Network.Encryptions.Game
 {
     //internal enum CipherMode
     //{

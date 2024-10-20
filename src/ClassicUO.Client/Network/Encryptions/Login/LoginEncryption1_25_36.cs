@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ClassicUO.Network.Encryption.Login
+namespace ClassicUO.Network.Encryptions.Login
 {
     internal sealed class LoginEncryption1_25_36 : LoginEncryption
     {

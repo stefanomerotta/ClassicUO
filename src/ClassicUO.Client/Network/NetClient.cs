@@ -30,16 +30,14 @@
 
 #endregion
 
-using ClassicUO.Network.Encryption;
+using ClassicUO.Network.Encryptions;
 using ClassicUO.Network.Sockets;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Logging;
 using System;
 using System.Net.Sockets;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using EncryptionClass = ClassicUO.Network.Encryption.Encryption;
 
 namespace ClassicUO.Network;
 
@@ -48,6 +46,7 @@ namespace ClassicUO.Network;
 internal sealed class NetClient
 {
     private const int BUFF_SIZE = 4096;
+    private const int SEND_SIZE = BUFF_SIZE;
     private const int RECV_SIZE = BUFF_SIZE * 3;
 
     public static NetClient Socket { get; } = new();
@@ -70,7 +69,7 @@ internal sealed class NetClient
     public bool IsConnected { get; private set; }
     public bool IsWebSocket { get; private set; }
     public NetStatistics Statistics { get; }
-    public EncryptionClass? Encryption { get; private set; }
+    public Encryption? Encryption { get; private set; }
     public PacketsTable? PacketsTable { get; private set; }
     public bool ServerDisconnectionExpected { get; set; }
     public uint LocalIP => GetLocalIP();
@@ -97,7 +96,7 @@ internal sealed class NetClient
         if (encryption == EncryptionType.NONE)
             return encryption;
 
-        EncryptionType = EncryptionClass.GetType(clientVersion);
+        EncryptionType = Encryption.GetType(clientVersion);
         Log.Trace("Calculating encryption by client version...");
         Log.Trace($"encryption: {EncryptionType}");
 
@@ -138,7 +137,7 @@ internal sealed class NetClient
         if (!IsConnected)
             return false;
 
-        Cleanup();
+        Cleanup(error);
         return true;
     }
 
@@ -194,15 +193,14 @@ internal sealed class NetClient
             return;
 
         Encryption = login ?
-            EncryptionClass.CreateForLogin(_clientVersion, seed)
-            : EncryptionClass.CreateForGame(EncryptionType, seed);
+            Encryption.CreateForLogin(_clientVersion, seed)
+            : Encryption.CreateForGame(EncryptionType, seed);
 
         lock (this)
         {
             SendPipe oldPipe = _sendPipe;
-            SendPipe pipe = _sendPipe.Next = new(BUFF_SIZE, true, _sendPipe.Token);
+            SendPipe pipe = _sendPipe.Next = new(SEND_SIZE, true, _sendPipe.Token);
             _sendPipe = pipe;
-            oldPipe.CommitWrited(0);
         }
     }
 
@@ -247,7 +245,7 @@ internal sealed class NetClient
             if (!span.IsEmpty)
                 return span;
 
-            _sendPipe.Next = new(BUFF_SIZE, _sendPipe.Encrypted, _sendPipe.Token);
+            _sendPipe.Next = new(SEND_SIZE, _sendPipe.Encrypted, _sendPipe.Token);
             _sendPipe = _sendPipe.Next;
 
             return _sendPipe.GetAvailableSpanToWrite();
@@ -321,7 +319,7 @@ internal sealed class NetClient
 
         CancellationToken token = _source.Token;
 
-        _sendPipe = new(BUFF_SIZE, false, token);
+        _sendPipe = new(SEND_SIZE, false, token);
         _receivePipe = new(RECV_SIZE);
 
         try
@@ -449,8 +447,4 @@ internal sealed class NetClient
             Cleanup();
         }
     }
-
-    private record ReadState(NetSocket Socket, ReceivePipe Pipe, CancellationToken Token);
-
-    private record WriteState(NetSocket Socket, SendPipe Pipe, CancellationToken Token);
 }

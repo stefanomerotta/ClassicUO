@@ -32,7 +32,7 @@
 
 using System;
 
-namespace ClassicUO.Network.Encryption.Login
+namespace ClassicUO.Network.Encryptions.Login
 {
     internal class LoginEncryption : Encryption
     {

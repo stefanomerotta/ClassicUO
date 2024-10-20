@@ -36,7 +36,7 @@ using ClassicUO.Game;
 using ClassicUO.Game.Data;
 using ClassicUO.IO;
 using ClassicUO.Network;
-using ClassicUO.Network.Encryption;
+using ClassicUO.Network.Encryptions;
 using ClassicUO.Resources;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Logging;

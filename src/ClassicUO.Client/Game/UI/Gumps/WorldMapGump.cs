@@ -58,7 +58,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Formats.Png;
 using System.Text;
 using System.Runtime.InteropServices;
-using ClassicUO.Network.Encryption;
+using ClassicUO.Network.Encryptions;
 
 namespace ClassicUO.Game.UI.Gumps
 {

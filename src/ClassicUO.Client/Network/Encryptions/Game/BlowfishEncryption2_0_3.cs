@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ClassicUO.Network.Encryption.Game
+namespace ClassicUO.Network.Encryptions.Game
 {
     internal sealed class BlowfishEncryption2_0_3 : BlowfishEncryption
     {

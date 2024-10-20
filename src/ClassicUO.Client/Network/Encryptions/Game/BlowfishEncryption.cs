@@ -32,7 +32,7 @@
 
 using System;
 
-namespace ClassicUO.Network.Encryption.Game
+namespace ClassicUO.Network.Encryptions.Game
 {
     internal unsafe class BlowfishEncryption : Encryption
     {

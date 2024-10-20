@@ -1,9 +1,9 @@
-﻿using ClassicUO.Network.Encryption.Game;
-using ClassicUO.Network.Encryption.Login;
+﻿using ClassicUO.Network.Encryptions.Game;
+using ClassicUO.Network.Encryptions.Login;
 using ClassicUO.Utility;
 using System;
 
-namespace ClassicUO.Network.Encryption
+namespace ClassicUO.Network.Encryptions
 {
     internal abstract class Encryption
     {

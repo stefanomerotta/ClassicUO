@@ -34,7 +34,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace ClassicUO.Network.Encryption
+namespace ClassicUO.Network.Encryptions
 {
     internal static unsafe class MD5Behaviour
     {
