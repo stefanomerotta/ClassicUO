@@ -42,6 +42,7 @@ using ClassicUO.Network;
 using ClassicUO.Resources;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Logging;
+using Microsoft.VisualBasic;
 using Microsoft.Xna.Framework;
 using System;
 using System.IO;
@@ -91,6 +92,7 @@ namespace ClassicUO.Game.Scenes
         public static string Account { get; internal set; }
         public string Password { get; private set; }
         public bool CanAutologin => _autoLogin || Reconnect;
+        public (int min, int max) LoginDelay { get; private set; }
 
         public override void Load()
         {
@@ -667,8 +669,15 @@ namespace ClassicUO.Game.Scenes
         {
             byte code = p.ReadUInt8();
 
-            PopupMessage = ServerErrorMessages.GetError(p[0], code);
+            PopupMessage = ServerErrorMessages.GetError(p[0], code, LoginDelay);
             CurrentLoginStep = LoginSteps.PopUpMessage;
+            LoginDelay = default;
+        }
+
+        public void HandleLoginDelayPacket(ref StackDataReader p)
+        {
+            var delay = p.ReadUInt8();
+            LoginDelay = ((delay - 1) * 10, delay * 10);
         }
 
         public void HandleRelayServerPacket(ref StackDataReader p)
@@ -683,21 +692,26 @@ namespace ClassicUO.Game.Scenes
 
             socket.Connected -= OnNetClientConnected;
 
-            // Ignore the packet, connect with the original IP regardless (i.e. websocket proxying)
-            if (Settings.GlobalSettings.IgnoreRelayIp || ip == 0)
+            try
             {
-                Log.Trace("Ignoring relay server packet IP address");
-                socket.Connect(Settings.GlobalSettings.IP, Settings.GlobalSettings.Port);
-            }
-            else
-            {
-                if (socket.IsWebSocket)
-                    socket.Connect($"ws://{new IPAddress(ip)}", port);
+                // Ignore the packet, connect with the original IP regardless (i.e. websocket proxying)
+                if (Settings.GlobalSettings.IgnoreRelayIp || ip == 0)
+                {
+                    Log.Trace("Ignoring relay server packet IP address");
+                    socket.Connect(Settings.GlobalSettings.IP, Settings.GlobalSettings.Port);
+                }
                 else
-                    socket.Connect(new IPAddress(ip).ToString(), port);
+                {
+                    if (socket.IsWebSocket)
+                        socket.Connect($"ws://{new IPAddress(ip)}", port);
+                    else
+                        socket.Connect(new IPAddress(ip).ToString(), port);
+                }
             }
-
-            socket.Connected += OnNetClientConnected;
+            finally
+            {
+                socket.Connected += OnNetClientConnected;
+            }
 
             if (socket.IsConnected)
             {
@@ -707,7 +721,7 @@ namespace ClassicUO.Game.Scenes
                 socket.Send(b, true);
 
                 socket.EnableEncryption(false, seed);
-                socket.Send_SecondLogin(Account, Password, seed);
+                socket.SendSecondLogin(Account, Password, seed);
             }
         }
 
