@@ -65,11 +65,11 @@ internal sealed class NetClient
     private Task? _writeLoopTask;
     private ClientVersion _clientVersion;
     private SocketError _socketError;
+    private Encryption? _encryption;
 
     public bool IsConnected { get; private set; }
     public bool IsWebSocket { get; private set; }
     public NetStatistics Statistics { get; }
-    public Encryption? Encryption { get; private set; }
     public PacketsTable? PacketsTable { get; private set; }
     public bool ServerDisconnectionExpected { get; set; }
     public uint LocalIP => GetLocalIP();
@@ -157,7 +157,7 @@ internal sealed class NetClient
         _socket!.Dispose();
         _sendPipe.Dispose();
         Statistics.Reset();
-        Encryption = null;
+        _encryption = null;
     }
 
     public Span<byte> CollectAvailableData()
@@ -192,7 +192,7 @@ internal sealed class NetClient
         if (EncryptionType == EncryptionType.NONE)
             return;
 
-        Encryption = login ?
+        _encryption = login ?
             Encryption.CreateForLogin(_clientVersion, seed)
             : Encryption.CreateForGame(EncryptionType, seed);
 
@@ -361,7 +361,7 @@ internal sealed class NetClient
 
                 Statistics.TotalBytesReceived += (uint)span.Length;
 
-                Encryption?.Decrypt(span);
+                _encryption?.Decrypt(span);
                 
                 if (!ProcessCompression(ref span))
                     throw new Exception("Huffman decompression failed");
@@ -430,7 +430,7 @@ internal sealed class NetClient
                 }
 
                 if (pipe.Encrypted)
-                    Encryption?.Encrypt(buffer.Span);
+                    _encryption?.Encrypt(buffer.Span);
 
                 while (!buffer.IsEmpty)
                 {
