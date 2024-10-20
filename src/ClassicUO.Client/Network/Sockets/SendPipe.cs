@@ -7,34 +7,32 @@ namespace ClassicUO.Network.Sockets;
 
 #nullable enable
 
-internal sealed class AsyncPipe : Pipe, IValueTaskSource<Memory<byte>>
+internal sealed class SendPipe : Pipe, IValueTaskSource<Memory<byte>>, IDisposable
 {
+    private readonly CancellationTokenRegistration _cancellationTokenRegistration;
     private ManualResetValueTaskSourceCore<Memory<byte>> _source;
-
+    private SendPipe? _next;
+    
     public CancellationToken Token { get; }
-    public new AsyncPipe? Next { get; set; }
+    public SendPipe? Next { get => _next; set => SetNextPipe(value); }
+    public bool Encrypted { get; }
 
-    public AsyncPipe(uint size, CancellationToken cancellationToken)
+    public SendPipe(uint size, bool encrypted, CancellationToken cancellationToken)
         : base(size)
     {
         Token = cancellationToken;
+        Encrypted = encrypted;
 
         _source.RunContinuationsAsynchronously = true;
         _source.SetResult(Memory<byte>.Empty);
 
-        cancellationToken.Register(cancel);
-
-        void cancel()
-        {
-            if (_source.GetStatus(_source.Version) == ValueTaskSourceStatus.Pending)
-                _source.SetException(new OperationCanceledException());
-        }
+        _cancellationTokenRegistration = cancellationToken.Register(Cancel);
     }
 
     public ValueTask<Memory<byte>> GetAvailableMemoryToRead()
     {
         Memory<byte> memory = GetAvailableMemoryToReadCore();
-        if (!memory.IsEmpty)
+        if (!memory.IsEmpty || Next is not null)
             return new(memory);
 
         if (_source.GetStatus(_source.Version) == ValueTaskSourceStatus.Succeeded)
@@ -54,6 +52,14 @@ internal sealed class AsyncPipe : Pipe, IValueTaskSource<Memory<byte>>
             _source.SetResult(GetAvailableMemoryToReadCore());
     }
 
+    private void SetNextPipe(SendPipe? pipe)
+    {
+        _next = pipe;
+
+        if (pipe is not null && _source.GetStatus(_source.Version) == ValueTaskSourceStatus.Pending)
+            _source.SetResult(GetAvailableMemoryToReadCore());
+    }
+
     public Memory<byte> GetResult(short token)
     {
         return _source.GetResult(token);
@@ -67,6 +73,18 @@ internal sealed class AsyncPipe : Pipe, IValueTaskSource<Memory<byte>>
     public void OnCompleted(Action<object?> continuation, object? state, short token, ValueTaskSourceOnCompletedFlags flags)
     {
         _source.OnCompleted(continuation, state, token, flags);
+    }
+
+    public void Dispose()
+    {
+        _cancellationTokenRegistration.Unregister();
+        Cancel();
+    }
+
+    private void Cancel()
+    {
+        if (_source.GetStatus(_source.Version) == ValueTaskSourceStatus.Pending)
+            _source.SetException(new OperationCanceledException());
     }
 
     private Memory<byte> GetAvailableMemoryToReadCore()

@@ -30,16 +30,16 @@
 
 #endregion
 
-using EncryptionClass = ClassicUO.Network.Encryption.Encryption;
+using ClassicUO.Network.Encryption;
 using ClassicUO.Network.Sockets;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Logging;
 using System;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using ClassicUO.Network.Encryption;
-using CUO_API;
+using EncryptionClass = ClassicUO.Network.Encryption.Encryption;
 
 namespace ClassicUO.Network;
 
@@ -56,8 +56,8 @@ internal sealed class NetClient
     private readonly byte[] _decompressionBuffer = new byte[RECV_SIZE];
     private readonly Huffman _huffman = new();
 
-    private Pipe _receivePipe;
-    private AsyncPipe _sendPipe;
+    private ReceivePipe _receivePipe;
+    private SendPipe _sendPipe;
     private bool _isCompressionEnabled;
     private uint? _localIP;
     private NetSocket? _socket;
@@ -85,7 +85,7 @@ internal sealed class NetClient
         _source = new();
 
         _receivePipe = new(0);
-        _sendPipe = new(0, CancellationToken.None);
+        _sendPipe = new(0, false, CancellationToken.None);
     }
 
     public EncryptionType Load(ClientVersion clientVersion, EncryptionType encryption)
@@ -120,7 +120,17 @@ internal sealed class NetClient
 
         Log.Trace($"Connecting to {uri}");
 
-        ConnectAsyncCore(uri, IsWebSocket).Wait();
+        bool connected = ConnectAsyncCore(uri, IsWebSocket).GetAwaiter().GetResult();
+
+        if (connected)
+        {
+            IsConnected = true;
+            Connected?.Invoke(this, EventArgs.Empty);
+        }
+        else
+        {
+            Disconnected?.Invoke(this, SocketError.ConnectionReset);
+        }
     }
 
     public bool Disconnect(SocketError error = SocketError.Success)
@@ -128,17 +138,27 @@ internal sealed class NetClient
         if (!IsConnected)
             return false;
 
+        Cleanup();
+        return true;
+    }
+
+    private void Cleanup(SocketError error = SocketError.Success)
+    {
         IsConnected = false;
         _socketError = error;
         _isCompressionEnabled = false;
         _source.Cancel();
-        _readLoopTask?.Wait();
-        _writeLoopTask?.Wait();
+
+        if (_readLoopTask is { Status: TaskStatus.Running })
+            _readLoopTask.Wait();
+
+        if (_writeLoopTask is { Status: TaskStatus.Running })
+            _writeLoopTask.Wait();
+
         _socket!.Dispose();
+        _sendPipe.Dispose();
         Statistics.Reset();
         Encryption = null;
-
-        return true;
     }
 
     public Span<byte> CollectAvailableData()
@@ -176,6 +196,14 @@ internal sealed class NetClient
         Encryption = login ?
             EncryptionClass.CreateForLogin(_clientVersion, seed)
             : EncryptionClass.CreateForGame(EncryptionType, seed);
+
+        lock (this)
+        {
+            SendPipe oldPipe = _sendPipe;
+            SendPipe pipe = _sendPipe.Next = new(BUFF_SIZE, true, _sendPipe.Token);
+            _sendPipe = pipe;
+            oldPipe.CommitWrited(0);
+        }
     }
 
     public void Send(Span<byte> message, bool ignorePlugin = false)
@@ -190,7 +218,6 @@ internal sealed class NetClient
             return;
 
         PacketLogger.Default?.Log(message, true);
-        Encryption?.Encrypt(message);
 
         int messageLength = message.Length;
 
@@ -220,7 +247,7 @@ internal sealed class NetClient
             if (!span.IsEmpty)
                 return span;
 
-            _sendPipe.Next = new(BUFF_SIZE, _sendPipe.Token);
+            _sendPipe.Next = new(BUFF_SIZE, _sendPipe.Encrypted, _sendPipe.Token);
             _sendPipe = _sendPipe.Next;
 
             return _sendPipe.GetAvailableSpanToWrite();
@@ -244,14 +271,6 @@ internal sealed class NetClient
     {
         Statistics.TotalPacketsReceived += (uint)receivedPacketCount;
         Statistics.Update();
-    }
-
-    private void Decrypt(Span<byte> buffer)
-    {
-        if (!_isCompressionEnabled)
-            return;
-
-        Encryption?.Decrypt(buffer);
     }
 
     private Span<byte> ProcessCompression(Span<byte> buffer)
@@ -290,10 +309,10 @@ internal sealed class NetClient
         return _localIP.Value;
     }
 
-    private async Task ConnectAsyncCore(Uri uri, bool isWebSocket)
+    private async Task<bool> ConnectAsyncCore(Uri uri, bool isWebSocket)
     {
         if (IsConnected)
-            Disconnect();
+            Cleanup();
 
         ServerDisconnectionExpected = false;
 
@@ -302,34 +321,33 @@ internal sealed class NetClient
 
         CancellationToken token = _source.Token;
 
-        _sendPipe = new(BUFF_SIZE, token);
+        _sendPipe = new(BUFF_SIZE, false, token);
         _receivePipe = new(RECV_SIZE);
 
         try
         {
+            NetSocket socket = _socket;
+            ReceivePipe receivePipe = _receivePipe;
+            SendPipe sendPipe = _sendPipe;
+
             await _socket.ConnectAsync(uri, token);
+            
+            _readLoopTask = Task.Run(() => ReadLoop(socket, receivePipe, token));
+            _writeLoopTask = Task.Run(() => WriteLoop(socket, sendPipe, token));
 
-            IsConnected = true;
-            Statistics.Reset();
-            Connected?.Invoke(this, EventArgs.Empty);
-
-            _readLoopTask = Task.Run(() => ReadLoop(_socket, token));
-            _writeLoopTask = Task.Run(() => WriteLoop(_socket, token));
+            return true;
         }
         catch
         {
-            IsConnected = false;
-            Disconnected?.Invoke(this, SocketError.ConnectionReset);
-            _socket.Dispose();
+            Cleanup();
+            return false;
         }
     }
 
-    private async Task ReadLoop(NetSocket socket, CancellationToken token)
+    private async Task ReadLoop(NetSocket socket, ReceivePipe pipe, CancellationToken token)
     {
         try
         {
-            Pipe pipe = _receivePipe;
-
             while (!token.IsCancellationRequested)
             {
                 Memory<byte> buffer = _receiveBuffer.AsMemory();
@@ -342,7 +360,7 @@ internal sealed class NetClient
 
                 Statistics.TotalBytesReceived += (uint)span.Length;
 
-                Decrypt(span);
+                Encryption?.Decrypt(span);
                 span = ProcessCompression(span);
 
                 if (span.IsEmpty)
@@ -368,32 +386,30 @@ internal sealed class NetClient
         catch (SocketException se)
         {
             if (se.SocketErrorCode != SocketError.ConnectionReset || !ServerDisconnectionExpected)
-                Disconnect(se.SocketErrorCode);
+                Cleanup(se.SocketErrorCode);
         }
         catch
         {
-            Disconnect(SocketError.Fault);
+            Cleanup(SocketError.Fault);
         }
 
-        static Span<byte> getSpan(ref Pipe pipe)
+        static Span<byte> getSpan(ref ReceivePipe pipe)
         {
             Span<byte> span = pipe.GetAvailableSpanToWrite();
             if (!span.IsEmpty)
                 return span;
 
-            Pipe newPipe = pipe.Next = new(RECV_SIZE);
+            ReceivePipe newPipe = pipe.Next = new(RECV_SIZE);
             pipe = newPipe;
 
             return pipe.GetAvailableSpanToWrite();
         }
     }
 
-    private async Task WriteLoop(NetSocket socket, CancellationToken token)
+    private async Task WriteLoop(NetSocket socket, SendPipe pipe, CancellationToken token)
     {
         try
         {
-            AsyncPipe pipe = _sendPipe;
-
             while (!token.IsCancellationRequested)
             {
                 Memory<byte> buffer = await pipe.GetAvailableMemoryToRead();
@@ -402,10 +418,16 @@ internal sealed class NetClient
                 if (bufferLength == 0)
                 {
                     if (pipe.Next is not null)
+                    {
+                        pipe.Dispose();
                         pipe = pipe.Next;
+                    }
 
                     continue;
                 }
+
+                if (pipe.Encrypted)
+                    Encryption?.Encrypt(buffer.Span);
 
                 while (!buffer.IsEmpty)
                 {
@@ -424,7 +446,11 @@ internal sealed class NetClient
         }
         catch
         {
-            Disconnect();
+            Cleanup();
         }
     }
+
+    private record ReadState(NetSocket Socket, ReceivePipe Pipe, CancellationToken Token);
+
+    private record WriteState(NetSocket Socket, SendPipe Pipe, CancellationToken Token);
 }

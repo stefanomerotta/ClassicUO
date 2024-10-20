@@ -528,11 +528,11 @@ namespace ClassicUO.Game.Scenes
                 byte extra = (byte)clientVersion;
 
 
-                NetClient.Socket.Send_Seed(address, major, minor, build, extra);
+                NetClient.Socket.SendSeed(address, major, minor, build, extra);
             }
             else
             {
-                NetClient.Socket.Send_Seed_Old(address);
+                NetClient.Socket.SendSeedOld(address);
             }
 
             NetClient.Socket.EnableEncryption(true, address);

@@ -180,7 +180,7 @@ namespace ClassicUO.Network
             writer.Dispose();
         }
 
-        public static void Send_Seed
+        public static void SendSeed
         (
             this NetClient socket,
             uint v,
@@ -194,13 +194,11 @@ namespace ClassicUO.Network
 
             int length = socket.PacketsTable.GetPacketLength(ID);
 
-            var writer = new StackDataWriter(length < 0 ? 64 : length);
+            StackDataWriter writer = new(length < 0 ? 64 : length);
             writer.WriteUInt8(ID);
 
             if (length < 0)
-            {
                 writer.WriteZero(2);
-            }
 
             writer.WriteUInt32BE(v);
             writer.WriteUInt32BE(major);
@@ -223,7 +221,7 @@ namespace ClassicUO.Network
             writer.Dispose();
         }
 
-        public static void Send_Seed_Old(this NetClient socket, uint v)
+        public static void SendSeedOld(this NetClient socket, uint v)
         {
             var writer = new StackDataWriter(4);
             writer.WriteUInt32BE(v);
@@ -239,13 +237,11 @@ namespace ClassicUO.Network
 
             int length = socket.PacketsTable.GetPacketLength(ID);
 
-            var writer = new StackDataWriter(length < 0 ? 64 : length);
+            StackDataWriter writer = new(length < 0 ? 64 : length);
             writer.WriteUInt8(ID);
 
             if (length < 0)
-            {
                 writer.WriteZero(2);
-            }
 
             writer.WriteASCII(user, 30);
             writer.WriteASCII(psw, 30);

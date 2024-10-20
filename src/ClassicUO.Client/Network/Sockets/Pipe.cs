@@ -37,17 +37,16 @@ namespace ClassicUO.Network.Sockets;
 
 #nullable enable
 
-internal class Pipe
+internal abstract class Pipe
 {
     protected readonly byte[] _buffer;
     protected readonly uint _mask;
     protected uint _readIndex;
     protected uint _writeIndex;
 
-    public Pipe? Next { get; set; }
     public int Length => (int)(_writeIndex - _readIndex);
 
-    public Pipe(uint size = 4096)
+    public Pipe(uint size)
     {
         ArgumentOutOfRangeException.ThrowIfGreaterThan(size, (uint)int.MaxValue + 1);
 

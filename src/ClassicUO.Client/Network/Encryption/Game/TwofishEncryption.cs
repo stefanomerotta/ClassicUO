@@ -47,13 +47,13 @@ namespace ClassicUO.Network.Encryption.Game
 
     internal sealed class TwofishEncryption : Encryption
     {
+        private const int INPUT_BLOCK_SIZE = BLOCK_SIZE / 8;
+        private const int OUTPUT_BLOCK_SIZE = BLOCK_SIZE / 8;
+
         private readonly int[] numRounds = [0, ROUNDS_128, ROUNDS_192, ROUNDS_256];
         private readonly uint[] IV = [0, 0, 0, 0];              // this should be one block size
-        private readonly int outputBlockSize = BLOCK_SIZE / 8;
         private readonly uint[] subKeys = new uint[TOTAL_SUBKEYS];      /* round subkeys, input/output whitening bits */
-        private readonly int inputBlockSize = BLOCK_SIZE / 8;
         private readonly uint[] Key = [0, 0, 0, 0, 0, 0, 0, 0]; //new int[MAX_KEY_BITS/32];
-        //private readonly CipherMode cipherMode = CipherMode.ECB;
         private readonly byte[] _cipherTable;
         private readonly byte[] _xorData;
 
@@ -62,11 +62,6 @@ namespace ClassicUO.Network.Encryption.Game
         private int rounds;
         private ushort _rectPos;
         private byte _sendPos;
-
-        // not worked out this property yet - placing break points here just don't get caught.
-
-        // I normally set this to false when block encrypting so that I can work on one block at a time
-        // but for compression and stream type ciphers this can be set to true so that you get all the data
 
         public unsafe TwofishEncryption(uint seed, bool useMD5)
         {
@@ -78,24 +73,21 @@ namespace ClassicUO.Network.Encryption.Game
             key[2] = key[6] = key[10] = key[14] = (byte)(seed >> 8 & 0xff);
             key[3] = key[7] = key[11] = key[15] = (byte)(seed & 0xff);
 
-            //byte[] iv = [];
-
             // convert our key into an array of ints
             for (int i = 0; i < key.Length / 4; i++)
-                Key[i] = (uint)(key[i * 4 + 3] << 24) | (uint)(key[i * 4 + 2] << 16) | (uint)(key[i * 4 + 1] << 8) | key[i * 4 + 0];
-
-            //cipherMode = CipherMode.ECB;
-
-            // we only need to convert our IV if we are using CBC
-            //if (cipherMode == CipherMode.CBC)
-            //    for (int i = 0; i < 4; i++)
-            //        IV[i] = (uint)(iv[i * 4 + 3] << 24) | (uint)(iv[i * 4 + 2] << 16) | (uint)(iv[i * 4 + 1] << 8) | iv[i * 4 + 0];
+            {
+                Key[i] = (uint)(key[i * 4 + 3] << 24) 
+                    | (uint)(key[i * 4 + 2] << 16) 
+                    | (uint)(key[i * 4 + 1] << 8) 
+                    | key[i * 4 + 0];
+            }
 
             ReKey(keyLen, ref Key);
 
             for (int i = 0; i < 256; i++)
+            {
                 _cipherTable[i] = (byte)i;
-
+            }
 
             _sendPos = 0;
 
@@ -109,8 +101,10 @@ namespace ClassicUO.Network.Encryption.Game
                 MD5Behaviour.Finalize(ref ctx);
 
                 _xorData = new byte[16];
-                for (int i = 0; i < 16; ++i)
+                for (int i = 0; i < 16; i++)
+                {
                     _xorData[i] = ctx.Digest(i);
+                }
             }
         }
 
@@ -277,72 +271,19 @@ namespace ClassicUO.Network.Encryption.Game
             return true;
         }
 
-        private unsafe void BlockDecrypt(ref Span<uint> x)
-        {
-            uint t0, t1;
-            Span<uint> xtemp = stackalloc uint[4];
-
-            //if (cipherMode == CipherMode.CBC)
-            //    x.CopyTo(xtemp);
-
-            for (int i = 0; i < BLOCK_HALF_SIZE; i++) /* copy in the block, add whitening */
-                x[i] ^= subKeys[OUTPUT_WHITEN + i];
-
-            for (int r = rounds - 1; r >= 0; r--) /* main Twofish decryption loop */
-            {
-                t0 = F32(x[0], ref sboxKeys, keyLength);
-                t1 = F32(ROL(x[1], 8), ref sboxKeys, keyLength);
-
-                x[2] = ROL(x[2], 1);
-                x[2] ^= t0 + t1 + subKeys[ROUND_SUBKEYS + 2 * r]; /* PHT, round keys */
-                x[3] ^= t0 + 2 * t1 + subKeys[ROUND_SUBKEYS + 2 * r + 1];
-                x[3] = ROR(x[3], 1);
-
-                if (r > 0) /* unswap, except for last round */
-                {
-                    t0 = x[0];
-                    x[0] = x[2];
-                    x[2] = t0;
-                    t1 = x[1];
-                    x[1] = x[3];
-                    x[3] = t1;
-                }
-            }
-
-            for (int i = 0; i < BLOCK_HALF_SIZE; i++) /* copy out, with whitening */
-            {
-                x[i] ^= subKeys[INPUT_WHITEN + i];
-
-                //if (cipherMode == CipherMode.CBC)
-                //{
-                //    x[i] ^= IV[i];
-                //    IV[i] = xtemp[i];
-                //}
-            }
-        }
-
         private unsafe void BlockEncrypt(ref Span<uint> x)
         {
-            uint t0, t1, tmp;
+            uint t0;
+            uint t1; 
+            uint tmp;
 
             for (int i = 0; i < BLOCK_HALF_SIZE; i++) /* copy in the block, add whitening */
             {
                 x[i] ^= subKeys[INPUT_WHITEN + i];
-
-                //if (cipherMode == CipherMode.CBC)
-                //    x[i] ^= IV[i];
             }
 
             for (int r = 0; r < rounds; r++) /* main Twofish encryption loop */ // 16==rounds
             {
-#if FEISTEL
-				t0 = f32(ROR(x[0],  (r+1)/2),ref sboxKeys,keyLength);
-				t1 = f32(ROL(x[1],8+(r+1)/2),ref sboxKeys,keyLength);
-											/* PHT, round keys */
-				x[2] ^= ROL(t0 +   t1 + subKeys[ROUND_SUBKEYS+2*r  ], r    /2);
-				x[3] ^= ROR(t0 + 2*t1 + subKeys[ROUND_SUBKEYS+2*r+1],(r+2) /2);
-
-#else
                 t0 = F32(x[0], ref sboxKeys, keyLength);
                 t1 = F32(ROL(x[1], 8), ref sboxKeys, keyLength);
 
@@ -351,7 +292,6 @@ namespace ClassicUO.Network.Encryption.Game
                 x[3] ^= t0 + 2 * t1 + subKeys[ROUND_SUBKEYS + 2 * r + 1];
                 x[2] = ROR(x[2], 1);
 
-#endif
                 if (r < rounds - 1) /* swap for next round */
                 {
                     tmp = x[0];
@@ -362,18 +302,10 @@ namespace ClassicUO.Network.Encryption.Game
                     x[3] = tmp;
                 }
             }
-#if FEISTEL
-			x[0] = ROR(x[0],8);                     /* "final permutation" */
-			x[1] = ROL(x[1],8);
-			x[2] = ROR(x[2],8);
-			x[3] = ROL(x[3],8);
-#endif
+      
             for (int i = 0; i < BLOCK_HALF_SIZE; i++) /* copy out, with whitening */
             {
                 x[i] ^= subKeys[OUTPUT_WHITEN + i];
-
-                //if (cipherMode == CipherMode.CBC)
-                //    IV[i] = x[i];
             }
         }
 
@@ -400,7 +332,8 @@ namespace ClassicUO.Network.Encryption.Game
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static uint RS_MDS_Encode(uint k0, uint k1)
         {
-            uint i, j;
+            uint i;
+            uint j;
             uint r;
 
             for (i = r = 0; i < 2; i++)
@@ -424,12 +357,6 @@ namespace ClassicUO.Network.Encryption.Game
         private const int ROUNDS_192 = 16;    /* default number of rounds for 192-bit keys*/
         private const int ROUNDS_256 = 16;    /* default number of rounds for 256-bit keys*/
         private const int MAX_KEY_BITS = 256; /* max number of bits of key */
-
-        //#define		VALID_SIG	 0x48534946	/* initialization signature ('FISH') */
-        //#define		MCT_OUTER			400	/* MCT outer loop */
-        //#define		MCT_INNER		  10000	/* MCT inner loop */
-        //#define		REENTRANT			  1	/* nonzero forces reentrant code (slightly slower) */
-
         private const int INPUT_WHITEN = 0; /* subkey array indices */
         private const int OUTPUT_WHITEN = INPUT_WHITEN + BLOCK_SIZE / 32;
         private const int ROUND_SUBKEYS = OUTPUT_WHITEN + BLOCK_SIZE / 32; /* use 2 * (# rounds) */
@@ -443,10 +370,6 @@ namespace ClassicUO.Network.Encryption.Game
         private const uint SK_STEP = 0x02020202u;
         private const uint SK_BUMP = 0x01010101u;
         private const int SK_ROTL = 9;
-
-        /* Reed-Solomon code parameters: (12,8) reversible code
-        g(x) = x**4 + (a + 1/a) x**3 + a x**2 + (a + 1/a) x + 1
-        where a = primitive root of field generator 0x14D */
         private const uint RS_GF_FDBK = 0x14D; /* field generator */
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -490,8 +413,6 @@ namespace ClassicUO.Network.Encryption.Game
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int LFSR2(int x) => x >> 2 ^ ((x & 0x02) == 0x02 ? MDS_GF_FDBK / 2 : 0) ^ ((x & 0x01) == 0x01 ? MDS_GF_FDBK / 4 : 0);
-
-        // TODO: not the most efficient use of code but it allows us to update the code a lot quicker we can possibly optimize this code once we have got it all working
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Mx_1(int x) => x; /* force result to int so << will work */
@@ -570,19 +491,16 @@ namespace ClassicUO.Network.Encryption.Game
         private const int P_02 = 0;
         private const int P_03 = P_01 ^ 1; /* "extend" to larger key sizes */
         private const int P_04 = 1;
-
         private const int P_10 = 0;
         private const int P_11 = 0;
         private const int P_12 = 1;
         private const int P_13 = P_11 ^ 1;
         private const int P_14 = 0;
-
         private const int P_20 = 1;
         private const int P_21 = 1;
         private const int P_22 = 0;
         private const int P_23 = P_21 ^ 1;
         private const int P_24 = 0;
-
         private const int P_30 = 0;
         private const int P_31 = 1;
         private const int P_32 = 1;
