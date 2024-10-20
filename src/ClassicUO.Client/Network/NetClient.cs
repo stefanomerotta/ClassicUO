@@ -271,15 +271,18 @@ internal sealed class NetClient
         Statistics.Update();
     }
 
-    private Span<byte> ProcessCompression(Span<byte> buffer)
+    private bool ProcessCompression(ref Span<byte> buffer)
     {
         if (!_isCompressionEnabled)
-            return buffer;
+            return true;
 
         if (_huffman.Decompress(buffer, _decompressionBuffer, out int size))
-            return _decompressionBuffer.AsSpan(..size);
+        {
+            buffer = _decompressionBuffer.AsSpan(..size);
+            return true;
+        }
 
-        return [];
+        return false;
     }
 
     private uint GetLocalIP()
@@ -329,7 +332,7 @@ internal sealed class NetClient
             SendPipe sendPipe = _sendPipe;
 
             await _socket.ConnectAsync(uri, token);
-            
+
             _readLoopTask = Task.Run(() => ReadLoop(socket, receivePipe, token));
             _writeLoopTask = Task.Run(() => WriteLoop(socket, sendPipe, token));
 
@@ -359,10 +362,12 @@ internal sealed class NetClient
                 Statistics.TotalBytesReceived += (uint)span.Length;
 
                 Encryption?.Decrypt(span);
-                span = ProcessCompression(span);
+                
+                if (!ProcessCompression(ref span))
+                    throw new Exception("Huffman decompression failed");
 
                 if (span.IsEmpty)
-                    throw new Exception("Huffman decompression failed");
+                    continue;
 
                 Span<byte> targetSpan = getSpan(ref pipe);
 
@@ -386,7 +391,7 @@ internal sealed class NetClient
             if (se.SocketErrorCode != SocketError.ConnectionReset || !ServerDisconnectionExpected)
                 Cleanup(se.SocketErrorCode);
         }
-        catch
+        catch (Exception e)
         {
             Cleanup(SocketError.Fault);
         }
