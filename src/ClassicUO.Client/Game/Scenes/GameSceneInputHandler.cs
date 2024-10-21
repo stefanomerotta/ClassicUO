@@ -1192,7 +1192,7 @@ namespace ClassicUO.Game.Scenes
 
                             if (!_world.Player.InWarMode)
                             {
-                                NetClient.Socket.Send_ChangeWarMode(true);
+                                NetClient.Socket.SendChangeWarMode(true);
                             }
                         }
                     }
@@ -1527,7 +1527,7 @@ namespace ClassicUO.Game.Scenes
                 {
                     if (_requestedWarMode)
                     {
-                        NetClient.Socket.Send_ChangeWarMode(false);
+                        NetClient.Socket.SendChangeWarMode(false);
                         _requestedWarMode = false;
                     }
                 }

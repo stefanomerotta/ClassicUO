@@ -853,7 +853,7 @@ namespace ClassicUO.Game.UI.Gumps
                 {
                     stream.Read(buffer, 0, buffer.Length);
 
-                    StackDataReader reader = new StackDataReader(buffer.AsSpan(0, (int)stream.Length));
+                    SpanReader reader = new SpanReader(buffer.AsSpan(0, (int)stream.Length));
 
                     int bmp_pitch;
                     int i, pad;

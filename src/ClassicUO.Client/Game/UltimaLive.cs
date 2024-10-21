@@ -83,7 +83,7 @@ namespace ClassicUO.Game
         }
 
         //The UltimaLive packets could be also used for other things than maps and statics
-        private static void OnUltimaLivePacket(World world, ref StackDataReader p)
+        private static void OnUltimaLivePacket(World world, ref SpanReader p)
         {
             p.Seek(13);
             byte command = p.ReadUInt8();
@@ -478,7 +478,7 @@ namespace ClassicUO.Game
             }
         }
 
-        private static void OnUpdateTerrainPacket(World world, ref StackDataReader p)
+        private static void OnUpdateTerrainPacket(World world, ref SpanReader p)
         {
             int block = (int) p.ReadUInt32BE();
             // TODO: stackalloc

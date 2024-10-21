@@ -106,7 +106,7 @@ namespace ClassicUO.Assets
 
             var output = buf[3] == 0x8E /*|| FileManager.Version >= ClientVersion.CV_7010400*/ ? BwtDecompress.Decompress(buf) : buf;
 
-            var reader = new StackDataReader(output);
+            var reader = new SpanReader(output);
             reader.ReadInt32LE();
             reader.ReadInt16LE();
 

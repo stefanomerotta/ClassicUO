@@ -30,12 +30,14 @@
 
 #endregion
 
+using ClassicUO.IO;
 using ClassicUO.Network.Encryptions;
 using ClassicUO.Network.Sockets;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Logging;
 using System;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -202,6 +204,18 @@ internal sealed class NetClient
             SendPipe pipe = _sendPipe.Next = new(SEND_SIZE, true, _sendPipe.Token);
             _sendPipe = pipe;
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Send(in FixedSpanWriter writer, bool ignorePlugin = false)
+    {
+        Send(writer.Buffer, ignorePlugin);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Send(in VariableSpanWriter writer, bool ignorePlugin = false)
+    {
+        Send(writer.Buffer, ignorePlugin);
     }
 
     public void Send(Span<byte> message, bool ignorePlugin = false)

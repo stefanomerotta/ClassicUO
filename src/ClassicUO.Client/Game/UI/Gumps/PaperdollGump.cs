@@ -353,13 +353,7 @@ namespace ClassicUO.Game.UI.Gumps
         {
             if (args.Button == MouseButtonType.Left)
             {
-                GameActions.ReplyGump(
-                    World.Player,
-                    0x000001CD,
-                    0x00000001,
-                    new[] { LocalSerial },
-                    new Tuple<ushort, string>[0]
-                );
+                GameActions.ReplyGump(World.Player, 0x000001CD, 0x00000001, [LocalSerial]);
             }
         }
 
@@ -516,7 +510,7 @@ namespace ClassicUO.Game.UI.Gumps
 
                         if (World.TargetManager.TargetingState == CursorTarget.SetTargetClientSide)
                         {
-                            UIManager.Add(new InspectorGump(World,item));
+                            UIManager.Add(new InspectorGump(World, item));
                         }
                     }
                     else if (!World.DelayedObjectClickManager.IsEnabled)
@@ -691,7 +685,7 @@ namespace ClassicUO.Game.UI.Gumps
                             ref readonly var gumpInfo = ref Client.Game.UO.Gumps.GetGump(0x0804);
 
                             UIManager.Add(
-                                new HealthBarGump(World,LocalSerial)
+                                new HealthBarGump(World, LocalSerial)
                                 {
                                     X = Mouse.Position.X - (gumpInfo.UV.Width >> 1),
                                     Y = Mouse.Position.Y - 5

@@ -143,7 +143,7 @@ namespace ClassicUO.Game.UI.Gumps
 
             view.MouseDoubleClick += (sender, e) =>
             {
-                NetClient.Socket.Send_MenuResponse(
+                NetClient.Socket.SendMenuResponse(
                     LocalSerial,
                     (ushort)ServerSerial,
                     index,
@@ -166,7 +166,7 @@ namespace ClassicUO.Game.UI.Gumps
         {
             base.CloseWithRightClick();
 
-            NetClient.Socket.Send_MenuResponse(LocalSerial, (ushort)ServerSerial, 0, 0, 0);
+            NetClient.Socket.SendMenuResponse(LocalSerial, (ushort)ServerSerial, 0, 0, 0);
         }
 
         class ItemView : Control
@@ -327,7 +327,7 @@ namespace ClassicUO.Game.UI.Gumps
             switch (buttonID)
             {
                 case 0: // cancel
-                    NetClient.Socket.Send_GrayMenuResponse(LocalSerial, (ushort)ServerSerial, 0);
+                    NetClient.Socket.SendGrayMenuResponse(LocalSerial, (ushort)ServerSerial, 0);
 
                     Dispose();
 
@@ -341,7 +341,7 @@ namespace ClassicUO.Game.UI.Gumps
                     {
                         if (radioButton.IsChecked)
                         {
-                            NetClient.Socket.Send_GrayMenuResponse(
+                            NetClient.Socket.SendGrayMenuResponse(
                                 LocalSerial,
                                 (ushort)ServerSerial,
                                 index

@@ -87,12 +87,12 @@ namespace ClassicUO.Assets
             var buf = new byte[entry.Length];
             file.Read(buf);
 
-            var reader = new StackDataReader(buf);
+            var reader = new SpanReader(buf);
             if (entry.CompressionFlag >= CompressionType.Zlib)
             {
                 var dbuf = new byte[entry.DecompressedLength];
                 var result = ZLib.Decompress(buf, dbuf);
-                reader = new StackDataReader(dbuf);
+                reader = new SpanReader(dbuf);
 
                 reader.Skip(sizeof(uint));
 

@@ -49,7 +49,7 @@ namespace ClassicUO.Game.Data
 
         public PopupMenuItem this[int i] => Items[i];
 
-        public static PopupMenuData Parse(ref StackDataReader p)
+        public static PopupMenuData Parse(ref SpanReader p)
         {
             ushort mode = p.ReadUInt16BE();
             bool isNewCliloc = mode >= 2;

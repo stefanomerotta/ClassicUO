@@ -106,7 +106,7 @@ namespace ClassicUO.Network
             }
 
             _startTickValue = Time.Ticks;
-            _socket.Send_Ping(_pingIdx);
+            _socket.SendPing(_pingIdx);
             _pingIdx = (byte)((_pingIdx + 1) % _pings.Length);
         }
 

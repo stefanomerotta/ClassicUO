@@ -404,7 +404,7 @@ namespace ClassicUO.Game.Scenes
                 _world.ServerName = Servers[ServerIndex].Name;
 
                 NetClient.Socket.ServerDisconnectionExpected = true;
-                NetClient.Socket.Send_SelectServer(index);
+                NetClient.Socket.SendSelectServer(index);
             }
         }
 
@@ -415,7 +415,7 @@ namespace ClassicUO.Game.Scenes
                 LastCharacterManager.Save(Account, _world.ServerName, Characters[index]);
 
                 CurrentLoginStep = LoginSteps.EnteringBritania;
-                NetClient.Socket.Send_SelectCharacter(index, Characters[index], NetClient.Socket.LocalIP);
+                NetClient.Socket.SendSelectCharacter(index, Characters[index], NetClient.Socket.LocalIP);
             }
         }
 
@@ -441,7 +441,7 @@ namespace ClassicUO.Game.Scenes
 
             LastCharacterManager.Save(Account, _world.ServerName, character.Name);
 
-            NetClient.Socket.Send_CreateCharacter(character,
+            NetClient.Socket.SendCreateCharacter(character,
                                                   cityIndex,
                                                   NetClient.Socket.LocalIP,
                                                   ServerIndex,
@@ -455,7 +455,7 @@ namespace ClassicUO.Game.Scenes
         {
             if (CurrentLoginStep == LoginSteps.CharacterSelection)
             {
-                NetClient.Socket.Send_DeleteCharacter((byte)index, NetClient.Socket.LocalIP);
+                NetClient.Socket.SendDeleteCharacter((byte)index, NetClient.Socket.LocalIP);
             }
         }
 
@@ -538,7 +538,7 @@ namespace ClassicUO.Game.Scenes
             }
 
             NetClient.Socket.EnableEncryption(true, address);
-            NetClient.Socket.Send_FirstLogin(Account, Password);
+            NetClient.Socket.SendFirstLogin(Account, Password);
         }
 
         private void OnNetClientDisconnected(object sender, SocketError e)
@@ -572,7 +572,7 @@ namespace ClassicUO.Game.Scenes
             }
         }
 
-        public void ServerListReceived(ref StackDataReader p)
+        public void ServerListReceived(ref SpanReader p)
         {
             byte flags = p.ReadUInt8();
             ushort count = p.ReadUInt16BE();
@@ -597,7 +597,7 @@ namespace ClassicUO.Game.Scenes
             }
         }
 
-        public void UpdateCharacterList(ref StackDataReader p)
+        public void UpdateCharacterList(ref SpanReader p)
         {
             ParseCharacterList(ref p);
 
@@ -620,7 +620,7 @@ namespace ClassicUO.Game.Scenes
             }
         }
 
-        public void ReceiveCharacterList(ref StackDataReader p)
+        public void ReceiveCharacterList(ref SpanReader p)
         {
             ParseCharacterList(ref p);
             ParseCities(ref p);
@@ -665,7 +665,7 @@ namespace ClassicUO.Game.Scenes
             }
         }
 
-        public void HandleErrorCode(ref StackDataReader p)
+        public void HandleErrorCode(ref SpanReader p)
         {
             byte code = p.ReadUInt8();
 
@@ -674,13 +674,13 @@ namespace ClassicUO.Game.Scenes
             LoginDelay = default;
         }
 
-        public void HandleLoginDelayPacket(ref StackDataReader p)
+        public void HandleLoginDelayPacket(ref SpanReader p)
         {
             var delay = p.ReadUInt8();
             LoginDelay = ((delay - 1) * 10, delay * 10);
         }
 
-        public void HandleRelayServerPacket(ref StackDataReader p)
+        public void HandleRelayServerPacket(ref SpanReader p)
         {
             long ip = p.ReadUInt32LE(); // use LittleEndian here
             ushort port = p.ReadUInt16BE();
@@ -725,7 +725,7 @@ namespace ClassicUO.Game.Scenes
             }
         }
 
-        private void ParseCharacterList(ref StackDataReader p)
+        private void ParseCharacterList(ref SpanReader p)
         {
             int count = p.ReadUInt8();
             Characters = new string[count];
@@ -738,7 +738,7 @@ namespace ClassicUO.Game.Scenes
             }
         }
 
-        private void ParseCities(ref StackDataReader p)
+        private void ParseCities(ref SpanReader p)
         {
             byte count = p.ReadUInt8();
             Cities = new CityInfo[count];
@@ -955,7 +955,7 @@ namespace ClassicUO.Game.Scenes
         {
         }
 
-        public static ServerListEntry Create(ref StackDataReader p)
+        public static ServerListEntry Create(ref SpanReader p)
         {
             ServerListEntry entry = new ServerListEntry()
             {

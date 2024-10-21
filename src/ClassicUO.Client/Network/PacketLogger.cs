@@ -22,7 +22,7 @@ namespace ClassicUO.Network
             return _logFile = new LogFile(FileSystemHelper.CreateFolderIfNotExists(CUOEnviroment.ExecutablePath, "Logs", "Network"), "packets.log");
         }
 
-        public void Log(Span<byte> message, bool toServer)
+        public void Log(ReadOnlySpan<byte> message, bool toServer)
         {
             if (!Enabled) return;
 

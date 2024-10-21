@@ -454,7 +454,7 @@ namespace ClassicUO.Assets
             BlockData[0][block].StaticCount = BlockData[0][block].OriginalStaticCount = count;
         }
 
-        public unsafe bool ApplyPatches(ref StackDataReader reader)
+        public unsafe bool ApplyPatches(ref SpanReader reader)
         {
             ResetPatchesInBlockTable();
 

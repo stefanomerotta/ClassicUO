@@ -7,14 +7,14 @@ using System.Text;
 
 namespace ClassicUO.IO
 {
-    public unsafe ref struct StackDataReader
+    public unsafe ref struct SpanReader
     {
         private const MethodImplOptions IMPL_OPTION = MethodImplOptions.AggressiveInlining;
 
 
         private readonly ReadOnlySpan<byte> _data;
 
-        public StackDataReader(ReadOnlySpan<byte> data)
+        public SpanReader(ReadOnlySpan<byte> data)
         {
             _data = data;
             Length = data.Length;

@@ -59,7 +59,7 @@ namespace ClassicUO.Game.Managers
         public long PartyHealTimer { get; set; }
         public uint PartyHealTarget { get; set; }
 
-        public void ParsePacket(ref StackDataReader p)
+        public void ParsePacket(ref SpanReader p)
         {
             byte code = p.ReadUInt8();
 

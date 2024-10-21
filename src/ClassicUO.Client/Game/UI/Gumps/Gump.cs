@@ -33,6 +33,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Xml;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.Managers;
@@ -96,7 +97,7 @@ namespace ClassicUO.Game.UI.Gumps
 
         public virtual void Save(XmlTextWriter writer)
         {
-            writer.WriteAttributeString("type", ((int) GumpType).ToString());
+            writer.WriteAttributeString("type", ((int)GumpType).ToString());
             writer.WriteAttributeString("x", X.ToString());
             writer.WriteAttributeString("y", Y.ToString());
             writer.WriteAttributeString("serial", LocalSerial.ToString());
@@ -169,8 +170,8 @@ namespace ClassicUO.Game.UI.Gumps
         {
             if (!IsDisposed && LocalSerial != 0)
             {
-                List<uint> switches = new List<uint>();
-                List<Tuple<ushort, string>> entries = new List<Tuple<ushort, string>>();
+                List<uint> switches = [];
+                List<(ushort, string)> entries = [];
 
                 foreach (Control control in Children)
                 {
@@ -182,7 +183,7 @@ namespace ClassicUO.Game.UI.Gumps
                             break;
 
                         case StbTextBox textBox:
-                            entries.Add(new Tuple<ushort, string>((ushort) textBox.LocalSerial, textBox.Text));
+                            entries.Add(((ushort)textBox.LocalSerial, textBox.Text));
 
                             break;
                     }
@@ -194,8 +195,8 @@ namespace ClassicUO.Game.UI.Gumps
                     // Seems like MasterGump serial does not work as expected.
                     /*MasterGumpSerial != 0 ? MasterGumpSerial :*/ ServerSerial,
                     buttonID,
-                    switches.ToArray(),
-                    entries.ToArray()
+                    CollectionsMarshal.AsSpan(switches),
+                    CollectionsMarshal.AsSpan(entries)
                 );
 
                 if (CanMove)

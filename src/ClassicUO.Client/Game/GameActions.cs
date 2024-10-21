@@ -71,7 +71,7 @@ namespace ClassicUO.Game
                 }
             }
 
-            Socket.Send_ChangeWarMode(war);
+            Socket.SendChangeWarMode(war);
         }
 
         public static void OpenMacroGump(World world, string name)
@@ -166,7 +166,7 @@ namespace ClassicUO.Game
             else
             {
                 world.SkillsRequested = true;
-                Socket.Send_SkillsRequest(world.Player.Serial);
+                Socket.SendSkillsRequest(world.Player.Serial);
             }
         }
 
@@ -267,7 +267,7 @@ namespace ClassicUO.Game
 
             if (backpackGump == null)
             {
-                DoubleClick(world,backpack);
+                DoubleClick(world, backpack);
             }
             else
             {
@@ -299,7 +299,7 @@ namespace ClassicUO.Game
                         {
                             if (s)
                             {
-                                Socket.Send_AttackRequest(serial);
+                                Socket.SendAttackRequest(serial);
                             }
                         }
                     );
@@ -312,7 +312,7 @@ namespace ClassicUO.Game
 
             world.TargetManager.NewTargetSystemSerial = serial;
             world.TargetManager.LastAttack = serial;
-            Socket.Send_AttackRequest(serial);
+            Socket.SendAttackRequest(serial);
         }
 
         public static void DoubleClickQueued(uint serial)
@@ -324,12 +324,12 @@ namespace ClassicUO.Game
         {
             if (serial != world.Player && SerialHelper.IsMobile(serial) && world.Player.InWarMode)
             {
-                RequestMobileStatus(world,serial);
+                RequestMobileStatus(world, serial);
                 Attack(world, serial);
             }
             else
             {
-                Socket.Send_DoubleClick(serial);
+                Socket.SendDoubleClick(serial);
             }
 
             if (SerialHelper.IsItem(serial) || (SerialHelper.IsMobile(serial) && (world.Mobiles.Get(serial)?.IsHuman ?? false)))
@@ -345,7 +345,7 @@ namespace ClassicUO.Game
         public static void SingleClick(World world, uint serial)
         {
             // add  request context menu
-            Socket.Send_ClickRequest(serial);
+            Socket.SendClickRequest(serial);
 
             Entity entity = world.Get(serial);
 
@@ -367,7 +367,7 @@ namespace ClassicUO.Game
             // Fix -> #1267
             if (Client.Game.UO.Version >= ClientVersion.CV_200)
             {
-                Socket.Send_UnicodeSpeechRequest(message,
+                Socket.SendUnicodeSpeechRequest(message,
                                                  type,
                                                  font,
                                                  hue,
@@ -375,7 +375,7 @@ namespace ClassicUO.Game
             }
             else
             {
-                Socket.Send_ASCIISpeechRequest(message, type, font, hue);
+                Socket.SendASCIISpeechRequest(message, type, font, hue);
             }
         }
 
@@ -509,9 +509,9 @@ namespace ClassicUO.Game
             }
 
             Client.Game.UO.GameCursor.ItemHold.Clear();
-            Client.Game.UO.GameCursor.ItemHold.Set(item, (ushort) amount, offset);
+            Client.Game.UO.GameCursor.ItemHold.Set(item, (ushort)amount, offset);
             Client.Game.UO.GameCursor.ItemHold.IsGumpTexture = is_gump;
-            Socket.Send_PickUpRequest(item, (ushort) amount);
+            Socket.SendPickUpRequest(item, (ushort)amount);
 
             if (item.OnGround)
             {
@@ -531,7 +531,7 @@ namespace ClassicUO.Game
             {
                 if (Client.Game.UO.Version >= ClientVersion.CV_6017)
                 {
-                    Socket.Send_DropRequest(serial,
+                    Socket.SendDropRequest(serial,
                                             (ushort)x,
                                             (ushort)y,
                                             (sbyte)z,
@@ -540,7 +540,7 @@ namespace ClassicUO.Game
                 }
                 else
                 {
-                    Socket.Send_DropRequest_Old(serial,
+                    Socket.SendDropRequestOld(serial,
                                                 (ushort)x,
                                                 (ushort)y,
                                                 (sbyte)z,
@@ -561,25 +561,22 @@ namespace ClassicUO.Game
                     container = world.Player.Serial;
                 }
 
-                Socket.Send_EquipRequest(Client.Game.UO.GameCursor.ItemHold.Serial, (Layer)Client.Game.UO.GameCursor.ItemHold.ItemData.Layer, container);
+                Socket.SendEquipRequest(Client.Game.UO.GameCursor.ItemHold.Serial, (Layer)Client.Game.UO.GameCursor.ItemHold.ItemData.Layer, container);
 
                 Client.Game.UO.GameCursor.ItemHold.Enabled = false;
                 Client.Game.UO.GameCursor.ItemHold.Dropped = true;
             }
         }
 
-        public static void ReplyGump(uint local, uint server, int button, uint[] switches = null, Tuple<ushort, string>[] entries = null)
+        public static void ReplyGump(uint local, uint server, int button, ReadOnlySpan<uint> switches = default, 
+            ReadOnlySpan<(ushort, string)> entries = default)
         {
-            Socket.Send_GumpResponse(local,
-                                     server,
-                                     button,
-                                     switches,
-                                     entries);
+            Socket.SendGumpResponse(local, server, button, switches, entries);
         }
 
         public static void RequestHelp()
         {
-            Socket.Send_HelpRequest();
+            Socket.SendHelpRequest();
         }
 
         public static void RequestQuestMenu(World world)
@@ -624,7 +621,7 @@ namespace ClassicUO.Game
                 {
                     //ent = ent ?? World.Player;
                     //ent.AddMessage(MessageType.Regular, $"PACKET SENT: 0x{serial:X8}", 3, 0x34, true, TextType.OBJECT);
-                    Socket.Send_StatusRequest(serial);
+                    Socket.SendStatusRequest(serial);
                 }
             }
         }
@@ -655,7 +652,7 @@ namespace ClassicUO.Game
             if (index >= 0)
             {
                 LastSpellIndex = index;
-                Socket.Send_CastSpellFromBook(index, bookSerial);
+                Socket.SendCastSpellFromBook(index, bookSerial);
             }
         }
 
@@ -688,7 +685,7 @@ namespace ClassicUO.Game
             if (index >= 0)
             {
                 LastSkillIndex = index;
-                Socket.Send_UseSkill(index);
+                Socket.SendUseSkill(index);
             }
         }
 
@@ -735,7 +732,7 @@ namespace ClassicUO.Game
             {
                 if (mobile != world.Player)
                 {
-                    Socket.Send_ClickRequest(mobile.Serial);
+                    Socket.SendClickRequest(mobile.Serial);
                 }
             }
 
@@ -743,19 +740,19 @@ namespace ClassicUO.Game
             {
                 if (item.IsCorpse)
                 {
-                    Socket.Send_ClickRequest(item.Serial);
+                    Socket.SendClickRequest(item.Serial);
                 }
             }
         }
 
         public static void OpenDoor()
         {
-            Socket.Send_OpenDoor();
+            Socket.SendOpenDoor();
         }
 
         public static void EmoteAction(string action)
         {
-            Socket.Send_EmoteAction(action);
+            Socket.SendEmoteAction(action);
         }
 
         public static void OpenAbilitiesBook(World world)
@@ -785,11 +782,11 @@ namespace ClassicUO.Game
         {
             ref var ability = ref world.Player.Abilities[0];
 
-            if (((byte) ability & 0x80) == 0)
+            if (((byte)ability & 0x80) == 0)
             {
                 for (int i = 0; i < 2; i++)
                 {
-                    world.Player.Abilities[i] &= (Ability) 0x7F;
+                    world.Player.Abilities[i] &= (Ability)0x7F;
                 }
 
                 SendAbility(world, (byte)ability, true);
@@ -799,18 +796,18 @@ namespace ClassicUO.Game
                 SendAbility(world, 0, true);
             }
 
-            ability ^= (Ability) 0x80;
+            ability ^= (Ability)0x80;
         }
 
         public static void UseSecondaryAbility(World world)
         {
             ref Ability ability = ref world.Player.Abilities[1];
 
-            if (((byte) ability & 0x80) == 0)
+            if (((byte)ability & 0x80) == 0)
             {
                 for (int i = 0; i < 2; i++)
                 {
-                    world.Player.Abilities[i] &= (Ability) 0x7F;
+                    world.Player.Abilities[i] &= (Ability)0x7F;
                 }
 
                 SendAbility(world, (byte)ability, false);
@@ -820,7 +817,7 @@ namespace ClassicUO.Game
                 SendAbility(world, 0, true);
             }
 
-            ability ^= (Ability) 0x80;
+            ability ^= (Ability)0x80;
         }
 
         // ===================================================

@@ -602,7 +602,7 @@ namespace ClassicUO.Game.Managers
                                             break;
                                     }
 
-                                    NetClient.Socket.Send_OpenSpellBook((byte)type);
+                                    NetClient.Socket.SendOpenSpellBook((byte)type);
 
                                     break;
 

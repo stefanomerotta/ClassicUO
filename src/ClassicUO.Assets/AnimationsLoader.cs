@@ -839,7 +839,7 @@ namespace ClassicUO.Assets
                     buf = new byte[entry.Length];
 
                 animSeq.Read(buf.AsSpan(0, entry.Length));
-                var reader = new StackDataReader(buf);
+                var reader = new SpanReader(buf);
                 if (entry.CompressionFlag >= CompressionType.Zlib)
                 {
                     if (dbuf.Length < entry.DecompressedLength)
@@ -849,7 +849,7 @@ namespace ClassicUO.Assets
                     if (ok != ZLib.ZLibError.Ok)
                         continue;
 
-                    reader = new StackDataReader(dbuf.AsSpan(0, entry.DecompressedLength));
+                    reader = new SpanReader(dbuf.AsSpan(0, entry.DecompressedLength));
                 }
 
                 if (reader.Remaining <= 0)
@@ -1253,7 +1253,7 @@ namespace ClassicUO.Assets
             var buf = new byte[index.Size];
             file.Read(buf);
 
-            var reader = new StackDataReader(buf);
+            var reader = new SpanReader(buf);
 
             if (index.CompressionType >= CompressionType.Zlib)
             {
@@ -1271,7 +1271,7 @@ namespace ClassicUO.Assets
                     dbuf = ClassicUO.Utility.BwtDecompress.Decompress(dbuf);
                 }
 
-                reader = new StackDataReader(dbuf);
+                reader = new SpanReader(dbuf);
             }
           
             
@@ -1389,7 +1389,7 @@ namespace ClassicUO.Assets
             var buf = new byte[index.Size];
             file.Read(buf);
 
-            var reader = new StackDataReader(buf);
+            var reader = new SpanReader(buf);
             var palette = MemoryMarshal.Cast<byte, ushort>(reader.Buffer.Slice(reader.Position, 512));
             reader.Skip(512);
 
@@ -1416,7 +1416,7 @@ namespace ClassicUO.Assets
         }
 
         private void ReadSpriteData(
-            ref StackDataReader reader,
+            ref SpanReader reader,
             ReadOnlySpan<ushort> palette,
             ref FrameInfo frame,
             bool alphaCheck
