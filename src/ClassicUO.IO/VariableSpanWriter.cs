@@ -1,5 +1,4 @@
 using ClassicUO.IO.Encoders;
-using ClassicUO.Utility;
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
@@ -151,19 +150,6 @@ public ref struct VariableSpanWriter : IDisposable
         Position += sizeof(long);
     }
 
-    [MethodImpl(IMPL_OPTION)]
-    public void WriteUnicodeLE(string value)
-    {
-        WriteString<char>(Encoding.Unicode, value, -1);
-        WriteUInt16LE(0x0000);
-    }
-
-    [MethodImpl(IMPL_OPTION)]
-    public void WriteUnicodeLE(string value, int length)
-    {
-        WriteString<char>(Encoding.Unicode, value, length);
-    }
-
     /* Big Endian */
 
     [MethodImpl(IMPL_OPTION)]
@@ -215,47 +201,6 @@ public ref struct VariableSpanWriter : IDisposable
     }
 
     [MethodImpl(IMPL_OPTION)]
-    public void WriteNullTerminatedASCII(string? value)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            WriteUInt8(0x00);
-            return;
-        }
-
-        EnsureSize(value.Length + 1);
-
-        int bytesWritten = StringHelper.StringToCp1252Bytes(value, _buffer[Position..]);
-        Position += bytesWritten;
-        _buffer[Position++] = 0x0;
-    }
-
-    [MethodImpl(IMPL_OPTION)]
-    public void WriteFixedASCII(string? value, int byteLength)
-    {
-        Debug.Assert(byteLength > 0);
-
-        if (string.IsNullOrEmpty(value))
-        {
-            WriteZero(byteLength);
-            return;
-        }
-
-        EnsureSize(byteLength);
-
-        int bytesWritten = StringHelper.StringToCp1252Bytes(value, _buffer[Position..], byteLength);
-        Position += bytesWritten;
-
-        if (bytesWritten < byteLength)
-        {
-            int remainingBytes = byteLength - bytesWritten;
-            _buffer.Slice(Position, remainingBytes).Clear();
-            Position += remainingBytes;
-        }
-    }
-
-
-    [MethodImpl(IMPL_OPTION)]
     public void WriteZero(int count)
     {
         if (count <= 0)
@@ -302,17 +247,17 @@ public ref struct VariableSpanWriter : IDisposable
         if (value.IsEmpty)
             return;
 
-        int byteLength = T.Encoding.GetByteCount(value);
+        int byteLength = T.GetByteCount(value);
         EnsureSize(byteLength);
 
-        int bytesWritten = T.Encoding.GetBytes(value, _buffer[Position..]);
+        int bytesWritten = T.GetBytes(value, _buffer[Position..]);
         Position += bytesWritten;
     }
 
     [MethodImpl(IMPL_OPTION)]
     public void WriteString<T>(ReadOnlySpan<char> value, StringOptions options) where T : ITextEncoder
     {
-        int byteLength = T.Encoding.GetByteCount(value);
+        int byteLength = T.GetByteCount(value);
 
         bool nullTerminated = options.HasFlag(StringOptions.NullTerminated);
         if (nullTerminated)
@@ -329,7 +274,7 @@ public ref struct VariableSpanWriter : IDisposable
             EnsureSize(byteLength);
         }
 
-        T.Encoding.GetBytes(value, _buffer[Position..]);
+        T.GetBytes(value, _buffer[Position..]);
         Position += byteLength;
 
         if (nullTerminated)
@@ -350,38 +295,14 @@ public ref struct VariableSpanWriter : IDisposable
         EnsureSize(byteLength);
 
         int stringLength = Math.Min(value.Length, byteLength >> T.ByteShift);
-        int bytesWritten = T.Encoding.GetBytes(value[..stringLength], _buffer[Position..]);
+        int bytesWritten = T.GetBytes(value[..stringLength], _buffer[Position..]);
         Position += bytesWritten;
 
-        int remainingBytes = (stringLength << T.ByteShift) - bytesWritten;
+        int remainingBytes = (byteLength << T.ByteShift) - bytesWritten;
         _buffer.Slice(Position, remainingBytes).Clear();
         Position += remainingBytes;
     }
-
-    // Thanks MUO :)
-    private void WriteString<T>(Encoding encoding, string str, int length) where T : struct, IEquatable<T>
-    {
-        int sizeT = Unsafe.SizeOf<T>();
-
-        if (sizeT > 2)
-            throw new InvalidConstraintException("WriteString only accepts byte, sbyte, char, short, and ushort as a constraint");
-
-        str ??= string.Empty;
-
-        int byteCount = length > -1 ? length * sizeT : encoding.GetByteCount(str);
-        if (byteCount == 0)
-            return;
-
-        EnsureSize(byteCount);
-
-        int charLength = Math.Min(length > -1 ? length : str.Length, str.Length);
-        int processed = encoding.GetBytes(str, 0, charLength, _allocatedBuffer!, Position);
-        Position += processed;
-
-        if (length > -1)
-            WriteZero(length * sizeT - processed);
-    }
-
+       
     [MethodImpl(IMPL_OPTION)]
     private void EnsureSize(int size)
     {

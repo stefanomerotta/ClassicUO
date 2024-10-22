@@ -157,19 +157,6 @@ public ref struct FixedSpanWriter : IDisposable
         Position += sizeof(long);
     }
 
-    [MethodImpl(IMPL_OPTION)]
-    public void WriteUnicodeLE(string value)
-    {
-        WriteString<char>(Encoding.Unicode, value, -1);
-        WriteUInt16LE(0x0000);
-    }
-
-    [MethodImpl(IMPL_OPTION)]
-    public void WriteUnicodeLE(string value, int length)
-    {
-        WriteString<char>(Encoding.Unicode, value, length);
-    }
-
     /* Big Endian */
 
     [MethodImpl(IMPL_OPTION)]
@@ -212,42 +199,6 @@ public ref struct FixedSpanWriter : IDisposable
     {
         BinaryPrimitives.WriteInt64BigEndian(_buffer[Position..], value);
         Position += sizeof(long);
-    }
-
-    [MethodImpl(IMPL_OPTION)]
-    public void WriteNullTerminatedASCII(string? value)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            _buffer[Position++] = 0x0;
-            return;
-        }
-
-        int bytesWritten = StringHelper.StringToCp1252Bytes(value, _buffer[Position..]);
-        Position += bytesWritten;
-        _buffer[Position++] = 0x0;
-    }
-
-    [MethodImpl(IMPL_OPTION)]
-    public void WriteFixedASCII(string? value, int byteLength)
-    {
-        Debug.Assert(byteLength > 0);
-
-        if (string.IsNullOrEmpty(value))
-        {
-            WriteZero(byteLength);
-            return;
-        }
-
-        int bytesWritten = StringHelper.StringToCp1252Bytes(value, _buffer[Position..], byteLength);
-        Position += bytesWritten;
-
-        if (bytesWritten < byteLength)
-        {
-            int remainingBytes = byteLength - bytesWritten;
-            _buffer.Slice(Position, remainingBytes).Clear();
-            Position += remainingBytes;
-        }
     }
 
     [MethodImpl(IMPL_OPTION)]
@@ -295,7 +246,7 @@ public ref struct FixedSpanWriter : IDisposable
         if (value.IsEmpty)
             return;
 
-        int bytesWritten = T.Encoding.GetBytes(value, _buffer[Position..]);
+        int bytesWritten = T.GetBytes(value, _buffer[Position..]);
         Position += bytesWritten;
     }
 
@@ -306,7 +257,7 @@ public ref struct FixedSpanWriter : IDisposable
 
         if (options.HasFlag(StringOptions.PrependByteSize))
         {
-            int bytesWritten = T.Encoding.GetBytes(value, _buffer[(Position + 2)..]);
+            int bytesWritten = T.GetBytes(value, _buffer[(Position + 2)..]);
 
             if (nullTerminated)
                 bytesWritten++;
@@ -319,7 +270,7 @@ public ref struct FixedSpanWriter : IDisposable
         }
         else
         {
-            int bytesWritten = T.Encoding.GetBytes(value, _buffer[Position..]);
+            int bytesWritten = T.GetBytes(value, _buffer[Position..]);
             Position += bytesWritten;
 
             if (nullTerminated)
@@ -339,33 +290,11 @@ public ref struct FixedSpanWriter : IDisposable
         }
 
         int stringLength = Math.Min(value.Length, byteLength >> T.ByteShift);
-        int bytesWritten = T.Encoding.GetBytes(value[..stringLength], _buffer[Position..]);
+        int bytesWritten = T.GetBytes(value[..stringLength], _buffer[Position..]);
         Position += bytesWritten;
 
-        int remainingBytes = (stringLength << T.ByteShift) - bytesWritten;
+        int remainingBytes = (byteLength << T.ByteShift) - bytesWritten;
         WriteZero(remainingBytes);
-    }
-
-    // Thanks MUO :)
-    private void WriteString<T>(Encoding encoding, string str, int length) where T : struct, IEquatable<T>
-    {
-        int sizeT = Unsafe.SizeOf<T>();
-
-        if (sizeT > 2)
-            throw new InvalidConstraintException("WriteString only accepts byte, sbyte, char, short, and ushort as a constraint");
-
-        str ??= string.Empty;
-
-        int byteCount = length > -1 ? length * sizeT : encoding.GetByteCount(str);
-        if (byteCount == 0)
-            return;
-
-        int charLength = Math.Min(length > -1 ? length : str.Length, str.Length);
-        int processed = encoding.GetBytes(str, 0, charLength, _allocatedBuffer!, Position);
-        Position += processed;
-
-        if (length > -1)
-            WriteZero(length * sizeT - processed);
     }
 
     [MethodImpl(IMPL_OPTION)]

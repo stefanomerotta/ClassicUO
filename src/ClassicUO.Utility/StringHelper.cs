@@ -32,7 +32,6 @@
 
 using SDL2;
 using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace ClassicUO.Utility
@@ -41,14 +40,29 @@ namespace ClassicUO.Utility
     {
         private static readonly char[] _dots = ['.', ',', ';', '!'];
 
-        public static IEnumerable<byte> StringToCp1252Bytes(string s, int length = -1)
+        public static int StringToCp1252Bytes(ReadOnlySpan<char> source, Span<byte> dest)
         {
-            length = length > 0 ? Math.Min(length, s.Length) : s.Length;
-
-            for (int i = 0; i < length; i += char.IsSurrogatePair(s, i) ? 2 : 1)
+            int destIndex = 0;
+            for (int i = 0; i < source.Length;)
             {
-                yield return UnicodeToCp1252(char.ConvertToUtf32(s, i));
+                char high = source[i];
+                i++;
+
+                if (!char.IsHighSurrogate(high) || i == source.Length)
+                {
+                    dest[destIndex++] = UnicodeToCp1252(high);
+                    continue;
+                }
+
+                char low = source[i];
+                if (!char.IsLowSurrogate(low))
+                    continue;
+
+                dest[destIndex++] = UnicodeToCp1252(char.ConvertToUtf32(high, low));
+                i++;
             }
+
+            return destIndex;
         }
 
         public static int StringToCp1252Bytes(string source, Span<byte> dest, int length = -1)

@@ -17,13 +17,9 @@ namespace ClassicUO.UnitTests.IO
             string str = new string('a', 128);
 
             if (BitConverter.IsLittleEndian)
-            {
-                writer.WriteUnicodeLE(str);
-            }
+                writer.WriteString<UnicodeLE>(str);
             else
-            {
                 writer.WriteString<UnicodeBE>(str);
-            }
 
             Span<char> span = stackalloc char[str.Length + 1]; // '\0'
             str.AsSpan().CopyTo(span);
@@ -43,13 +39,9 @@ namespace ClassicUO.UnitTests.IO
             int size = 256;
 
             if (BitConverter.IsLittleEndian)
-            {
-                writer.WriteUnicodeLE(str, size);
-            }
+                writer.WriteFixedString<UnicodeLE>(str, size);
             else
-            {
                 writer.WriteFixedString<UnicodeBE>(str, size);
-            }
 
             Span<char> span = stackalloc char[size];
             str.AsSpan().CopyTo(span);
@@ -68,13 +60,9 @@ namespace ClassicUO.UnitTests.IO
             int size = 239;
 
             if (BitConverter.IsLittleEndian)
-            {
-                writer.WriteUnicodeLE(str, size);
-            }
+                writer.WriteFixedString<UnicodeLE>(str, size);
             else
-            {
                 writer.WriteFixedString<UnicodeBE>(str, size);
-            }
 
             Span<char> span = stackalloc char[size];
             str.AsSpan(0, size).CopyTo(span);
@@ -91,7 +79,7 @@ namespace ClassicUO.UnitTests.IO
         {
             VariableSpanWriter writer = new VariableSpanWriter();
 
-            writer.WriteNullTerminatedASCII(a);
+            writer.WriteString<ASCIICP1215>(a, StringOptions.NullTerminated);
 
             Assert.True(b.AsSpan().SequenceEqual(writer.Buffer.Slice(0, writer.BytesWritten)));
 

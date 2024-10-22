@@ -100,8 +100,8 @@ internal static class NetClientExt
     public static void SendFirstLogin(this NetClient socket, string user, string psw)
     {
         using FixedSpanWriter writer = new(0x80, 62);
-        writer.WriteFixedASCII(user, 30);
-        writer.WriteFixedASCII(psw, 30);
+        writer.WriteFixedString<ASCIICP1215>(user, 30);
+        writer.WriteFixedString<ASCIICP1215>(psw, 30);
         writer.WriteUInt8(0xFF);
 
         socket.Send(writer);
@@ -116,8 +116,8 @@ internal static class NetClientExt
     {
         using FixedSpanWriter writer = new(0x91, 65);
         writer.WriteUInt32BE(seed);
-        writer.WriteFixedASCII(user, 30);
-        writer.WriteFixedASCII(psw, 30);
+        writer.WriteFixedString<ASCIICP1215>(user, 30);
+        writer.WriteFixedString<ASCIICP1215>(psw, 30);
 
         socket.Send(writer);
     }
@@ -140,7 +140,7 @@ internal static class NetClientExt
         writer.WriteUInt32BE(0xEDED_EDED);
         writer.WriteUInt32BE(0xFFFF_FFFF);
         writer.WriteUInt8(0x00);
-        writer.WriteFixedASCII(character.Name, 30);
+        writer.WriteFixedString<ASCIICP1215>(character.Name, 30);
         writer.WriteZero(2);
 
         writer.WriteUInt32BE((uint)Client.Game.UO.Protocol);
@@ -240,7 +240,7 @@ internal static class NetClientExt
     {
         using FixedSpanWriter writer = new(0x5D, 73);
         writer.WriteUInt32BE(0xEDEDEDED);
-        writer.WriteFixedASCII(name, 30);
+        writer.WriteFixedString<ASCIICP1215>(name, 30);
         writer.WriteZero(2);
         writer.WriteUInt32BE((uint)Client.Game.UO.Protocol);
         writer.WriteZero(24);
@@ -363,7 +363,7 @@ internal static class NetClientExt
     public static void SendClientVersion(this NetClient socket, string version)
     {
         using FixedSpanWriter writer = new(0xBD, stackalloc byte[3 + version.Length + 1], true);
-        writer.WriteNullTerminatedASCII(version);
+        writer.WriteString<ASCIICP1215>(version, StringOptions.NullTerminated);
 
         writer.WritePacketLength();
 
@@ -380,7 +380,7 @@ internal static class NetClientExt
         writer.WriteUInt8((byte)type);
         writer.WriteUInt16BE(hue);
         writer.WriteUInt16BE(font);
-        writer.WriteNullTerminatedASCII(text);
+        writer.WriteString<ASCIICP1215>(text, StringOptions.NullTerminated);
 
         writer.WritePacketLength();
 
@@ -400,7 +400,7 @@ internal static class NetClientExt
         writer.WriteUInt8((byte)type);
         writer.WriteUInt16BE(hue);
         writer.WriteUInt16BE(font);
-        writer.WriteFixedASCII(lang, 4);
+        writer.WriteFixedString<ASCIICP1215>(lang, 4);
 
         if (encoded)
         {
@@ -465,7 +465,7 @@ internal static class NetClientExt
         {
             using VariableSpanWriter writer = new(0x12, stackalloc byte[3 + 6], true);
             writer.WriteUInt8(0x56);
-            writer.WriteNullTerminatedASCII(idx.ToString());
+            writer.WriteString<ASCIICP1215>(idx.ToString(), StringOptions.NullTerminated);
 
             writer.WritePacketLength();
 
@@ -477,7 +477,7 @@ internal static class NetClientExt
     {
         using VariableSpanWriter writer = new(0x12, stackalloc byte[20], true);
         writer.WriteUInt8(0x27);
-        writer.WriteNullTerminatedASCII($"{idx} {serial}");
+        writer.WriteString<ASCIICP1215>($"{idx} {serial}", StringOptions.NullTerminated);
 
         writer.WritePacketLength();
 
@@ -488,7 +488,7 @@ internal static class NetClientExt
     {
         using VariableSpanWriter writer = new(0x12, stackalloc byte[14], true);
         writer.WriteUInt8(0x24);
-        writer.WriteNullTerminatedASCII($"{idx} 0");
+        writer.WriteString<ASCIICP1215>($"{idx} 0", StringOptions.NullTerminated);
 
         writer.WritePacketLength();
 
@@ -509,7 +509,7 @@ internal static class NetClientExt
     {
         using FixedSpanWriter writer = new(0x12, 3 + action.Length + 1, true);
         writer.WriteUInt8(0xC7);
-        writer.WriteNullTerminatedASCII(action);
+        writer.WriteString<ASCIICP1215>(action, StringOptions.NullTerminated);
 
         writer.WritePacketLength();
 
@@ -643,7 +643,7 @@ internal static class NetClientExt
         writer.WriteUInt8(button);
         writer.WriteBool(code);
         writer.WriteUInt16BE((ushort)(text.Length + 1));
-        writer.WriteFixedASCII(text, text.Length + 1);
+        writer.WriteFixedString<ASCIICP1215>(text, text.Length + 1);
 
         writer.WritePacketLength();
 
@@ -654,7 +654,7 @@ internal static class NetClientExt
     {
         using FixedSpanWriter writer = new(0x75, stackalloc byte[35]);
         writer.WriteUInt32BE(serial);
-        writer.WriteFixedASCII(name, 30);
+        writer.WriteFixedString<ASCIICP1215>(name, 30);
 
         socket.Send(writer);
     }
@@ -725,7 +725,7 @@ internal static class NetClientExt
         using FixedSpanWriter writer = new(0x6C, 3 + 12 + text.Length + 1, true);
         writer.WriteUInt64BE(world.MessageManager.PromptData.Data);
         writer.WriteUInt32BE((uint)(cancel ? 0 : 1));
-        writer.WriteNullTerminatedASCII(text);
+        writer.WriteString<ASCIICP1215>(text, StringOptions.NullTerminated);
 
         writer.WritePacketLength();
 
@@ -737,9 +737,9 @@ internal static class NetClientExt
         using FixedSpanWriter writer = new(0xC2, 3 + 16 + text.Length * 2, true);
         writer.WriteUInt64BE(world.MessageManager.PromptData.Data);
         writer.WriteUInt32BE((uint)(cancel ? 0 : 1));
-        writer.WriteFixedASCII(lang, 3);
+        writer.WriteFixedString<ASCIICP1215>(lang, 3);
         writer.WriteUInt8(0x00);
-        writer.WriteUnicodeLE(text, text.Length);
+        writer.WriteString<UnicodeLE>(text);
 
         writer.WritePacketLength();
 
@@ -999,7 +999,7 @@ internal static class NetClientExt
     {
         using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 6], true);
         writer.WriteUInt16BE(0x0B);
-        writer.WriteFixedASCII(lang, 3);
+        writer.WriteFixedString<ASCIICP1215>(lang, 3);
         writer.WriteUInt8(0x00);
 
         writer.WritePacketLength();
@@ -1045,7 +1045,7 @@ internal static class NetClientExt
     public static void SendChatJoinCommand(this NetClient socket, string name, string? password = null)
     {
         using FixedSpanWriter writer = new(0xB3, 3 + 8 + name.Length * 2 + (password?.Length ?? 0) * 2, true);
-        writer.WriteFixedASCII(Settings.GlobalSettings.Language, 4);
+        writer.WriteFixedString<ASCIICP1215>(Settings.GlobalSettings.Language, 4);
         writer.WriteUInt16BE(0x62);
         writer.WriteUInt16BE(0x22);
         writer.WriteString<UnicodeBE>(name);
@@ -1063,7 +1063,7 @@ internal static class NetClientExt
     public static void SendChatCreateChannelCommand(this NetClient socket, string name, string? password = null)
     {
         using FixedSpanWriter writer = new(0xB3, 3 + 10 + name.Length * 2 + (password?.Length ?? 0) * 2, true);
-        writer.WriteFixedASCII(Settings.GlobalSettings.Language, 4);
+        writer.WriteFixedString<ASCIICP1215>(Settings.GlobalSettings.Language, 4);
         writer.WriteUInt16BE(0x63);
         writer.WriteString<UnicodeBE>(name);
 
@@ -1082,7 +1082,7 @@ internal static class NetClientExt
     public static void SendChatLeaveChannelCommand(this NetClient socket)
     {
         using FixedSpanWriter writer = new(0xB3, stackalloc byte[3 + 6], true);
-        writer.WriteFixedASCII(Settings.GlobalSettings.Language, 4);
+        writer.WriteFixedString<ASCIICP1215>(Settings.GlobalSettings.Language, 4);
         writer.WriteUInt16BE(0x43);
 
         writer.WritePacketLength();
@@ -1093,7 +1093,7 @@ internal static class NetClientExt
     public static void SendChatMessageCommand(this NetClient socket, string msg)
     {
         using FixedSpanWriter writer = new(0xB3, 3 + 6 + msg.Length * 2, true);
-        writer.WriteFixedASCII(Settings.GlobalSettings.Language, 4);
+        writer.WriteFixedString<ASCIICP1215>(Settings.GlobalSettings.Language, 4);
         writer.WriteUInt16BE(0x61);
         writer.WriteString<UnicodeBE>(msg);
 
@@ -1163,7 +1163,7 @@ internal static class NetClientExt
     {
         using VariableSpanWriter writer = new(0x12, stackalloc byte[3 + 7], true);
         writer.WriteUInt8(0xF4);
-        writer.WriteNullTerminatedASCII(id.ToString());
+        writer.WriteString<ASCIICP1215>(id.ToString(), StringOptions.NullTerminated);
 
         writer.WritePacketLength();
 
