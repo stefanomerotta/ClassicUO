@@ -337,15 +337,13 @@ namespace ClassicUO.Network
                 if (Client.Game.UO.Version >= Utility.ClientVersion.CV_5090)
                 {
                     if (Handler._clilocRequests.Count != 0)
-                    {
-                        NetClient.Socket.Send_MegaClilocRequest(Handler._clilocRequests);
-                    }
+                        NetClient.Socket.SendMegaClilocRequest(Handler._clilocRequests);
                 }
                 else
                 {
                     foreach (uint serial in Handler._clilocRequests)
                     {
-                        NetClient.Socket.Send_MegaClilocRequest_Old(serial);
+                        NetClient.Socket.SendMegaClilocRequestOld(serial);
                     }
 
                     Handler._clilocRequests.Clear();
@@ -940,13 +938,13 @@ namespace ClassicUO.Network
             {
                 if (ProfileManager.CurrentProfile != null)
                 {
-                    NetClient.Socket.Send_GameWindowSize(
+                    NetClient.Socket.SendGameWindowSize(
                         (uint)Client.Game.Scene.Camera.Bounds.Width,
                         (uint)Client.Game.Scene.Camera.Bounds.Height
                     );
                 }
 
-                NetClient.Socket.Send_Language(Settings.GlobalSettings.Language);
+                NetClient.Socket.SendLanguage(Settings.GlobalSettings.Language);
             }
 
             NetClient.Socket.SendClientVersion(Settings.GlobalSettings.ClientVersion);
@@ -1003,7 +1001,7 @@ namespace ClassicUO.Network
                 && name.StartsWith("SYSTEM")
             )
             {
-                NetClient.Socket.Send_ACKTalk();
+                NetClient.Socket.SendACKTalk();
 
                 return;
             }
@@ -2244,14 +2242,14 @@ namespace ClassicUO.Network
 
                 //GameActions.OpenPaperdoll(world.Player);
                 GameActions.RequestMobileStatus(world, world.Player);
-                NetClient.Socket.Send_OpenChat("");
+                NetClient.Socket.SendOpenChat("");
 
                 NetClient.Socket.SendSkillsRequest(world.Player);
                 scene.DoubleClickDelayed(world.Player);
 
                 if (Client.Game.UO.Version >= Utility.ClientVersion.CV_306E)
                 {
-                    NetClient.Socket.Send_ClientType();
+                    NetClient.Socket.SendClientType();
                 }
 
                 if (Client.Game.UO.Version >= Utility.ClientVersion.CV_305D)
@@ -3223,7 +3221,7 @@ namespace ClassicUO.Network
                     }
                 );
 
-                NetClient.Socket.Send_BookPageDataRequest(serial, 1);
+                NetClient.Socket.SendBookPageDataRequest(serial, 1);
             }
             else
             {
@@ -3858,7 +3856,7 @@ namespace ClassicUO.Network
                     p.Skip(4);
                     string username = p.ReadUnicodeBE();
                     world.ChatManager.ChatIsEnabled = ChatStatus.Enabled;
-                    NetClient.Socket.Send_ChatJoinCommand("General");
+                    NetClient.Socket.SendChatJoinCommand("General");
 
                     break;
 
@@ -4338,7 +4336,7 @@ namespace ClassicUO.Network
 
                     strBuffer.Dispose();
 
-                    NetClient.Socket.Send_MegaClilocRequest_Old(item);
+                    NetClient.Socket.SendMegaClilocRequestOld(item);
 
                     break;
 
@@ -5687,7 +5685,7 @@ namespace ClassicUO.Network
                     Client.Game.EnqueueAction(5000, () =>
                     {
                         Log.Info("Razor ACK sent");
-                        NetClient.Socket.Send_RazorACK();
+                        NetClient.Socket.SendRazorACK();
                     });
 
                     break;
@@ -6110,7 +6108,7 @@ namespace ClassicUO.Network
 
                 if (gump != null)
                 {
-                    NetClient.Socket.Send_BulletinBoardRequestMessageSummary(
+                    NetClient.Socket.SendBulletinBoardRequestMessageSummary(
                         containerSerial,
                         serial
                     );

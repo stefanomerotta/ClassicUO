@@ -441,13 +441,7 @@ namespace ClassicUO.Game.Scenes
 
             LastCharacterManager.Save(Account, _world.ServerName, character.Name);
 
-            NetClient.Socket.SendCreateCharacter(character,
-                                                  cityIndex,
-                                                  NetClient.Socket.LocalIP,
-                                                  ServerIndex,
-                                                  (uint)i,
-                                                  profession);
-
+            NetClient.Socket.SendCreateCharacter(character, cityIndex, NetClient.Socket.LocalIP, (uint)i, profession); 
             CurrentLoginStep = LoginSteps.CharacterCreationDone;
         }
 

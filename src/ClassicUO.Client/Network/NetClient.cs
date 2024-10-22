@@ -65,17 +65,17 @@ internal sealed class NetClient
     private CancellationTokenSource _source;
     private Task? _readLoopTask;
     private Task? _writeLoopTask;
-    private ClientVersion _clientVersion;
     private SocketError _socketError;
     private Encryption? _encryption;
 
+    public NetStatistics Statistics { get; }
     public bool IsConnected { get; private set; }
     public bool IsWebSocket { get; private set; }
-    public NetStatistics Statistics { get; }
     public PacketsTable? PacketsTable { get; private set; }
     public bool ServerDisconnectionExpected { get; set; }
-    public uint LocalIP => GetLocalIP();
     public EncryptionType EncryptionType { get; private set; }
+    public ClientVersion ClientVersion { get; private set; }
+    public uint LocalIP => GetLocalIP();
 
     public event EventHandler? Connected;
     public event EventHandler<SocketError>? Disconnected;
@@ -92,7 +92,7 @@ internal sealed class NetClient
     public EncryptionType Load(ClientVersion clientVersion, EncryptionType encryption)
     {
         PacketsTable = new PacketsTable(clientVersion);
-        _clientVersion = clientVersion;
+        ClientVersion = clientVersion;
         EncryptionType = encryption;
 
         if (encryption == EncryptionType.NONE)
@@ -195,7 +195,7 @@ internal sealed class NetClient
             return;
 
         _encryption = login ?
-            Encryption.CreateForLogin(_clientVersion, seed)
+            Encryption.CreateForLogin(ClientVersion, seed)
             : Encryption.CreateForGame(EncryptionType, seed);
 
         lock (this)

@@ -1,10 +1,8 @@
 ﻿using ClassicUO.IO;
+using ClassicUO.IO.Encoders;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace ClassicUO.UnitTests.IO
@@ -24,7 +22,7 @@ namespace ClassicUO.UnitTests.IO
             }
             else
             {
-                writer.WriteUnicodeBE(str);
+                writer.WriteString<UnicodeBE>(str);
             }
 
             Span<char> span = stackalloc char[str.Length + 1]; // '\0'
@@ -50,7 +48,7 @@ namespace ClassicUO.UnitTests.IO
             }
             else
             {
-                writer.WriteUnicodeBE(str, size);
+                writer.WriteFixedString<UnicodeBE>(str, size);
             }
 
             Span<char> span = stackalloc char[size];
@@ -75,7 +73,7 @@ namespace ClassicUO.UnitTests.IO
             }
             else
             {
-                writer.WriteUnicodeBE(str, size);
+                writer.WriteFixedString<UnicodeBE>(str, size);
             }
 
             Span<char> span = stackalloc char[size];
@@ -93,7 +91,7 @@ namespace ClassicUO.UnitTests.IO
         {
             VariableSpanWriter writer = new VariableSpanWriter();
 
-            writer.WriteASCII(a);
+            writer.WriteNullTerminatedASCII(a);
 
             Assert.True(b.AsSpan().SequenceEqual(writer.Buffer.Slice(0, writer.BytesWritten)));
 

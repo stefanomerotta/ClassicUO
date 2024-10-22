@@ -167,7 +167,7 @@ internal abstract class Entity : GameObject, IEquatable<Entity>
             //but all servers tested (latest POL, old POL, ServUO, Outlands) do.
             if ( /*Client.Game.UO.Version > ClientVersion.CV_200 &&*/ SerialHelper.IsMobile(Serial))
             {
-                Socket.Send_NameRequest(Serial);
+                Socket.SendNameRequest(Serial);
             }
 
             UIManager.Add(new NameOverheadGump(World, this));

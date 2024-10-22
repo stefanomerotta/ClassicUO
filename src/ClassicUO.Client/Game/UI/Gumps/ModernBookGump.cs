@@ -317,12 +317,12 @@ namespace ClassicUO.Game.UI.Gumps
 
                 if (leftPage > 0 && !KnownPages.Contains(leftPage))
                 {
-                    NetClient.Socket.Send_BookPageDataRequest(LocalSerial, (ushort)leftPage);
+                    NetClient.Socket.SendBookPageDataRequest(LocalSerial, (ushort)leftPage);
                 }
 
                 if (rightPage < MaxPage * 2 && !KnownPages.Contains(rightPage))
                 {
-                    NetClient.Socket.Send_BookPageDataRequest(LocalSerial, (ushort)rightPage);
+                    NetClient.Socket.SendBookPageDataRequest(LocalSerial, (ushort)rightPage);
                 }
             }
             else
@@ -341,7 +341,7 @@ namespace ClassicUO.Game.UI.Gumps
                             }
                             else
                             {
-                                NetClient.Socket.Send_BookHeaderChanged_Old(LocalSerial, _titleTextBox.Text, _authorTextBox.Text);
+                                NetClient.Socket.SendBookHeaderChangedOld(LocalSerial, _titleTextBox.Text, _authorTextBox.Text);
                             }
                         }
                         else

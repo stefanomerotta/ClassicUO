@@ -220,7 +220,7 @@ namespace ClassicUO.Game.Managers
 
             if (IsTargeting || TargetingType == TargetType.Cancel)
             {
-                NetClient.Socket.Send_TargetCancel(TargetingState, _targetCursorId, (byte)TargetingType);
+                NetClient.Socket.SendTargetCancel(TargetingState, _targetCursorId, (byte)TargetingType);
                 IsTargeting = false;
             }
 
@@ -303,7 +303,7 @@ namespace ClassicUO.Game.Managers
                                         {
                                             if (s)
                                             {
-                                                NetClient.Socket.Send_TargetObject(entity,
+                                                NetClient.Socket.SendTargetObject(entity,
                                                                                    entity.Graphic,
                                                                                    entity.X,
                                                                                    entity.Y,
@@ -359,7 +359,7 @@ namespace ClassicUO.Game.Managers
                             _lastDataBuffer[18] = (byte)entity.Graphic;
 
 
-                            NetClient.Socket.Send_TargetObject(entity,
+                            NetClient.Socket.SendTargetObject(entity,
                                                                entity.Graphic,
                                                                entity.X,
                                                                entity.Y,
@@ -509,7 +509,7 @@ namespace ClassicUO.Game.Managers
 
 
 
-            NetClient.Socket.Send_TargetXYZ(graphic,
+            NetClient.Socket.SendTargetXYZ(graphic,
                                             x,
                                             y,
                                             z,

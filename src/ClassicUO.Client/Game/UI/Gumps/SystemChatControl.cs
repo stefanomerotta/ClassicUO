@@ -587,11 +587,11 @@ namespace ClassicUO.Game.UI.Gumps
 
                     if (_gump.World.MessageManager.PromptData.Prompt == ConsolePrompt.ASCII)
                     {
-                        NetClient.Socket.Send_ASCIIPromptResponse(_gump.World, string.Empty, true);
+                        NetClient.Socket.SendASCIIPromptResponse(_gump.World, string.Empty, true);
                     }
                     else if (_gump.World.MessageManager.PromptData.Prompt == ConsolePrompt.Unicode)
                     {
-                        NetClient.Socket.Send_UnicodePromptResponse(_gump.World, string.Empty, Settings.GlobalSettings.Language, true);
+                        NetClient.Socket.SendUnicodePromptResponse(_gump.World, string.Empty, Settings.GlobalSettings.Language, true);
                     }
 
                     _gump.World.MessageManager.PromptData = default;
@@ -625,11 +625,11 @@ namespace ClassicUO.Game.UI.Gumps
             {
                 if (_gump.World.MessageManager.PromptData.Prompt == ConsolePrompt.ASCII)
                 {
-                    NetClient.Socket.Send_ASCIIPromptResponse(_gump.World, text, text.Length < 1);
+                    NetClient.Socket.SendASCIIPromptResponse(_gump.World, text, text.Length < 1);
                 }
                 else if (_gump.World.MessageManager.PromptData.Prompt == ConsolePrompt.Unicode)
                 {
-                    NetClient.Socket.Send_UnicodePromptResponse(_gump.World, text, Settings.GlobalSettings.Language, text.Length < 1);
+                    NetClient.Socket.SendUnicodePromptResponse(_gump.World, text, Settings.GlobalSettings.Language, text.Length < 1);
                 }
 
                 _gump.World.MessageManager.PromptData = default;
@@ -874,7 +874,7 @@ namespace ClassicUO.Game.UI.Gumps
                         break;
 
                     case ChatMode.UOChat:
-                        NetClient.Socket.Send_ChatMessageCommand(text);
+                        NetClient.Socket.SendChatMessageCommand(text);
 
                         break;
                 }

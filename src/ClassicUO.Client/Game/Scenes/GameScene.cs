@@ -417,7 +417,7 @@ namespace ClassicUO.Game.Scenes
                             )
                             {
                                 DisconnectionRequested = true;
-                                NetClient.Socket.Send_LogoutNotification();
+                                NetClient.Socket.SendLogoutNotification();
                             }
                             else
                             {

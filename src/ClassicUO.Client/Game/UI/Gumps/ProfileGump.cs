@@ -245,7 +245,7 @@ namespace ClassicUO.Game.UI.Gumps
         {
             if (_originalText != _textBox.Text && World.Player != null && !World.Player.IsDestroyed && NetClient.Socket.IsConnected)
             {
-                NetClient.Socket.Send_ProfileUpdate(LocalSerial, _textBox.Text);
+                NetClient.Socket.SendProfileUpdate(LocalSerial, _textBox.Text);
             }
 
             base.Dispose();

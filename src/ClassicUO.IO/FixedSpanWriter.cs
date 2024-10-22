@@ -1,4 +1,5 @@
-﻿using ClassicUO.Utility;
+﻿using ClassicUO.IO.Encoders;
+using ClassicUO.Utility;
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
@@ -57,7 +58,7 @@ public ref struct FixedSpanWriter : IDisposable
 
         WriteUInt8(packetId);
 
-        if(variablePacketSize)
+        if (variablePacketSize)
             Seek(3, SeekOrigin.Begin);
     }
 
@@ -89,19 +90,9 @@ public ref struct FixedSpanWriter : IDisposable
                 break;
             case SeekOrigin.End:
                 ArgumentOutOfRangeException.ThrowIfLessThan(position, -_buffer.Length);
-                Position -= _buffer.Length - position; 
+                Position -= _buffer.Length - position;
                 break;
         }
-    }
-
-    [MethodImpl(IMPL_OPTION)]
-    public void WriteSpan(ReadOnlySpan<byte> value)
-    {
-        if (value.IsEmpty)
-            return;
-
-        value.CopyTo(_buffer[Position..]);
-        Position += value.Length;
     }
 
     [MethodImpl(IMPL_OPTION)]
@@ -224,58 +215,40 @@ public ref struct FixedSpanWriter : IDisposable
     }
 
     [MethodImpl(IMPL_OPTION)]
-    public void WriteUnicodeBE(string value)
-    {
-        WriteString<char>(Encoding.BigEndianUnicode, value, -1);
-        WriteUInt16BE(0x0000);
-    }
-
-    [MethodImpl(IMPL_OPTION)]
-    public void WriteUnicodeBE(string value, int length)
-    {
-        WriteString<char>(Encoding.BigEndianUnicode, value, length);
-    }
-
-    [MethodImpl(IMPL_OPTION)]
-    public void WriteUTF8(string value, int length)
-    {
-        WriteString<byte>(Encoding.UTF8, value, length);
-    }
-
-    [MethodImpl(IMPL_OPTION)]
-    public void WriteASCII(string? value)
+    public void WriteNullTerminatedASCII(string? value)
     {
         if (string.IsNullOrEmpty(value))
         {
-            WriteUInt8(0x00);
+            _buffer[Position++] = 0x0;
             return;
         }
 
-        StringHelper.StringToCp1252Bytes(value, _buffer[Position..]);
-        _buffer[Position] = 0x0;
+        int bytesWritten = StringHelper.StringToCp1252Bytes(value, _buffer[Position..]);
+        Position += bytesWritten;
+        _buffer[Position++] = 0x0;
     }
 
     [MethodImpl(IMPL_OPTION)]
-    public void WriteASCII(string? value, int length)
+    public void WriteFixedASCII(string? value, int byteLength)
     {
+        Debug.Assert(byteLength > 0);
+
         if (string.IsNullOrEmpty(value))
         {
-            WriteZero(Math.Max(length, 1));
+            WriteZero(byteLength);
             return;
         }
 
-        if (length < 0)
+        int bytesWritten = StringHelper.StringToCp1252Bytes(value, _buffer[Position..], byteLength);
+        Position += bytesWritten;
+
+        if (bytesWritten < byteLength)
         {
-            StringHelper.StringToCp1252Bytes(value, _buffer[Position..], length);
-        }
-        else
-        {
-            int bytesWritten = StringHelper.StringToCp1252Bytes(value, _buffer[Position..], length);
-            if (bytesWritten < length)
-                _buffer.Slice(Position, length - bytesWritten).Clear();
+            int remainingBytes = byteLength - bytesWritten;
+            _buffer.Slice(Position, remainingBytes).Clear();
+            Position += remainingBytes;
         }
     }
-
 
     [MethodImpl(IMPL_OPTION)]
     public void WriteZero(int count)
@@ -288,16 +261,89 @@ public ref struct FixedSpanWriter : IDisposable
     }
 
     [MethodImpl(IMPL_OPTION)]
-    public void Write(ReadOnlySpan<byte> span)
+    public void Write(scoped ReadOnlySpan<byte> span)
     {
+        if (span.IsEmpty)
+            return;
+
         span.CopyTo(_buffer[Position..]);
         Position += span.Length;
     }
 
+    [MethodImpl(IMPL_OPTION)]
     public readonly void WritePacketLength()
     {
         _buffer[1] = (byte)(BytesWritten >> 8);
         _buffer[2] = (byte)(BytesWritten & byte.MaxValue);
+    }
+
+    [MethodImpl(IMPL_OPTION)]
+    public readonly Span<byte> GetSpan(int size)
+    {
+        return _buffer.Slice(Position, size);
+    }
+
+    [MethodImpl(IMPL_OPTION)]
+    public void Advance(int count)
+    {
+        Position += count;
+    }
+
+    [MethodImpl(IMPL_OPTION)]
+    public void WriteString<T>(ReadOnlySpan<char> value) where T : ITextEncoder
+    {
+        if (value.IsEmpty)
+            return;
+
+        int bytesWritten = T.Encoding.GetBytes(value, _buffer[Position..]);
+        Position += bytesWritten;
+    }
+
+    [MethodImpl(IMPL_OPTION)]
+    public void WriteString<T>(ReadOnlySpan<char> value, StringOptions options) where T : ITextEncoder
+    {
+        bool nullTerminated = options.HasFlag(StringOptions.NullTerminated);
+
+        if (options.HasFlag(StringOptions.PrependByteSize))
+        {
+            int bytesWritten = T.Encoding.GetBytes(value, _buffer[(Position + 2)..]);
+
+            if (nullTerminated)
+                bytesWritten++;
+
+            BinaryPrimitives.WriteUInt16BigEndian(_buffer[Position..], (ushort)bytesWritten);
+            Position += bytesWritten + 2;
+
+            if (nullTerminated)
+                _buffer[Position - 1] = 0x0;
+        }
+        else
+        {
+            int bytesWritten = T.Encoding.GetBytes(value, _buffer[Position..]);
+            Position += bytesWritten;
+
+            if (nullTerminated)
+                WriteUInt8(0);
+        }
+    }
+
+    [MethodImpl(IMPL_OPTION)]
+    public void WriteFixedString<T>(ReadOnlySpan<char> value, int byteLength) where T : ITextEncoder
+    {
+        Debug.Assert(byteLength > 0);
+
+        if (value.IsEmpty)
+        {
+            WriteZero(byteLength);
+            return;
+        }
+
+        int stringLength = Math.Min(value.Length, byteLength >> T.ByteShift);
+        int bytesWritten = T.Encoding.GetBytes(value[..stringLength], _buffer[Position..]);
+        Position += bytesWritten;
+
+        int remainingBytes = (stringLength << T.ByteShift) - bytesWritten;
+        WriteZero(remainingBytes);
     }
 
     // Thanks MUO :)

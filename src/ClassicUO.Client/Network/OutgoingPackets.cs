@@ -37,13 +37,11 @@ using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.Managers;
 using ClassicUO.IO;
+using ClassicUO.IO.Encoders;
 using ClassicUO.Utility;
 using System;
-using System.Buffers;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text;
 
 namespace ClassicUO.Network;
 
@@ -51,71 +49,19 @@ namespace ClassicUO.Network;
 
 internal static class NetClientExt
 {
-    public static void Send_ACKTalk(this NetClient socket)
+    public static void SendACKTalk(this NetClient socket)
     {
-        const byte ID = 0x03;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
-        writer.WriteUInt8(0x20);
-        writer.WriteUInt8(0x00);
-        writer.WriteUInt8(0x34);
-        writer.WriteUInt8(0x00);
-        writer.WriteUInt8(0x03);
-        writer.WriteUInt8(0xdb);
-        writer.WriteUInt8(0x13);
-        writer.WriteUInt8(0x14);
-        writer.WriteUInt8(0x3f);
-        writer.WriteUInt8(0x45);
-        writer.WriteUInt8(0x2c);
-        writer.WriteUInt8(0x58);
-        writer.WriteUInt8(0x0f);
-        writer.WriteUInt8(0x5d);
-        writer.WriteUInt8(0x44);
-        writer.WriteUInt8(0x2e);
-        writer.WriteUInt8(0x50);
-        writer.WriteUInt8(0x11);
-        writer.WriteUInt8(0xdf);
-        writer.WriteUInt8(0x75);
-        writer.WriteUInt8(0x5c);
-        writer.WriteUInt8(0xe0);
-        writer.WriteUInt8(0x3e);
-        writer.WriteUInt8(0x71);
-        writer.WriteUInt8(0x4f);
-        writer.WriteUInt8(0x31);
-        writer.WriteUInt8(0x34);
-        writer.WriteUInt8(0x05);
-        writer.WriteUInt8(0x4e);
-        writer.WriteUInt8(0x18);
-        writer.WriteUInt8(0x1e);
-        writer.WriteUInt8(0x72);
-        writer.WriteUInt8(0x0f);
-        writer.WriteUInt8(0x59);
-        writer.WriteUInt8(0xad);
-        writer.WriteUInt8(0xf5);
-        writer.WriteUInt8(0x00);
-
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-        socket.Send(writer.Buffer);
-
-        writer.Dispose();
+        socket.Send([
+            0x03, // packet Id
+            0x00, 0x28, // packet size
+            0x20, // Speech type
+            0x00, 0x34, // Color
+            0x00, 0x03, // Speech font
+            0xdb, 0x13, 0x14, 0x3f, 0x45, 0x2c, 0x58, 0x0f,
+            0x5d, 0x44, 0x2e, 0x50, 0x11, 0xdf, 0x75, 0x5c,
+            0xe0, 0x3e, 0x71, 0x4f, 0x31, 0x34, 0x05, 0x4e,
+            0x18, 0x1e, 0x72, 0x0f, 0x59, 0xad, 0xf5, 0x00
+        ]);
     }
 
     public static void SendPing(this NetClient socket, byte idx)
@@ -125,7 +71,7 @@ internal static class NetClientExt
 
     public static void SendDoubleClick(this NetClient socket, uint serial)
     {
-        using VariableSpanWriter writer = new(0x06, stackalloc byte[5]);
+        using FixedSpanWriter writer = new(0x06, stackalloc byte[5]);
         writer.WriteUInt32BE(serial);
 
         socket.Send(writer);
@@ -154,8 +100,8 @@ internal static class NetClientExt
     public static void SendFirstLogin(this NetClient socket, string user, string psw)
     {
         using FixedSpanWriter writer = new(0x80, 62);
-        writer.WriteASCII(user, 30);
-        writer.WriteASCII(psw, 30);
+        writer.WriteFixedASCII(user, 30);
+        writer.WriteFixedASCII(psw, 30);
         writer.WriteUInt8(0xFF);
 
         socket.Send(writer);
@@ -170,22 +116,13 @@ internal static class NetClientExt
     {
         using FixedSpanWriter writer = new(0x91, 65);
         writer.WriteUInt32BE(seed);
-        writer.WriteASCII(user, 30);
-        writer.WriteASCII(psw, 30);
+        writer.WriteFixedASCII(user, 30);
+        writer.WriteFixedASCII(psw, 30);
 
         socket.Send(writer);
     }
 
-    public static void SendCreateCharacter
-    (
-        this NetClient socket,
-        PlayerMobile character,
-        int cityIndex,
-        uint clientIP,
-        int serverIndex,
-        uint slot,
-        byte profession
-    )
+    public static void SendCreateCharacter(this NetClient socket, PlayerMobile character, int cityIndex, uint clientIP, uint slot, byte profession)
     {
         byte id = 0x00;
         ushort length = 104;
@@ -203,7 +140,7 @@ internal static class NetClientExt
         writer.WriteUInt32BE(0xEDED_EDED);
         writer.WriteUInt32BE(0xFFFF_FFFF);
         writer.WriteUInt8(0x00);
-        writer.WriteASCII(character.Name, 30);
+        writer.WriteFixedASCII(character.Name, 30);
         writer.WriteZero(2);
 
         writer.WriteUInt32BE((uint)Client.Game.UO.Protocol);
@@ -303,7 +240,7 @@ internal static class NetClientExt
     {
         using FixedSpanWriter writer = new(0x5D, 73);
         writer.WriteUInt32BE(0xEDEDEDED);
-        writer.WriteASCII(name, 30);
+        writer.WriteFixedASCII(name, 30);
         writer.WriteZero(2);
         writer.WriteUInt32BE((uint)Client.Game.UO.Protocol);
         writer.WriteZero(24);
@@ -425,8 +362,8 @@ internal static class NetClientExt
 
     public static void SendClientVersion(this NetClient socket, string version)
     {
-        using FixedSpanWriter writer = new(0xBD, stackalloc byte[3 + version.Length]);
-        writer.WriteASCII(version);
+        using FixedSpanWriter writer = new(0xBD, stackalloc byte[3 + version.Length + 1], true);
+        writer.WriteNullTerminatedASCII(version);
 
         writer.WritePacketLength();
 
@@ -435,7 +372,7 @@ internal static class NetClientExt
 
     public static void SendASCIISpeechRequest(this NetClient socket, string text, MessageType type, byte font, ushort hue)
     {
-        using FixedSpanWriter writer = new(0x03, 8 + text.Length, true);
+        using FixedSpanWriter writer = new(0x03, 8 + text.Length + 1, true);
 
         if (Client.Game.UO.FileManager.Speeches.HasAnyKeyword(text))
             type |= MessageType.Encoded;
@@ -443,7 +380,7 @@ internal static class NetClientExt
         writer.WriteUInt8((byte)type);
         writer.WriteUInt16BE(hue);
         writer.WriteUInt16BE(font);
-        writer.WriteASCII(text);
+        writer.WriteNullTerminatedASCII(text);
 
         writer.WritePacketLength();
 
@@ -463,11 +400,10 @@ internal static class NetClientExt
         writer.WriteUInt8((byte)type);
         writer.WriteUInt16BE(hue);
         writer.WriteUInt16BE(font);
-        writer.WriteASCII(lang, 4);
+        writer.WriteFixedASCII(lang, 4);
 
         if (encoded)
         {
-            byte[] utf8 = Encoding.UTF8.GetBytes(text);
             int length = keywords.Length;
             Span<byte> codeBytes = stackalloc byte[(length + 1) * 2];
             int codeBytesLength = 0;
@@ -498,13 +434,13 @@ internal static class NetClientExt
             if (!flag)
                 codeBytes[codeBytesLength++] = (byte)(num3 << 4);
 
-            writer.WriteSpan(codeBytes[..codeBytesLength]);
-            writer.Write(utf8);
+            writer.Write(codeBytes[..codeBytesLength]);
+            writer.WriteString<UTF8>(text);
             writer.WriteUInt8(0x00);
         }
         else
         {
-            writer.WriteUnicodeBE(text);
+            writer.WriteString<UnicodeBE>(text);
         }
 
         writer.WritePacketLength();
@@ -512,60 +448,36 @@ internal static class NetClientExt
         socket.Send(writer);
     }
 
-    public static void Send_CastSpell(this NetClient socket, int idx)
+    public static void SendCastSpell(this NetClient socket, int idx)
     {
-        const byte ID = 0xBF;
-        const byte ID_OLD = 0x12;
-
-        byte id = ID;
-
-        if (Client.Game.UO.Version < ClientVersion.CV_60142)
+        if (socket.ClientVersion >= ClientVersion.CV_60142)
         {
-            id = ID_OLD;
-        }
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(id);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
-        if (Client.Game.UO.Version >= ClientVersion.CV_60142)
-        {
+            using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 6], true);
             writer.WriteUInt16BE(0x1C);
             writer.WriteUInt16BE(0x02);
             writer.WriteUInt16BE((ushort)idx);
+
+            writer.WritePacketLength();
+
+            socket.Send(writer);
         }
         else
         {
+            using VariableSpanWriter writer = new(0x12, stackalloc byte[3 + 6], true);
             writer.WriteUInt8(0x56);
-            writer.WriteASCII(idx.ToString());
-        }
+            writer.WriteNullTerminatedASCII(idx.ToString());
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+            writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+            socket.Send(writer);
+        }
     }
 
     public static void SendCastSpellFromBook(this NetClient socket, int idx, uint serial)
     {
         using VariableSpanWriter writer = new(0x12, stackalloc byte[20], true);
         writer.WriteUInt8(0x27);
-        writer.WriteASCII($"{idx} {serial}");
+        writer.WriteNullTerminatedASCII($"{idx} {serial}");
 
         writer.WritePacketLength();
 
@@ -576,7 +488,7 @@ internal static class NetClientExt
     {
         using VariableSpanWriter writer = new(0x12, stackalloc byte[14], true);
         writer.WriteUInt8(0x24);
-        writer.WriteASCII($"{idx} 0");
+        writer.WriteNullTerminatedASCII($"{idx} 0");
 
         writer.WritePacketLength();
 
@@ -595,9 +507,9 @@ internal static class NetClientExt
 
     public static void SendEmoteAction(this NetClient socket, string action)
     {
-        using FixedSpanWriter writer = new(0x12, 3 + action.Length, true);
+        using FixedSpanWriter writer = new(0x12, 3 + action.Length + 1, true);
         writer.WriteUInt8(0xC7);
-        writer.WriteASCII(action);
+        writer.WriteNullTerminatedASCII(action);
 
         writer.WritePacketLength();
 
@@ -607,7 +519,7 @@ internal static class NetClientExt
     public static void SendGumpResponse(this NetClient socket, uint local, uint server, int button,
         ReadOnlySpan<uint> switches, ReadOnlySpan<(ushort, string)> entries)
     {
-        using VariableSpanWriter writer = new(0xB1, 3 + 20, true);
+        using VariableSpanWriter writer = new(0xB1, stackalloc byte[3 + 20], true);
         writer.WriteUInt32BE(local);
         writer.WriteUInt32BE(server);
         writer.WriteUInt32BE((uint)button);
@@ -622,13 +534,15 @@ internal static class NetClientExt
 
         for (int i = 0; i < entries.Length; i++)
         {
-            ref readonly (ushort, string) entry = ref entries[i];
+            (ushort id, string str) = entries[i];
 
-            int length = Math.Min(239, entry.Item2.Length);
+            writer.WriteUInt16BE(id);
 
-            writer.WriteUInt16BE(entry.Item1);
-            writer.WriteUInt16BE((ushort)length);
-            writer.WriteUnicodeBE(entry.Item2, length);
+            ReadOnlySpan<char> text = str;
+            if (text.Length > 239)
+                text = text[..239];
+
+            writer.WriteString<UnicodeBE>(text, StringOptions.PrependByteSize);
         }
 
         writer.WritePacketLength();
@@ -678,7 +592,7 @@ internal static class NetClientExt
         socket.Send(writer);
     }
 
-    public static void Send_TradeResponse(this NetClient socket, uint serial, int code, bool state)
+    public static void SendTradeResponse(this NetClient socket, uint serial, int code, bool state)
     {
         if (code == 1)
         {
@@ -716,203 +630,58 @@ internal static class NetClientExt
         socket.Send(writer);
     }
 
-    public static void Send_LogoutNotification(this NetClient socket)
+    public static void SendLogoutNotification(this NetClient socket)
     {
-        const byte ID = 0xD1;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
-        writer.WriteUInt8(0x00);
-
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send([0xD1, 0x00]);
     }
 
-    public static void Send_TextEntryDialogResponse
-    (
-        this NetClient socket,
-        uint serial,
-        byte parentID,
-        byte button,
-        string text,
-        bool code
-    )
+    public static void SendTextEntryDialogResponse(this NetClient socket, uint serial, byte parentId, byte button, string text, bool code)
     {
-        const byte ID = 0xAC;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xAC, stackalloc byte[3 + 9 + text.Length + 1], true);
         writer.WriteUInt32BE(serial);
-        writer.WriteUInt8(parentID);
+        writer.WriteUInt8(parentId);
         writer.WriteUInt8(button);
         writer.WriteBool(code);
         writer.WriteUInt16BE((ushort)(text.Length + 1));
-        writer.WriteASCII(text, text.Length + 1);
+        writer.WriteFixedASCII(text, text.Length + 1);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_RenameRequest(this NetClient socket, uint serial, string name)
+    public static void SendRenameRequest(this NetClient socket, uint serial, string name)
     {
-        const byte ID = 0x75;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0x75, stackalloc byte[35]);
         writer.WriteUInt32BE(serial);
-        writer.WriteASCII(name, 30);
+        writer.WriteFixedASCII(name, 30);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_NameRequest(this NetClient socket, uint serial)
+    public static void SendNameRequest(this NetClient socket, uint serial)
     {
-        const byte ID = 0x98;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0x98, stackalloc byte[5]);
         writer.WriteUInt32BE(serial);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_TipRequest(this NetClient socket, ushort id, byte flag)
+    public static void SendTipRequest(this NetClient socket, ushort id, byte flag)
     {
-        const byte ID = 0xA7;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xA7, stackalloc byte[4]);
         writer.WriteUInt16BE(id);
         writer.WriteUInt8(flag);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_TargetObject
-    (
-        this NetClient socket,
-        uint entity,
-        ushort graphic,
-        ushort x,
-        ushort y,
-        sbyte z,
-        uint cursorID,
-        byte cursorType
-    )
+    public static void SendTargetObject(this NetClient socket, uint entity, ushort graphic,
+        ushort x, ushort y, sbyte z, uint cursorId, byte cursorType)
     {
-        const byte ID = 0x6C;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0x6C, stackalloc byte[19]);
         writer.WriteUInt8(0x00);
-        writer.WriteUInt32BE(cursorID);
+        writer.WriteUInt32BE(cursorId);
         writer.WriteUInt8(cursorType);
         writer.WriteUInt32BE(entity);
         writer.WriteUInt16BE(x);
@@ -920,44 +689,12 @@ internal static class NetClientExt
         writer.WriteUInt16BE((ushort)z);
         writer.WriteUInt16BE(graphic);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_TargetXYZ
-    (
-        this NetClient socket,
-        ushort graphic,
-        ushort x,
-        ushort y,
-        sbyte z,
-        uint cursorID,
-        byte cursorType
-    )
+    public static void SendTargetXYZ(this NetClient socket, ushort graphic, ushort x, ushort y, sbyte z, uint cursorID, byte cursorType)
     {
-        const byte ID = 0x6C;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0x6C, stackalloc byte[19]);
         writer.WriteUInt8(0x01);
         writer.WriteUInt32BE(cursorID);
         writer.WriteUInt8(cursorType);
@@ -967,35 +704,12 @@ internal static class NetClientExt
         writer.WriteUInt16BE((ushort)z);
         writer.WriteUInt16BE(graphic);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_TargetCancel(this NetClient socket, CursorTarget type, uint cursorID, byte cursorType)
+    public static void SendTargetCancel(this NetClient socket, CursorTarget type, uint cursorID, byte cursorType)
     {
-        const byte ID = 0x6C;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0x6C, stackalloc byte[19]);
         writer.WriteUInt8((byte)type);
         writer.WriteUInt32BE(cursorID);
         writer.WriteUInt8(cursorType);
@@ -1003,434 +717,154 @@ internal static class NetClientExt
         writer.WriteUInt32BE(0xFFFF_FFFF);
         writer.WriteUInt32BE(0x0000_0000);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_ASCIIPromptResponse(this NetClient socket, World world, string text, bool cancel)
+    public static void SendASCIIPromptResponse(this NetClient socket, World world, string text, bool cancel)
     {
-        const byte ID = 0x9A;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0x6C, 3 + 12 + text.Length + 1, true);
         writer.WriteUInt64BE(world.MessageManager.PromptData.Data);
         writer.WriteUInt32BE((uint)(cancel ? 0 : 1));
-        writer.WriteASCII(text);
+        writer.WriteNullTerminatedASCII(text);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_UnicodePromptResponse(this NetClient socket, World world, string text, string lang, bool cancel)
+    public static void SendUnicodePromptResponse(this NetClient socket, World world, string text, string lang, bool cancel)
     {
-        const byte ID = 0xC2;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xC2, 3 + 16 + text.Length * 2, true);
         writer.WriteUInt64BE(world.MessageManager.PromptData.Data);
         writer.WriteUInt32BE((uint)(cancel ? 0 : 1));
-        writer.WriteASCII(lang, 3);
+        writer.WriteFixedASCII(lang, 3);
         writer.WriteUInt8(0x00);
         writer.WriteUnicodeLE(text, text.Length);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_DyeDataResponse(this NetClient socket, uint serial, ushort graphic, ushort hue)
+    public static void SendDyeDataResponse(this NetClient socket, uint serial, ushort graphic, ushort hue)
     {
-        const byte ID = 0x95;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0x95, stackalloc byte[9]);
         writer.WriteUInt32BE(serial);
         writer.WriteUInt16BE(0);
         writer.WriteUInt16BE(hue);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_ProfileRequest(this NetClient socket, uint serial)
+    public static void SendProfileRequest(this NetClient socket, uint serial)
     {
-        const byte ID = 0xB8;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xB8, stackalloc byte[3 + 5], true);
         writer.WriteUInt8(0x00);
         writer.WriteUInt32BE(serial);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_ProfileUpdate(this NetClient socket, uint serial, string text)
+    public static void SendProfileUpdate(this NetClient socket, uint serial, string text)
     {
-        const byte ID = 0xB8;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xB8, 3 + 9 + text.Length * 2, true);
         writer.WriteUInt8(0x01);
         writer.WriteUInt32BE(serial);
         writer.WriteUInt16BE(0x01);
-        writer.WriteUInt16BE((ushort)text.Length);
-        writer.WriteUnicodeBE(text, text.Length);
+        writer.WriteString<UnicodeBE>(text, StringOptions.PrependByteSize);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_ClickQuestArrow(this NetClient socket, bool righClick)
+    public static void SendClickQuestArrow(this NetClient socket, bool righClick)
     {
-        const byte ID = 0xBF;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 3], true);
         writer.WriteUInt16BE(0x07);
         writer.WriteBool(righClick);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
     public static void Send_CloseStatusBarGump(this NetClient socket, uint serial)
     {
-        const byte ID = 0xBF;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 6], true);
         writer.WriteUInt16BE(0x0C);
         writer.WriteUInt32BE(serial);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_PartyInviteRequest(this NetClient socket)
+    public static void SendPartyInviteRequest(this NetClient socket)
     {
-        const byte ID = 0xBF;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 7], true);
         writer.WriteUInt16BE(0x06);
         writer.WriteUInt8(1);
         writer.WriteUInt32BE(0);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_PartyRemoveRequest(this NetClient socket, uint serial)
+    public static void SendPartyRemoveRequest(this NetClient socket, uint serial)
     {
-        const byte ID = 0xBF;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 7], true);
         writer.WriteUInt16BE(0x06);
         writer.WriteUInt8(2);
         writer.WriteUInt32BE(serial);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_PartyChangeLootTypeRequest(this NetClient socket, bool type)
+    public static void SendPartyChangeLootTypeRequest(this NetClient socket, bool type)
     {
-        const byte ID = 0xBF;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 4], true);
         writer.WriteUInt16BE(0x06);
         writer.WriteUInt8(0x06);
         writer.WriteBool(type);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_PartyAccept(this NetClient socket, uint serial)
+    public static void SendPartyAccept(this NetClient socket, uint serial)
     {
-        const byte ID = 0xBF;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 7], true);
         writer.WriteUInt16BE(0x06);
         writer.WriteUInt8(0x08);
         writer.WriteUInt32BE(serial);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
     public static void Send_PartyDecline(this NetClient socket, uint serial)
     {
-        const byte ID = 0xBF;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 7], true);
         writer.WriteUInt16BE(0x06);
         writer.WriteUInt8(0x09);
         writer.WriteUInt32BE(serial);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_PartyMessage(this NetClient socket, string text, uint serial)
+    public static void SendPartyMessage(this NetClient socket, string text, uint serial)
     {
-        const byte ID = 0xBF;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
-
+        using FixedSpanWriter writer = new(0xBF, 3 + 7 + text.Length * 2, true);
         writer.WriteUInt16BE(0x06);
 
         if (SerialHelper.IsValid(serial))
@@ -1443,1080 +877,407 @@ internal static class NetClientExt
             writer.WriteUInt8(0x04);
         }
 
-        writer.WriteUnicodeBE(text);
+        writer.WriteString<UnicodeBE>(text);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_GameWindowSize(this NetClient socket, uint w, uint h)
+    public static void SendGameWindowSize(this NetClient socket, uint w, uint h)
     {
-        const byte ID = 0xBF;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 10], true);
         writer.WriteUInt16BE(0x05);
         writer.WriteUInt32BE(w);
         writer.WriteUInt32BE(h);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_BulletinBoardRequestMessage(this NetClient socket, uint serial, uint msgSerial)
+    public static void SendBulletinBoardRequestMessage(this NetClient socket, uint serial, uint msgSerial)
     {
-        const byte ID = 0x71;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0x71, stackalloc byte[3 + 9], true);
         writer.WriteUInt8(0x03);
         writer.WriteUInt32BE(serial);
         writer.WriteUInt32BE(msgSerial);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_BulletinBoardRequestMessageSummary(this NetClient socket, uint serial, uint msgSerial)
+    public static void SendBulletinBoardRequestMessageSummary(this NetClient socket, uint serial, uint msgSerial)
     {
-        const byte ID = 0x71;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0x71, stackalloc byte[3 + 9], true);
         writer.WriteUInt8(0x04);
         writer.WriteUInt32BE(serial);
         writer.WriteUInt32BE(msgSerial);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_BulletinBoardPostMessage(this NetClient socket, uint serial, uint msgSerial, string subject, string text)
+    public static void SendBulletinBoardPostMessage(this NetClient socket, uint serial, uint msgSerial, string subject, string text)
     {
-        const byte ID = 0x71;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
-        // cleanup windows CR
-        subject = subject.Replace("\r\n", "\n");
-        text = text.Replace("\r\n", "\n");
-
+        using FixedSpanWriter writer = new(0x71, 3 + 14 + subject.Length * 2 + text.Length * 2, true);
         writer.WriteUInt8(0x05);
         writer.WriteUInt32BE(serial);
         writer.WriteUInt32BE(msgSerial);
-        writer.WriteUInt8((byte)(subject.Length + 1));
 
-        byte[] title = Encoding.UTF8.GetBytes(subject);
-        writer.Write(title);
+        if (subject == "")
+        {
+            writer.WriteUInt8(1);
+        }
+        else
+        {
+            subject = subject.Replace("\r\n", "\n");
+
+            writer.WriteUInt8((byte)(subject.Length + 1));
+            writer.WriteString<UTF8>(subject);
+        }
+
         writer.WriteUInt8(0x00);
 
-        var lines = text.Split('\n');
-
-        if (lines.Length > 0)
-        {
-            writer.WriteUInt8((byte)lines.Length);
-
-            foreach (var line in lines)
-            {
-                var bytes = Encoding.UTF8.GetBytes(line);
-                writer.WriteUInt8((byte)(bytes.Length + 1));
-                writer.Write(bytes.AsSpan());
-                writer.WriteUInt8(0x00);
-            }
-        }
-        else
+        if (text == "")
         {
             writer.WriteUInt8(0x01);
-            var bytes = Encoding.UTF8.GetBytes(text);
-            writer.WriteUInt8((byte)(bytes.Length + 1));
-            writer.Write(bytes.AsSpan());
+            writer.WriteUInt8(1);
             writer.WriteUInt8(0x00);
-        }
-
-
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
         }
         else
         {
-            writer.WriteZero(length - writer.BytesWritten);
+            string[] lines = text.Split('\n');
+            writer.WriteUInt8((byte)lines.Length);
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                ReadOnlySpan<char> line = lines[i];
+
+                if (line[^1] == '\r')
+                    line = line[..^2];
+
+                writer.WriteString<UTF8>(line, StringOptions.PrependByteSize | StringOptions.NullTerminated);
+            }
         }
 
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_BulletinBoardRemoveMessage(this NetClient socket, uint serial, uint msgSerial)
+    public static void SendBulletinBoardRemoveMessage(this NetClient socket, uint serial, uint msgSerial)
     {
-        const byte ID = 0x71;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0x71, stackalloc byte[3 + 9], true);
         writer.WriteUInt8(0x06);
         writer.WriteUInt32BE(serial);
         writer.WriteUInt32BE(msgSerial);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_RazorACK(this NetClient socket)
+    public static void SendRazorACK(this NetClient socket)
     {
-        const byte ID = 0xF0;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
-        writer.WriteUInt8(0xFF);
-
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send([0xF0, 0xFF]);
     }
 
-    public static void Send_QueryGuildPosition(this NetClient socket)
+    public static void SendQueryGuildPosition(this NetClient socket)
     {
-        const byte ID = 0xF0;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
-        writer.WriteUInt8(0x01);
-        writer.WriteBool(true);
-
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send([0xF0, 0x01, 0x01]);
     }
 
-    public static void Send_QueryPartyPosition(this NetClient socket)
+    public static void SendQueryPartyPosition(this NetClient socket)
     {
-        const byte ID = 0xF0;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
-        writer.WriteUInt8(0x00);
-
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send([0xF0, 0x00]);
     }
 
-    public static void Send_Language(this NetClient socket, string lang)
+    public static void SendLanguage(this NetClient socket, string lang)
     {
-        const byte ID = 0xBF;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 6], true);
         writer.WriteUInt16BE(0x0B);
-        writer.WriteASCII(lang, 3);
+        writer.WriteFixedASCII(lang, 3);
         writer.WriteUInt8(0x00);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_ClientType(this NetClient socket)
+    public static void SendClientType(this NetClient socket)
     {
-        const byte ID = 0xBF;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 7], true);
         writer.WriteUInt16BE(0x0F);
         writer.WriteUInt8(0x0A);
+        writer.WriteUInt32BE((uint)Client.Game.UO.Protocol);
 
-        uint clientFlag = 0;
+        writer.WritePacketLength();
 
-        for (int i = 0; i < (uint)Client.Game.UO.Protocol; ++i)
-        {
-            clientFlag |= (uint)(1 << i);
-        }
-
-
-        writer.WriteUInt32BE(clientFlag);
-
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_RequestPopupMenu(this NetClient socket, uint serial)
+    public static void SendRequestPopupMenu(this NetClient socket, uint serial)
     {
-        const byte ID = 0xBF;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 6], true);
         writer.WriteUInt16BE(0x13);
         writer.WriteUInt32BE(serial);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_PopupMenuSelection(this NetClient socket, uint serial, ushort menuid)
+    public static void SendPopupMenuSelection(this NetClient socket, uint serial, ushort menuid)
     {
-        const byte ID = 0xBF;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 8], true);
         writer.WriteUInt16BE(0x15);
         writer.WriteUInt32BE(serial);
         writer.WriteUInt16BE(menuid);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_ChatJoinCommand(this NetClient socket, string name, string password = null)
+    public static void SendChatJoinCommand(this NetClient socket, string name, string? password = null)
     {
-        const byte ID = 0xB3;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
-        writer.WriteASCII(Settings.GlobalSettings.Language, 4);
+        using FixedSpanWriter writer = new(0xB3, 3 + 8 + name.Length * 2 + (password?.Length ?? 0) * 2, true);
+        writer.WriteFixedASCII(Settings.GlobalSettings.Language, 4);
         writer.WriteUInt16BE(0x62);
         writer.WriteUInt16BE(0x22);
-        writer.WriteUnicodeBE(name);
+        writer.WriteString<UnicodeBE>(name);
         writer.WriteUInt16BE(0x22);
         writer.WriteUInt16BE(0x020);
 
         if (!string.IsNullOrEmpty(password))
-        {
-            writer.WriteUnicodeBE(password);
-        }
+            writer.WriteString<UnicodeBE>(password);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_ChatCreateChannelCommand(this NetClient socket, string name, string password = null)
+    public static void SendChatCreateChannelCommand(this NetClient socket, string name, string? password = null)
     {
-        const byte ID = 0xB3;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
-        writer.WriteASCII(Settings.GlobalSettings.Language, 4);
+        using FixedSpanWriter writer = new(0xB3, 3 + 10 + name.Length * 2 + (password?.Length ?? 0) * 2, true);
+        writer.WriteFixedASCII(Settings.GlobalSettings.Language, 4);
         writer.WriteUInt16BE(0x63);
-        writer.WriteUnicodeBE(name);
+        writer.WriteString<UnicodeBE>(name);
 
         if (!string.IsNullOrEmpty(password))
         {
             writer.WriteUInt16BE(0x7B);
-            writer.WriteUnicodeBE(password);
+            writer.WriteString<UnicodeBE>(password);
             writer.WriteUInt16BE(0x07D);
         }
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_ChatLeaveChannelCommand(this NetClient socket)
+    public static void SendChatLeaveChannelCommand(this NetClient socket)
     {
-        const byte ID = 0xB3;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
-        writer.WriteASCII(Settings.GlobalSettings.Language, 4);
+        using FixedSpanWriter writer = new(0xB3, stackalloc byte[3 + 6], true);
+        writer.WriteFixedASCII(Settings.GlobalSettings.Language, 4);
         writer.WriteUInt16BE(0x43);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_ChatMessageCommand(this NetClient socket, string msg)
+    public static void SendChatMessageCommand(this NetClient socket, string msg)
     {
-        const byte ID = 0xB3;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
-        writer.WriteASCII(Settings.GlobalSettings.Language, 4);
+        using FixedSpanWriter writer = new(0xB3, 3 + 6 + msg.Length * 2, true);
+        writer.WriteFixedASCII(Settings.GlobalSettings.Language, 4);
         writer.WriteUInt16BE(0x61);
-        writer.WriteUnicodeBE(msg);
+        writer.WriteString<UnicodeBE>(msg);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_OpenChat(this NetClient socket, string name)
+    public static void SendOpenChat(this NetClient socket, string name)
     {
-        const byte ID = 0xB5;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
-
+        using FixedSpanWriter writer = new(0xB5, stackalloc byte[64]);
         writer.WriteUInt8(0x00);
-        int len = Math.Min(name.Length, 30);
+        writer.WriteFixedString<UnicodeBE>(name, 62);
 
-        if (len > 0)
-        {
-            writer.WriteUnicodeBE(name, len);
-        }
-
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_MapMessage
-    (
-        this NetClient socket,
-        uint serial,
-        byte action,
-        byte pin,
-        ushort x,
-        ushort y
-    )
+    public static void SendMapMessage(this NetClient socket, uint serial, byte action, byte pin, ushort x, ushort y)
     {
-        const byte ID = 0x56;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0x56, stackalloc byte[11]);
         writer.WriteUInt32BE(serial);
         writer.WriteUInt8(action);
         writer.WriteUInt8(pin);
         writer.WriteUInt16BE(x);
         writer.WriteUInt16BE(y);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_GuildMenuRequest(this NetClient socket, World world)
+    public static void SendGuildMenuRequest(this NetClient socket, World world)
     {
-        const byte ID = 0xD7;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 11], true);
         writer.WriteUInt32BE(world.Player.Serial);
         writer.WriteUInt16BE(0x28);
         writer.WriteUInt8(0x0A);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
         socket.Send(writer.Buffer);
-        writer.Dispose();
     }
 
-    public static void Send_QuestMenuRequest(this NetClient socket, World world)
+    public static void SendQuestMenuRequest(this NetClient socket, World world)
     {
-        const byte ID = 0xD7;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 7], true);
         writer.WriteUInt32BE(world.Player.Serial);
         writer.WriteUInt16BE(0x32);
         writer.WriteUInt8(0x00);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_EquipLastWeapon(this NetClient socket, World world)
+    public static void SendEquipLastWeapon(this NetClient socket, World world)
     {
-        const byte ID = 0xD7;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 7], true);
         writer.WriteUInt32BE(world.Player.Serial);
         writer.WriteUInt16BE(0x1E);
         writer.WriteUInt8(0x0A);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_InvokeVirtueRequest(this NetClient socket, byte id)
+    public static void SendInvokeVirtueRequest(this NetClient socket, byte id)
     {
-        const byte ID = 0x12;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using VariableSpanWriter writer = new(0x12, stackalloc byte[3 + 7], true);
         writer.WriteUInt8(0xF4);
-        writer.WriteASCII(id.ToString());
+        writer.WriteNullTerminatedASCII(id.ToString());
 
+        writer.WritePacketLength();
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_MegaClilocRequest_Old(this NetClient socket, uint serial)
+    public static void SendMegaClilocRequestOld(this NetClient socket, uint serial)
     {
-        const byte ID = 0xBF;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using VariableSpanWriter writer = new(0xBF, stackalloc byte[3 + 6], true);
         writer.WriteUInt16BE(0x10);
         writer.WriteUInt32BE(serial);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_MegaClilocRequest(this NetClient socket, List<uint> serials)
+    public static void SendMegaClilocRequest(this NetClient socket, List<uint> serials)
     {
-        const byte ID = 0xD6;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
         int count = Math.Min(15, serials.Count);
 
-        for (int i = 0; i < count; ++i)
+        using FixedSpanWriter writer = new(0xD6, 3 + count * 4, true);
+
+        for (int i = 0; i < count; i++)
         {
             writer.WriteUInt32BE(serials[i]);
         }
 
         serials.RemoveRange(0, count);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_StatLockStateRequest(this NetClient socket, byte stat, Lock state)
+    public static void SendStatLockStateRequest(this NetClient socket, byte stat, Lock state)
     {
-        const byte ID = 0xBF;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 4], true);
         writer.WriteUInt16BE(0x1A);
         writer.WriteUInt8(stat);
         writer.WriteUInt8((byte)state);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_SkillStatusChangeRequest(this NetClient socket, ushort skillindex, byte lockstate)
+    public static void SendSkillStatusChangeRequest(this NetClient socket, ushort skillindex, byte lockstate)
     {
-        const byte ID = 0x3A;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0x3A, stackalloc byte[3 + 3], true);
         writer.WriteUInt16BE(skillindex);
         writer.WriteUInt8(lockstate);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_BookHeaderChanged_Old(this NetClient socket, uint serial, string title, string author)
+    public static void SendBookHeaderChangedOld(this NetClient socket, uint serial, string title, string author)
     {
-        const byte ID = 0x93;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0x93, 99);
         writer.WriteUInt32BE(serial);
         writer.WriteUInt8(0x00);
         writer.WriteUInt8(0x01);
         writer.WriteUInt16BE(0);
-        writer.WriteUTF8(title, 60);
-        writer.WriteUTF8(author, 30);
+        writer.WriteFixedString<UTF8>(title, 60);
+        writer.WriteFixedString<UTF8>(author, 30);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
     public static void Send_BookHeaderChanged(this NetClient socket, uint serial, string title, string author)
     {
-        const byte ID = 0xD4;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xD4, 3 + 8 + title.Length * 2 + author.Length * 2, true);
         writer.WriteUInt32BE(serial);
         writer.WriteUInt8(0x00);
         writer.WriteUInt8(0x00);
         writer.WriteUInt16BE(0);
-        int titleLength = Encoding.UTF8.GetByteCount(title);
-        writer.WriteUInt16BE((ushort)titleLength);
-        writer.WriteUTF8(title, titleLength);
-        int authorLength = Encoding.UTF8.GetByteCount(author);
-        writer.WriteUInt16BE((ushort)authorLength);
-        writer.WriteUTF8(author, authorLength);
+        writer.WriteString<UTF8>(title, StringOptions.PrependByteSize);
+        writer.WriteString<UTF8>(author, StringOptions.PrependByteSize);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_BookPageData(this NetClient socket, uint serial, string[] text, int page)
+    public static void Send_BookPageData(this NetClient socket, uint serial, string[] texts, int page)
     {
-        const byte ID = 0x66;
+        int textsLength = 0;
 
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
+        for (int i = 0; i < texts.Length; i++)
         {
-            writer.WriteZero(2);
+            textsLength += texts[i].Length + 1; // include null termination
         }
 
+        using FixedSpanWriter writer = new(0x66, 3 + 11 + textsLength, true);
         writer.WriteUInt32BE(serial);
         writer.WriteUInt16BE(0x01);
         writer.WriteUInt16BE((ushort)page);
-        writer.WriteUInt16BE((ushort)text.Length);
+        writer.WriteUInt16BE((ushort)texts.Length);
 
-        for (int i = 0; i < text.Length; ++i)
+        for (int i = 0; i < texts.Length; i++)
         {
-            if (!string.IsNullOrEmpty(text[i]))
+            ReadOnlySpan<char> text = texts[i];
+
+            if (text.IsEmpty)
             {
-                string t = text[i].Replace("\n", "");
+                writer.WriteUInt8(0x00);
+                continue;
+            }
 
-                if (t.Length > 0)
-                {
-                    byte[] buffer = ArrayPool<byte>.Shared.Rent(t.Length * 2);//we have to assume we are using all two byte chars
-
-                    try
-                    {
-                        int written = Encoding.UTF8.GetBytes
-                        (
-                            t,
-                            0,
-                            t.Length,
-                            buffer,
-                            0
-                        );
-
-                        writer.Write(buffer.AsSpan(0, written));
-                    }
-                    finally
-                    {
-                        ArrayPool<byte>.Shared.Return(buffer);
-                    }
-                }
+            foreach (Range range in text.Split('\n'))
+            {
+                writer.WriteString<UTF8>(text[range]);
             }
 
             writer.WriteUInt8(0x00);
@@ -2524,78 +1285,34 @@ internal static class NetClientExt
 
         writer.WriteUInt8(0x00);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_BookPageDataRequest(this NetClient socket, uint serial, ushort page)
+    public static void SendBookPageDataRequest(this NetClient socket, uint serial, ushort page)
     {
-        const byte ID = 0x66;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0x66, stackalloc byte[3 + 10], true);
         writer.WriteUInt32BE(serial);
         writer.WriteUInt16BE(0x01);
         writer.WriteUInt16BE(page);
         writer.WriteUInt16BE(0xFFFF);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_BuyRequest(this NetClient socket, uint serial, Tuple<uint, ushort>[] items)
+    public static void SendBuyRequest(this NetClient socket, uint serial, ReadOnlySpan<(uint, ushort)> items)
     {
-        const byte ID = 0x3B;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0x3B, 3 + 5 + 7 * items.Length, true);
         writer.WriteUInt32BE(serial);
 
         if (items.Length > 0)
         {
             writer.WriteUInt8(0x02);
 
-            for (int i = 0; i < items.Length; ++i)
+            for (int i = 0; i < items.Length; i++)
             {
                 writer.WriteUInt8(0x1A);
                 writer.WriteUInt32BE(items[i].Item1);
@@ -2607,281 +1324,91 @@ internal static class NetClientExt
             writer.WriteUInt8(0x00);
         }
 
+        writer.WritePacketLength();
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_SellRequest(this NetClient socket, uint serial, Tuple<uint, ushort>[] items)
+    public static void SendSellRequest(this NetClient socket, uint serial, ReadOnlySpan<(uint, ushort)> items)
     {
-        const byte ID = 0x9F;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0x9F, 3 + 6 + 6 * items.Length, true);
         writer.WriteUInt32BE(serial);
         writer.WriteUInt16BE((ushort)items.Length);
 
-        for (int i = 0; i < items.Length; ++i)
+        for (int i = 0; i < items.Length; i++)
         {
             writer.WriteUInt32BE(items[i].Item1);
             writer.WriteUInt16BE(items[i].Item2);
         }
 
+        writer.WritePacketLength();
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
     public static void Send_UseCombatAbility(this NetClient socket, World world, byte idx)
     {
-        const byte ID = 0xD7;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 12], true);
         writer.WriteUInt32BE(world.Player.Serial);
         writer.WriteUInt16BE(0x19);
         writer.WriteUInt32BE(0);
         writer.WriteUInt8(idx);
         writer.WriteUInt8(0x0A);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_TargetSelectedObject(this NetClient socket, uint serial, uint targetSerial)
+    public static void SendTargetSelectedObject(this NetClient socket, uint serial, uint targetSerial)
     {
-        const byte ID = 0xBF;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 10], true);
         writer.WriteUInt16BE(0x2C);
         writer.WriteUInt32BE(serial);
         writer.WriteUInt32BE(targetSerial);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
+        writer.WritePacketLength();
 
         socket.Send(writer.Buffer);
-        writer.Dispose();
     }
 
-    public static void Send_ToggleGargoyleFlying(this NetClient socket)
+    public static void SendToggleGargoyleFlying(this NetClient socket)
     {
-        const byte ID = 0xBF;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 8], true);
         writer.WriteUInt16BE(0x32);
         writer.WriteUInt16BE(0x01);
         writer.WriteUInt32BE(0);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
     public static void Send_CustomHouseDataRequest(this NetClient socket, uint serial)
     {
-        const byte ID = 0xBF;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 6], true);
         writer.WriteUInt16BE(0x1E);
         writer.WriteUInt32BE(serial);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_StunRequest(this NetClient socket)
+    public static void SendStunRequest(this NetClient socket)
     {
-        const byte ID = 0xBF;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
-        writer.WriteUInt16BE(0x09);
-
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send([0xBF, 0x00, 0x05, 0x00, 0x09]);
     }
 
-    public static void Send_DisarmRequest(this NetClient socket)
+    public static void SendDisarmRequest(this NetClient socket)
     {
-        const byte ID = 0xBF;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
-        writer.WriteUInt16BE(0x0A);
-
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send([0xBF, 0x00, 0x05, 0x00, 0x0A]);
     }
 
-    public static void Send_ChangeRaceRequest
-    (
-        this NetClient socket,
-        ushort skinHue,
-        ushort hairStyle,
-        ushort hairHue,
-        ushort beardStyle,
-        ushort beardHue
-    )
+    public static void SendChangeRaceRequest(this NetClient socket, ushort skinHue,
+        ushort hairStyle, ushort hairHue, ushort beardStyle, ushort beardHue)
     {
-        const byte ID = 0xBF;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 12], true);
         writer.WriteUInt16BE(0x2A);
         writer.WriteUInt16BE(skinHue);
         writer.WriteUInt16BE(hairStyle);
@@ -2889,444 +1416,157 @@ internal static class NetClientExt
         writer.WriteUInt16BE(beardStyle);
         writer.WriteUInt16BE(beardHue);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_MultiBoatMoveRequest(this NetClient socket, uint serial, Direction dir, byte speed)
+    public static void SendMultiBoatMoveRequest(this NetClient socket, uint serial, Direction dir, byte speed)
     {
-        const byte ID = 0xBF;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 9], true);
         writer.WriteUInt16BE(0x33);
         writer.WriteUInt32BE(serial);
         writer.WriteUInt8((byte)dir);
         writer.WriteUInt8((byte)dir);
         writer.WriteUInt8(speed);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_Resync(this NetClient socket)
+    public static void SendResync(this NetClient socket)
     {
-        const byte ID = 0x22;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
-
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send([0x22, 0x00, 0x00]);
     }
 
-    public static void Send_WalkRequest(this NetClient socket, Direction direction, byte seq, bool run, uint fastWalk)
+    public static void SendWalkRequest(this NetClient socket, Direction direction, byte seq, bool run, uint fastWalk)
     {
-        const byte ID = 0x02;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
+        using FixedSpanWriter writer = new(0x02, stackalloc byte[7]);
 
         if (run)
-        {
             direction |= Direction.Running;
-        }
 
         writer.WriteUInt8((byte)direction);
         writer.WriteUInt8(seq);
         writer.WriteUInt32BE(fastWalk);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_CustomHouseBackup(this NetClient socket, World world)
+    public static void SendCustomHouseBackup(this NetClient socket, World world)
     {
-        const byte ID = 0xD7;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 7], true);
         writer.WriteUInt32BE(world.Player.Serial);
         writer.WriteUInt16BE(0x02);
         writer.WriteUInt8(0x0A);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_CustomHouseRestore(this NetClient socket, World world)
+    public static void SendCustomHouseRestore(this NetClient socket, World world)
     {
-        const byte ID = 0xD7;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 7], true);
         writer.WriteUInt32BE(world.Player.Serial);
         writer.WriteUInt16BE(0x03);
         writer.WriteUInt8(0x0A);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_CustomHouseCommit(this NetClient socket, World world)
+    public static void SendCustomHouseCommit(this NetClient socket, World world)
     {
-        const byte ID = 0xD7;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 7], true);
         writer.WriteUInt32BE(world.Player.Serial);
         writer.WriteUInt16BE(0x04);
         writer.WriteUInt8(0x0A);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_CustomHouseBuildingExit(this NetClient socket, World world)
+    public static void SendCustomHouseBuildingExit(this NetClient socket, World world)
     {
-        const byte ID = 0xD7;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 7], true);
         writer.WriteUInt32BE(world.Player.Serial);
         writer.WriteUInt16BE(0x0C);
         writer.WriteUInt8(0x0A);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
-    public static void Send_CustomHouseGoToFloor(this NetClient socket, World world, byte floor)
+    public static void SendCustomHouseGoToFloor(this NetClient socket, World world, byte floor)
     {
-        const byte ID = 0xD7;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 12], true);
         writer.WriteUInt32BE(world.Player.Serial);
         writer.WriteUInt16BE(0x12);
         writer.WriteUInt32BE(0);
         writer.WriteUInt8(floor);
         writer.WriteUInt8(0x0A);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
     public static void Send_CustomHouseSync(this NetClient socket, World world)
     {
-        const byte ID = 0xD7;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 7], true);
         writer.WriteUInt32BE(world.Player.Serial);
         writer.WriteUInt16BE(0x0E);
         writer.WriteUInt8(0x0A);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
     public static void Send_CustomHouseClear(this NetClient socket, World world)
     {
-        const byte ID = 0xD7;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 7], true);
         writer.WriteUInt32BE(world.Player.Serial);
         writer.WriteUInt16BE(0x10);
         writer.WriteUInt8(0x0A);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
     public static void Send_CustomHouseRevert(this NetClient socket, World world)
     {
-        const byte ID = 0xD7;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 7], true);
         writer.WriteUInt32BE(world.Player.Serial);
         writer.WriteUInt16BE(0x1A);
         writer.WriteUInt8(0x0A);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
     public static void Send_CustomHouseResponse(this NetClient socket, World world)
     {
-        const byte ID = 0xD7;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 7], true);
         writer.WriteUInt32BE(world.Player.Serial);
         writer.WriteUInt16BE(0x0A);
         writer.WriteUInt8(0x0A);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
     public static void Send_CustomHouseAddItem(this NetClient socket, World world, ushort graphic, int x, int y)
     {
-        const byte ID = 0xD7;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 22], true);
         writer.WriteUInt32BE(world.Player.Serial);
         writer.WriteUInt16BE(0x06);
         writer.WriteUInt8(0x00);
@@ -3337,35 +1577,14 @@ internal static class NetClientExt
         writer.WriteUInt32BE((uint)y);
         writer.WriteUInt8(0x0A);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
     public static void Send_CustomHouseDeleteItem(this NetClient socket, World world, ushort graphic, int x, int y, int z)
     {
-        const byte ID = 0xD7;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 27], true);
         writer.WriteUInt32BE(world.Player.Serial);
         writer.WriteUInt16BE(0x05);
         writer.WriteUInt8(0x00);
@@ -3378,35 +1597,14 @@ internal static class NetClientExt
         writer.WriteUInt32BE((uint)z);
         writer.WriteUInt8(0x0A);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
     public static void Send_CustomHouseAddRoof(this NetClient socket, World world, ushort graphic, int x, int y, int z)
     {
-        const byte ID = 0xD7;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 27], true);
         writer.WriteUInt32BE(world.Player.Serial);
         writer.WriteUInt16BE(0x13);
         writer.WriteUInt8(0x00);
@@ -3419,35 +1617,14 @@ internal static class NetClientExt
         writer.WriteUInt32BE((uint)z);
         writer.WriteUInt8(0x0A);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
     public static void Send_CustomHouseDeleteRoof(this NetClient socket, World world, ushort graphic, int x, int y, int z)
     {
-        const byte ID = 0xD7;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 27], true);
         writer.WriteUInt32BE(world.Player.Serial);
         writer.WriteUInt16BE(0x14);
         writer.WriteUInt8(0x00);
@@ -3460,35 +1637,14 @@ internal static class NetClientExt
         writer.WriteUInt32BE((uint)z);
         writer.WriteUInt8(0x0A);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
     public static void Send_CustomHouseAddStair(this NetClient socket, World world, ushort graphic, int x, int y)
     {
-        const byte ID = 0xD7;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 22], true);
         writer.WriteUInt32BE(world.Player.Serial);
         writer.WriteUInt16BE(0x0D);
         writer.WriteUInt8(0x00);
@@ -3499,310 +1655,50 @@ internal static class NetClientExt
         writer.WriteUInt32BE((uint)y);
         writer.WriteUInt8(0x0A);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
     public static void Send_ClientViewRange(this NetClient socket, byte range)
     {
-        const byte ID = 0xC8;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
-        if (range < Constants.MIN_VIEW_RANGE)
-        {
-            range = Constants.MIN_VIEW_RANGE;
-        }
-        else if (range > Constants.MAX_VIEW_RANGE)
-        {
-            range = Constants.MAX_VIEW_RANGE;
-        }
-
-        writer.WriteUInt8(range);
-
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send([0xC8, Math.Clamp(range, (byte)Constants.MIN_VIEW_RANGE, (byte)Constants.MAX_VIEW_RANGE)]);
     }
 
     public static void Send_OpenUOStore(this NetClient socket)
     {
-        const byte ID = 0xFA;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send([0xFA]);
     }
 
     public static void Send_ShowPublicHouseContent(this NetClient socket, bool show)
     {
-        const byte ID = 0xFB;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
-        writer.WriteBool(show);
-
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send([0xFB, (byte)(show ? 0x01 : 0x00)]);
     }
 
-    public static void Send_DeathScreen(this NetClient socket)
+    public static void Send_UOLive_HashResponse(this NetClient socket, uint block, byte mapIndex, ReadOnlySpan<ushort> checksums)
     {
-        const byte ID = 0x2C;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
-        writer.WriteUInt8(0x02); // Ghost
-
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
-    }
-
-    public static void Send_EquipMacroKR(this NetClient socket, ReadOnlySpan<uint> serials)
-    {
-        const byte ID = 0xEC;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
-        writer.WriteUInt8((byte)serials.Length);
-        foreach (ref readonly var serial in serials)
-            writer.WriteUInt32BE(serial);
-
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
-    }
-
-    public static void Send_UnequipMacroKR(this NetClient socket, ReadOnlySpan<Layer> layers)
-    {
-        const byte ID = 0xED;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
-        writer.WriteUInt8((byte)layers.Length);
-        foreach (ref readonly var layer in layers)
-            writer.WriteUInt16BE((byte)layer);
-
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
-        socket.Send(writer.Buffer);
-        writer.Dispose();
-    }
-
-    public static void Send_UOLive_HashResponse(this NetClient socket, uint block, byte mapIndex, Span<ushort> checksums)
-    {
-        const byte ID = 0x3F;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using FixedSpanWriter writer = new(0x3F, 3 + 12 + 2 * checksums.Length, true);
         writer.WriteUInt32BE(block);
         writer.WriteZero(6);
         writer.WriteUInt8(0xFF);
         writer.WriteUInt8(mapIndex);
 
-        for (int i = 0; i < checksums.Length; ++i)
+        for (int i = 0; i < checksums.Length; i++)
         {
             writer.WriteUInt16BE(checksums[i]);
         }
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
+        writer.WritePacketLength();
 
-        socket.Send(writer.Buffer);
-        writer.Dispose();
+        socket.Send(writer);
     }
 
 
     public static void Send_ToPlugins_AllSpells(this NetClient socket)
     {
-        const byte ID = 0xBF;
-
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        VariableSpanWriter writer = new(0xBF, stackalloc byte[3 + 3], true);
         writer.WriteUInt16BE(0xBEEF);
         writer.WriteUInt8(0x00);
-
-        void writeDef(IReadOnlyDictionary<int, SpellDefinition> dict, ref VariableSpanWriter w)
-        {
-            w.WriteUInt16BE((ushort)dict.Count);
-
-            foreach (KeyValuePair<int, SpellDefinition> m in dict)
-            {
-                // spell id
-                w.WriteUInt16BE((ushort)m.Key);
-
-                // mana cost
-                w.WriteUInt16BE((ushort)m.Value.ManaCost);
-
-                // min skill
-                w.WriteUInt16BE((ushort)m.Value.MinSkill);
-
-                // target type
-                w.WriteUInt8((byte)m.Value.TargetType);
-
-                // spell name
-                w.WriteUInt16BE((ushort)m.Value.Name.Length);
-                w.WriteUnicodeBE(m.Value.Name, m.Value.Name.Length);
-
-                // power of word
-                w.WriteUInt16BE((ushort)m.Value.PowerWords.Length);
-                w.WriteUnicodeBE(m.Value.PowerWords, m.Value.PowerWords.Length);
-
-                // reagents
-                w.WriteUInt16BE((ushort)m.Value.Regs.Length);
-
-                foreach (Reagents r in m.Value.Regs)
-                {
-                    w.WriteUInt8((byte)r);
-                }
-            }
-        }
 
         writeDef(SpellsMagery.GetAllSpells, ref writer);
         writeDef(SpellsNecromancy.GetAllSpells, ref writer);
@@ -3812,62 +1708,62 @@ internal static class NetClientExt
         writeDef(SpellsSpellweaving.GetAllSpells, ref writer);
         writeDef(SpellsMastery.GetAllSpells, ref writer);
 
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
-        }
-
         int len = writer.BytesWritten;
-        Plugin.ProcessRecvPacket(writer.AllocatedBuffer, ref len);
+
+        // TEMPORARY
+        byte[] temp = new byte[len];
+        writer.Buffer.CopyTo(temp);
+        Plugin.ProcessRecvPacket(temp, ref len);
+
         writer.Dispose();
+
+        static void writeDef(IReadOnlyDictionary<int, SpellDefinition> dict, ref VariableSpanWriter w)
+        {
+            w.WriteUInt16BE((ushort)dict.Count);
+
+            foreach (KeyValuePair<int, SpellDefinition> m in dict)
+            {
+                SpellDefinition def = m.Value;
+
+                w.WriteUInt16BE((ushort)m.Key); // spell id
+                w.WriteUInt16BE((ushort)def.ManaCost); // mana cost
+                w.WriteUInt16BE((ushort)def.MinSkill); // min skill
+                w.WriteUInt8((byte)def.TargetType); // target type
+                w.WriteString<UnicodeBE>(def.Name, StringOptions.PrependByteSize); // spell name
+                w.WriteString<UnicodeBE>(def.PowerWords, StringOptions.PrependByteSize); // power of word
+
+                w.WriteUInt16BE((ushort)def.Regs.Length); // reagents
+
+                for (int i = 0; i < def.Regs.Length; i++)
+                {
+                    w.WriteUInt8((byte)def.Regs[i]);
+                }
+            }
+        }
     }
 
     public static void Send_ToPlugins_AllSkills(this NetClient socket)
     {
-        const byte ID = 0xBF;
+        List<SkillEntry> skills = Client.Game.UO.FileManager.Skills.SortedSkills;
 
-        int length = socket.PacketsTable.GetPacketLength(ID);
-
-        var writer = new VariableSpanWriter(length < 0 ? 64 : length);
-
-        writer.WriteUInt8(ID);
-
-        if (length < 0)
-        {
-            writer.WriteZero(2);
-        }
-
+        using VariableSpanWriter writer = new(0xBF, stackalloc byte[3 + 3], true);
         writer.WriteUInt16BE(0xBEEF);
         writer.WriteUInt8(0x01);
+        writer.WriteUInt16BE((ushort)skills.Count);
 
-        writer.WriteUInt16BE((ushort)Client.Game.UO.FileManager.Skills.SortedSkills.Count);
-
-        foreach (SkillEntry s in Client.Game.UO.FileManager.Skills.SortedSkills)
+        foreach (SkillEntry s in skills)
         {
             writer.WriteUInt16BE((ushort)s.Index);
             writer.WriteBool(s.HasAction);
-
-            writer.WriteUInt16BE((ushort)s.Name.Length);
-            writer.WriteUnicodeBE(s.Name, s.Name.Length);
-        }
-
-        if (length < 0)
-        {
-            writer.Seek(1, SeekOrigin.Begin);
-            writer.WriteUInt16BE((ushort)writer.BytesWritten);
-        }
-        else
-        {
-            writer.WriteZero(length - writer.BytesWritten);
+            writer.WriteString<UnicodeBE>(s.Name, StringOptions.PrependByteSize);
         }
 
         int len = writer.BytesWritten;
-        Plugin.ProcessRecvPacket(writer.AllocatedBuffer, ref len);
-        writer.Dispose();
+
+        // TEMPORARY
+        byte[] temp = new byte[len];
+        writer.Buffer.CopyTo(temp);
+
+        Plugin.ProcessRecvPacket(temp, ref len);
     }
 }

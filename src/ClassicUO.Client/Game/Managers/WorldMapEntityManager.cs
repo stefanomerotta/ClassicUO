@@ -245,7 +245,7 @@ namespace ClassicUO.Game.Managers
                 //    return;
                 //}
 
-                NetClient.Socket.Send_QueryGuildPosition();
+                NetClient.Socket.SendQueryGuildPosition();
 
                 if (_world.Party != null && _world.Party.Leader != 0)
                 {
@@ -257,7 +257,7 @@ namespace ClassicUO.Game.Managers
 
                             if (mob == null || mob.Distance > _world.ClientViewRange)
                             {
-                                NetClient.Socket.Send_QueryPartyPosition();
+                                NetClient.Socket.SendQueryPartyPosition();
 
                                 break;
                             }

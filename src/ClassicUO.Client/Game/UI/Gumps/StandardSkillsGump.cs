@@ -879,7 +879,7 @@ namespace ClassicUO.Game.UI.Gumps
                         newStatus = 0;
                     }
 
-                    NetClient.Socket.Send_SkillStatusChangeRequest((ushort)Index, newStatus);
+                    NetClient.Socket.SendSkillStatusChangeRequest((ushort)Index, newStatus);
 
                     skill.Lock = (Lock) newStatus;
                     SetStatus((Lock) newStatus);

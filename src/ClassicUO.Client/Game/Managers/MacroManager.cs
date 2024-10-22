@@ -1338,11 +1338,11 @@ namespace ClassicUO.Game.Managers
                         {
                             if (macro.Code == MacroType.BandageSelf)
                             {
-                                NetClient.Socket.Send_TargetSelectedObject(bandage.Serial, _world.Player.Serial);
+                                NetClient.Socket.SendTargetSelectedObject(bandage.Serial, _world.Player.Serial);
                             }
                             else if (SerialHelper.IsMobile(_world.TargetManager.SelectedTarget))
                             {
-                                NetClient.Socket.Send_TargetSelectedObject(bandage.Serial, _world.TargetManager.SelectedTarget);
+                                NetClient.Socket.SendTargetSelectedObject(bandage.Serial, _world.TargetManager.SelectedTarget);
                             }
                         }
                     }
@@ -1456,7 +1456,7 @@ namespace ClassicUO.Game.Managers
 
                 case MacroType.InvokeVirtue:
                     byte id = (byte) (macro.SubCode - MacroSubType.Honor + 1);
-                    NetClient.Socket.Send_InvokeVirtueRequest(id);
+                    NetClient.Socket.SendInvokeVirtueRequest(id);
 
                     break;
 
@@ -1474,13 +1474,13 @@ namespace ClassicUO.Game.Managers
 
                     if (_world.Player.Race == RaceType.GARGOYLE)
                     {
-                        NetClient.Socket.Send_ToggleGargoyleFlying();
+                        NetClient.Socket.SendToggleGargoyleFlying();
                     }
 
                     break;
 
                 case MacroType.EquipLastWeapon:
-                    NetClient.Socket.Send_EquipLastWeapon(_world);
+                    NetClient.Socket.SendEquipLastWeapon(_world);
 
                     break;
 

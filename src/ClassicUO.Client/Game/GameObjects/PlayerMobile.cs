@@ -1665,7 +1665,7 @@ namespace ClassicUO.Game.GameObjects
             );
 
 
-            NetClient.Socket.Send_WalkRequest(direction, Walker.WalkSequence, run, Walker.FastWalkStack.GetValue());
+            NetClient.Socket.SendWalkRequest(direction, Walker.WalkSequence, run, Walker.FastWalkStack.GetValue());
 
 
             if (Walker.WalkSequence == 0xFF)

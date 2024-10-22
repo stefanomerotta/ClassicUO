@@ -421,39 +421,39 @@ namespace ClassicUO.Game
 
         public static void SayParty(string message, uint serial = 0)
         {
-            Socket.Send_PartyMessage(message, serial);
+            Socket.SendPartyMessage(message, serial);
         }
 
         public static void RequestPartyAccept(uint serial)
         {
-            Socket.Send_PartyAccept(serial);
+            Socket.SendPartyAccept(serial);
 
             UIManager.GetGump<PartyInviteGump>()?.Dispose();
         }
 
         public static void RequestPartyRemoveMemberByTarget()
         {
-            Socket.Send_PartyRemoveRequest(0x00);
+            Socket.SendPartyRemoveRequest(0x00);
         }
 
         public static void RequestPartyRemoveMember(uint serial)
         {
-            Socket.Send_PartyRemoveRequest(serial);
+            Socket.SendPartyRemoveRequest(serial);
         }
 
         public static void RequestPartyQuit(PlayerMobile player)
         {
-            Socket.Send_PartyRemoveRequest(player.Serial);
+            Socket.SendPartyRemoveRequest(player.Serial);
         }
 
         public static void RequestPartyInviteByTarget()
         {
-            Socket.Send_PartyInviteRequest();
+            Socket.SendPartyInviteRequest();
         }
 
         public static void RequestPartyLootState(bool isLootable)
         {
-            Socket.Send_PartyChangeLootTypeRequest(isLootable);
+            Socket.SendPartyChangeLootTypeRequest(isLootable);
         }
 
         public static bool PickUp
@@ -581,17 +581,17 @@ namespace ClassicUO.Game
 
         public static void RequestQuestMenu(World world)
         {
-            Socket.Send_QuestMenuRequest(world);
+            Socket.SendQuestMenuRequest(world);
         }
 
         public static void RequestProfile(uint serial)
         {
-            Socket.Send_ProfileRequest(serial);
+            Socket.SendProfileRequest(serial);
         }
 
         public static void ChangeSkillLockStatus(ushort skillindex, byte lockstate)
         {
-            Socket.Send_SkillStatusChangeRequest(skillindex, lockstate);
+            Socket.SendSkillStatusChangeRequest(skillindex, lockstate);
         }
 
         public static void RequestMobileStatus(World world, uint serial, bool force = false)
@@ -661,23 +661,23 @@ namespace ClassicUO.Game
             if (index >= 0)
             {
                 LastSpellIndex = index;
-                Socket.Send_CastSpell(index);
+                Socket.SendCastSpell(index);
             }
         }
 
         public static void OpenGuildGump(World world)
         {
-            Socket.Send_GuildMenuRequest(world);
+            Socket.SendGuildMenuRequest(world);
         }
 
         public static void ChangeStatLock(byte stat, Lock state)
         {
-            Socket.Send_StatLockStateRequest(stat, state);
+            Socket.SendStatLockStateRequest(stat, state);
         }
 
         public static void Rename(uint serial, string name)
         {
-            Socket.Send_RenameRequest(serial, name);
+            Socket.SendRenameRequest(serial, name);
         }
 
         public static void UseSkill(int index)
@@ -698,12 +698,12 @@ namespace ClassicUO.Game
                 return;
             }
 
-            Socket.Send_RequestPopupMenu(serial);
+            Socket.SendRequestPopupMenu(serial);
         }
 
         public static void ResponsePopupMenu(uint serial, ushort index)
         {
-            Socket.Send_PopupMenuSelection(serial, index);
+            Socket.SendPopupMenuSelection(serial, index);
         }
 
         public static void MessageOverhead(World world, string message, uint entity)
@@ -718,12 +718,12 @@ namespace ClassicUO.Game
 
         public static void AcceptTrade(uint serial, bool accepted)
         {
-            Socket.Send_TradeResponse(serial, 2, accepted);
+            Socket.SendTradeResponse(serial, 2, accepted);
         }
 
         public static void CancelTrade(uint serial)
         {
-            Socket.Send_TradeResponse(serial, 1, false);
+            Socket.SendTradeResponse(serial, 1, false);
         }
 
         public static void AllNames(World world)
@@ -768,9 +768,9 @@ namespace ClassicUO.Game
             if ((world.ClientLockedFeatures.Flags & LockedFeatureFlags.AOS) == 0)
             {
                 if (primary)
-                    Socket.Send_StunRequest();
+                    Socket.SendStunRequest();
                 else
-                    Socket.Send_DisarmRequest();
+                    Socket.SendDisarmRequest();
             }
             else
             {
@@ -830,7 +830,7 @@ namespace ClassicUO.Game
 
         public static void QuestArrow(bool rightClick)
         {
-            Socket.Send_ClickQuestArrow(rightClick);
+            Socket.SendClickQuestArrow(rightClick);
         }
 
         public static void GrabItem(World world, uint serial, ushort amount, uint bag = 0)

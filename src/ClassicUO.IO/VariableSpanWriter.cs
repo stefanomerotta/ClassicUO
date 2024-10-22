@@ -1,3 +1,4 @@
+using ClassicUO.IO.Encoders;
 using ClassicUO.Utility;
 using System;
 using System.Buffers;
@@ -77,17 +78,6 @@ public ref struct VariableSpanWriter : IDisposable
         }
 
         EnsureSize(Position - _buffer.Length + 1);
-    }
-
-    [MethodImpl(IMPL_OPTION)]
-    public void WriteSpan(scoped ReadOnlySpan<byte> value)
-    {
-        if (value.IsEmpty)
-            return;
-
-        EnsureSize(value.Length);
-        value.CopyTo(_buffer[Position..]);
-        Position += value.Length;
     }
 
     [MethodImpl(IMPL_OPTION)]
@@ -225,26 +215,7 @@ public ref struct VariableSpanWriter : IDisposable
     }
 
     [MethodImpl(IMPL_OPTION)]
-    public void WriteUnicodeBE(string value)
-    {
-        WriteString<char>(Encoding.BigEndianUnicode, value, -1);
-        WriteUInt16BE(0x0000);
-    }
-
-    [MethodImpl(IMPL_OPTION)]
-    public void WriteUnicodeBE(string value, int length)
-    {
-        WriteString<char>(Encoding.BigEndianUnicode, value, length);
-    }
-
-    [MethodImpl(IMPL_OPTION)]
-    public void WriteUTF8(string value, int length)
-    {
-        WriteString<byte>(Encoding.UTF8, value, length);
-    }
-
-    [MethodImpl(IMPL_OPTION)]
-    public void WriteASCII(string? value)
+    public void WriteNullTerminatedASCII(string? value)
     {
         if (string.IsNullOrEmpty(value))
         {
@@ -253,31 +224,33 @@ public ref struct VariableSpanWriter : IDisposable
         }
 
         EnsureSize(value.Length + 1);
-        StringHelper.StringToCp1252Bytes(value, _buffer[Position..]);
-        _buffer[Position] = 0x0;
+
+        int bytesWritten = StringHelper.StringToCp1252Bytes(value, _buffer[Position..]);
+        Position += bytesWritten;
+        _buffer[Position++] = 0x0;
     }
 
     [MethodImpl(IMPL_OPTION)]
-    public void WriteASCII(string? value, int length)
+    public void WriteFixedASCII(string? value, int byteLength)
     {
+        Debug.Assert(byteLength > 0);
+
         if (string.IsNullOrEmpty(value))
         {
-            WriteZero(Math.Max(length, 1));
+            WriteZero(byteLength);
             return;
         }
 
-        if (length < 0)
+        EnsureSize(byteLength);
+
+        int bytesWritten = StringHelper.StringToCp1252Bytes(value, _buffer[Position..], byteLength);
+        Position += bytesWritten;
+
+        if (bytesWritten < byteLength)
         {
-            EnsureSize(value.Length);
-            StringHelper.StringToCp1252Bytes(value, _buffer[Position..], length);
-        }
-        else
-        {
-            EnsureSize(Math.Min(value.Length, length));
-            
-            int bytesWritten = StringHelper.StringToCp1252Bytes(value, _buffer[Position..], length);
-            if (bytesWritten < length)
-                _buffer.Slice(Position, length - bytesWritten).Clear();
+            int remainingBytes = byteLength - bytesWritten;
+            _buffer.Slice(Position, remainingBytes).Clear();
+            Position += remainingBytes;
         }
     }
 
@@ -294,8 +267,11 @@ public ref struct VariableSpanWriter : IDisposable
     }
 
     [MethodImpl(IMPL_OPTION)]
-    public void Write(ReadOnlySpan<byte> span)
+    public void Write(scoped ReadOnlySpan<byte> span)
     {
+        if (span.IsEmpty)
+            return;
+
         EnsureSize(span.Length);
         span.CopyTo(_buffer[Position..]);
         Position += span.Length;
@@ -305,6 +281,81 @@ public ref struct VariableSpanWriter : IDisposable
     {
         Seek(1, SeekOrigin.Begin);
         WriteUInt16BE((ushort)BytesWritten);
+    }
+
+    [MethodImpl(IMPL_OPTION)]
+    public Span<byte> GetSpan(int size)
+    {
+        EnsureSize(Position + size);
+        return _buffer.Slice(Position, size);
+    }
+
+    [MethodImpl(IMPL_OPTION)]
+    public void Advance(int count)
+    {
+        Position += count;
+    }
+
+    [MethodImpl(IMPL_OPTION)]
+    public void WriteString<T>(ReadOnlySpan<char> value) where T : ITextEncoder
+    {
+        if (value.IsEmpty)
+            return;
+
+        int byteLength = T.Encoding.GetByteCount(value);
+        EnsureSize(byteLength);
+
+        int bytesWritten = T.Encoding.GetBytes(value, _buffer[Position..]);
+        Position += bytesWritten;
+    }
+
+    [MethodImpl(IMPL_OPTION)]
+    public void WriteString<T>(ReadOnlySpan<char> value, StringOptions options) where T : ITextEncoder
+    {
+        int byteLength = T.Encoding.GetByteCount(value);
+
+        bool nullTerminated = options.HasFlag(StringOptions.NullTerminated);
+        if (nullTerminated)
+            byteLength++;
+
+        if (options.HasFlag(StringOptions.PrependByteSize))
+        {
+            EnsureSize(byteLength + 2);
+            BinaryPrimitives.WriteUInt16BigEndian(_buffer[Position..], (ushort)byteLength);
+            Position += 2;
+        }
+        else
+        {
+            EnsureSize(byteLength);
+        }
+
+        T.Encoding.GetBytes(value, _buffer[Position..]);
+        Position += byteLength;
+
+        if (nullTerminated)
+            _buffer[Position - 1] = 0x0;
+    }
+
+    [MethodImpl(IMPL_OPTION)]
+    public void WriteFixedString<T>(ReadOnlySpan<char> value, int byteLength) where T : ITextEncoder
+    {
+        Debug.Assert(byteLength >= 0);
+
+        if (value.IsEmpty)
+        {
+            WriteZero(byteLength);
+            return;
+        }
+
+        EnsureSize(byteLength);
+
+        int stringLength = Math.Min(value.Length, byteLength >> T.ByteShift);
+        int bytesWritten = T.Encoding.GetBytes(value[..stringLength], _buffer[Position..]);
+        Position += bytesWritten;
+
+        int remainingBytes = (stringLength << T.ByteShift) - bytesWritten;
+        _buffer.Slice(Position, remainingBytes).Clear();
+        Position += remainingBytes;
     }
 
     // Thanks MUO :)
@@ -334,10 +385,11 @@ public ref struct VariableSpanWriter : IDisposable
     [MethodImpl(IMPL_OPTION)]
     private void EnsureSize(int size)
     {
-        if (Position + size <= _buffer.Length)
+        int newSize = Position + size;
+        if (newSize <= _buffer.Length)
             return;
 
-        byte[] newBuffer = ArrayPool<byte>.Shared.Rent(size);
+        byte[] newBuffer = ArrayPool<byte>.Shared.Rent(newSize);
 
         if (_allocatedBuffer is not null)
         {

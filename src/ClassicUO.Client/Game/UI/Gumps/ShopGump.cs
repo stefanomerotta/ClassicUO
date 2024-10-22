@@ -622,18 +622,12 @@ namespace ClassicUO.Game.UI.Gumps
             switch ((Buttons)buttonID)
             {
                 case Buttons.Accept:
-                    Tuple<uint, ushort>[] items = _transactionItems
-                        .Select(t => new Tuple<uint, ushort>(t.Key, (ushort)t.Value.Amount))
-                        .ToArray();
+                    (uint, ushort)[] items = _transactionItems.Select(t => (t.Key, (ushort)t.Value.Amount)).ToArray();
 
                     if (IsBuyGump)
-                    {
-                        NetClient.Socket.Send_BuyRequest(LocalSerial, items);
-                    }
+                        NetClient.Socket.SendBuyRequest(LocalSerial, items);
                     else
-                    {
-                        NetClient.Socket.Send_SellRequest(LocalSerial, items);
-                    }
+                        NetClient.Socket.SendSellRequest(LocalSerial, items);
 
                     Dispose();
 
