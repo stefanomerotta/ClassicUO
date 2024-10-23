@@ -2052,12 +2052,12 @@ namespace ClassicUO.Game.UI.Gumps
                     break;
 
                 case ID_GUMP_CUSTOM_HOUSE.ID_GCH_MENU_SYNCH:
-                    NetClient.Socket.Send_CustomHouseSync(World);
+                    NetClient.Socket.SendCustomHouseSync(World);
 
                     break;
 
                 case ID_GUMP_CUSTOM_HOUSE.ID_GCH_MENU_CLEAR:
-                    NetClient.Socket.Send_CustomHouseClear(World);
+                    NetClient.Socket.SendCustomHouseClear(World);
 
                     break;
 
@@ -2067,7 +2067,7 @@ namespace ClassicUO.Game.UI.Gumps
                     break;
 
                 case ID_GUMP_CUSTOM_HOUSE.ID_GCH_MENU_REVERT:
-                    NetClient.Socket.Send_CustomHouseRevert(World);
+                    NetClient.Socket.SendCustomHouseRevert(World);
 
                     break;
 

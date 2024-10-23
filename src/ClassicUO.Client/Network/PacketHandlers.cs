@@ -354,7 +354,7 @@ namespace ClassicUO.Network
             {
                 for (int i = 0; i < Handler._customHouseRequests.Count; ++i)
                 {
-                    NetClient.Socket.Send_CustomHouseDataRequest(Handler._customHouseRequests[i]);
+                    NetClient.Socket.SendCustomHouseDataRequest(Handler._customHouseRequests[i]);
                 }
 
                 Handler._customHouseRequests.Clear();
@@ -962,13 +962,13 @@ namespace ClassicUO.Network
                 && ProfileManager.CurrentProfile != null
             )
             {
-                NetClient.Socket.Send_ShowPublicHouseContent(
+                NetClient.Socket.SendShowPublicHouseContent(
                     ProfileManager.CurrentProfile.ShowHouseContent
                 );
             }
 
-            NetClient.Socket.Send_ToPlugins_AllSkills();
-            NetClient.Socket.Send_ToPlugins_AllSpells();
+            NetClient.Socket.SendToPluginsAllSkills();
+            NetClient.Socket.SendToPluginsAllSpells();
         }
 
         private static void Talk(World world, ref SpanReader p)
@@ -2254,7 +2254,7 @@ namespace ClassicUO.Network
 
                 if (Client.Game.UO.Version >= Utility.ClientVersion.CV_305D)
                 {
-                    NetClient.Socket.Send_ClientViewRange(world.ClientViewRange);
+                    NetClient.Socket.SendClientViewRange(world.ClientViewRange);
                 }
 
                 List<Gump> gumps = ProfileManager.CurrentProfile.ReadGumps(

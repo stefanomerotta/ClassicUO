@@ -337,7 +337,7 @@ namespace ClassicUO.Game.UI.Gumps
                         {
                             if (UseNewHeader)
                             {
-                                NetClient.Socket.Send_BookHeaderChanged(LocalSerial, _titleTextBox.Text, _authorTextBox.Text);
+                                NetClient.Socket.SendBookHeaderChanged(LocalSerial, _titleTextBox.Text, _authorTextBox.Text);
                             }
                             else
                             {
@@ -353,7 +353,7 @@ namespace ClassicUO.Game.UI.Gumps
                                 text[l] = BookLines[x];
                             }
 
-                            NetClient.Socket.Send_BookPageData(LocalSerial, text, i);
+                            NetClient.Socket.SendBookPageData(LocalSerial, text, i);
                         }
                     }
                 }

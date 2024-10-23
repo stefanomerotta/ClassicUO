@@ -195,7 +195,7 @@ namespace ClassicUO.Game
                         }
                     }
 
-                    NetClient.Socket.Send_UOLive_HashResponse((uint) block, (byte) mapId, checkSumsToBeSent.AsSpan(0, CRC_LENGTH));
+                    NetClient.Socket.SendUOLiveHashResponse((uint) block, (byte) mapId, checkSumsToBeSent.AsSpan(0, CRC_LENGTH));
 
                     break;
                 }

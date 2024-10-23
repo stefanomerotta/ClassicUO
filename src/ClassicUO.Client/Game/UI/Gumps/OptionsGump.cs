@@ -3799,7 +3799,7 @@ namespace ClassicUO.Game.UI.Gumps
             if (_currentProfile.ShowHouseContent != _showHouseContent.IsChecked)
             {
                 _currentProfile.ShowHouseContent = _showHouseContent.IsChecked;
-                NetClient.Socket.Send_ShowPublicHouseContent(_currentProfile.ShowHouseContent);
+                NetClient.Socket.SendShowPublicHouseContent(_currentProfile.ShowHouseContent);
             }
 
 

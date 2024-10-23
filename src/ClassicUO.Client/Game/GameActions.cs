@@ -642,7 +642,7 @@ namespace ClassicUO.Game
                 {
                     //ent = ent ?? World.Player;
                     //ent.AddMessage(MessageType.Regular, $"PACKET REMOVED SENT: 0x{serial:X8}", 3, 0x34 + 10, true, TextType.OBJECT);
-                    Socket.Send_CloseStatusBarGump(serial);
+                    Socket.SendCloseStatusBarGump(serial);
                 }
             }
         }
@@ -774,7 +774,7 @@ namespace ClassicUO.Game
             }
             else
             {
-                Socket.Send_UseCombatAbility(world, idx);
+                Socket.SendUseCombatAbility(world, idx);
             }
         }
 
