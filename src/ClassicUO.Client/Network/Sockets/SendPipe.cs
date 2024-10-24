@@ -11,10 +11,9 @@ internal sealed class SendPipe : Pipe, IValueTaskSource<Memory<byte>>, IDisposab
 {
     private readonly CancellationTokenRegistration _cancellationTokenRegistration;
     private ManualResetValueTaskSourceCore<Memory<byte>> _source;
-    private SendPipe? _next;
-    
+
     public CancellationToken Token { get; }
-    public SendPipe? Next { get => _next; set => SetNextPipe(value); }
+    public SendPipe? Next { get; private set; }
     public bool Encrypted { get; }
 
     public SendPipe(uint size, bool encrypted, CancellationToken cancellationToken)
@@ -52,12 +51,14 @@ internal sealed class SendPipe : Pipe, IValueTaskSource<Memory<byte>>, IDisposab
             _source.SetResult(GetAvailableMemoryToReadCore());
     }
 
-    private void SetNextPipe(SendPipe? pipe)
+    public static void ChainPipe(ref SendPipe pipe, bool forceEncryption = false)
     {
-        _next = pipe;
+        SendPipe old = pipe;
+        pipe.Next = new((uint)pipe._buffer.Length, pipe.Encrypted || forceEncryption, pipe.Token);
+        pipe = pipe.Next;
 
-        if (pipe is not null && _source.GetStatus(_source.Version) == ValueTaskSourceStatus.Pending)
-            _source.SetResult(GetAvailableMemoryToReadCore());
+        if (old._source.GetStatus(old._source.Version) == ValueTaskSourceStatus.Pending)
+            old._source.SetResult(old.GetAvailableMemoryToReadCore());
     }
 
     public Memory<byte> GetResult(short token)
@@ -81,12 +82,6 @@ internal sealed class SendPipe : Pipe, IValueTaskSource<Memory<byte>>, IDisposab
         Cancel();
     }
 
-    private void Cancel()
-    {
-        if (_source.GetStatus(_source.Version) == ValueTaskSourceStatus.Pending)
-            _source.SetException(new OperationCanceledException());
-    }
-
     private Memory<byte> GetAvailableMemoryToReadCore()
     {
         int readIndex = (int)(_readIndex & _mask);
@@ -99,5 +94,11 @@ internal sealed class SendPipe : Pipe, IValueTaskSource<Memory<byte>>, IDisposab
             return _buffer.AsMemory(readIndex);
 
         return _buffer.AsMemory(readIndex..writeIndex);
+    }
+
+    private void Cancel()
+    {
+        if (_source.GetStatus(_source.Version) == ValueTaskSourceStatus.Pending)
+            _source.SetException(new OperationCanceledException());
     }
 }

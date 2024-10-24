@@ -90,7 +90,7 @@ internal abstract class Pipe
         return _buffer.AsSpan(readIndex..writeIndex);
     }
 
-    public void CommitRead(int size)
+    public virtual void CommitRead(int size)
     {
         ArgumentOutOfRangeException.ThrowIfGreaterThan(size, Length);
 

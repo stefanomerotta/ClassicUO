@@ -47,12 +47,13 @@ internal sealed class NetClient
 {
     private const int BUFF_SIZE = 4096;
     private const int SEND_SIZE = BUFF_SIZE;
-    private const int RECV_SIZE = BUFF_SIZE * 3;
+    private const int RECV_ZIP_SIZE = BUFF_SIZE;
+    private const int RECV_UNZIP_SIZE = BUFF_SIZE * 3;
 
     public static NetClient Socket { get; } = new();
 
-    private readonly byte[] _receiveBuffer = new byte[BUFF_SIZE];
-    private readonly byte[] _decompressionBuffer = new byte[RECV_SIZE];
+    private readonly byte[] _receiveBuffer = new byte[RECV_ZIP_SIZE];
+    private readonly byte[] _decompressionBuffer = new byte[RECV_UNZIP_SIZE];
     private readonly Huffman _huffman = new();
 
     private ReceivePipe _receivePipe;
@@ -83,7 +84,7 @@ internal sealed class NetClient
         Statistics = new NetStatistics(this);
         _source = new();
 
-        _receivePipe = new(0);
+        _receivePipe = new(0, CancellationToken.None);
         _sendPipe = new(0, false, CancellationToken.None);
     }
 
@@ -156,6 +157,7 @@ internal sealed class NetClient
 
         _socket!.Dispose();
         _sendPipe.Dispose();
+        _receivePipe.Dispose();
         Statistics.Reset();
         _encryption = null;
     }
@@ -168,11 +170,6 @@ internal sealed class NetClient
             _socketError = SocketError.Success;
         }
 
-        Span<byte> span = _receivePipe.GetAvailableSpanToRead();
-        if (!span.IsEmpty || _receivePipe.Next is null)
-            return span;
-
-        _receivePipe = _receivePipe.Next;
         return _receivePipe.GetAvailableSpanToRead();
     }
 
@@ -198,9 +195,7 @@ internal sealed class NetClient
 
         lock (this)
         {
-            SendPipe oldPipe = _sendPipe;
-            SendPipe pipe = _sendPipe.Next = new(SEND_SIZE, true, _sendPipe.Token);
-            _sendPipe = pipe;
+            SendPipe.ChainPipe(ref _sendPipe, true);
         }
     }
 
@@ -245,8 +240,7 @@ internal sealed class NetClient
             if (!span.IsEmpty)
                 return span;
 
-            _sendPipe.Next = new(SEND_SIZE, _sendPipe.Encrypted, _sendPipe.Token);
-            _sendPipe = _sendPipe.Next;
+            SendPipe.ChainPipe(ref _sendPipe);
 
             return _sendPipe.GetAvailableSpanToWrite();
         }
@@ -271,18 +265,15 @@ internal sealed class NetClient
         Statistics.Update();
     }
 
-    private bool ProcessCompression(ref Span<byte> buffer)
+    private Memory<byte> Decompress(Memory<byte> buffer)
     {
         if (!_isCompressionEnabled)
-            return true;
+            return buffer;
 
-        if (_huffman.Decompress(buffer, _decompressionBuffer, out int size))
-        {
-            buffer = _decompressionBuffer.AsSpan(..size);
-            return true;
-        }
+        if (_huffman.Decompress(buffer.Span, _decompressionBuffer, out int size))
+            return _decompressionBuffer.AsMemory(..size);
 
-        return false;
+        throw new Exception("Huffman decompression failed");
     }
 
     private uint GetLocalIP()
@@ -323,7 +314,7 @@ internal sealed class NetClient
         CancellationToken token = _source.Token;
 
         _sendPipe = new(SEND_SIZE, false, token);
-        _receivePipe = new(RECV_SIZE);
+        _receivePipe = new(RECV_UNZIP_SIZE, token);
 
         try
         {
@@ -347,41 +338,44 @@ internal sealed class NetClient
 
     private async Task ReadLoop(NetSocket socket, ReceivePipe pipe, CancellationToken token)
     {
+        int receiveBufferPosition = 0;
+
         try
         {
             while (!token.IsCancellationRequested)
             {
-                Memory<byte> buffer = _receiveBuffer.AsMemory();
+                Memory<byte> buffer = _receiveBuffer.AsMemory(receiveBufferPosition);
 
                 int bytesRead = await socket.ReceiveAsync(buffer, token);
                 if (bytesRead == 0)
                     throw new SocketException((int)SocketError.ConnectionReset);
 
-                Span<byte> span = buffer.Span[..bytesRead];
+                Statistics.TotalBytesReceived += (uint)bytesRead;
 
-                Statistics.TotalBytesReceived += (uint)span.Length;
+                _encryption?.Decrypt(buffer.Span[..bytesRead]);
+                Memory<byte> chunk = Decompress(_receiveBuffer.AsMemory(0, bytesRead + receiveBufferPosition));
 
-                _encryption?.Decrypt(span);
-                
-                if (!ProcessCompression(ref span))
-                    throw new Exception("Huffman decompression failed");
-
-                if (span.IsEmpty)
-                    continue;
-
-                Span<byte> targetSpan = getSpan(ref pipe);
-
-                while (span.Length > targetSpan.Length)
+                if (chunk.IsEmpty)
                 {
-                    span[..targetSpan.Length].CopyTo(targetSpan);
-                    pipe.CommitWrited(targetSpan.Length);
-                    span = span[targetSpan.Length..];
-
-                    targetSpan = getSpan(ref pipe);
+                    receiveBufferPosition += bytesRead;
+                    continue;
                 }
 
-                span.CopyTo(targetSpan);
-                pipe.CommitWrited(span.Length);
+                receiveBufferPosition = 0;
+
+                Memory<byte> target = await pipe.GetAvailableMemoryToWrite();
+
+                while (chunk.Length > target.Length)
+                {
+                    chunk[..target.Length].CopyTo(target);
+                    pipe.CommitWrited(target.Length);
+                    chunk = chunk[target.Length..];
+
+                    target = await pipe.GetAvailableMemoryToWrite();
+                }
+
+                chunk.CopyTo(target);
+                pipe.CommitWrited(chunk.Length);
             }
         }
         catch (OperationCanceledException)
@@ -394,18 +388,6 @@ internal sealed class NetClient
         catch (Exception e)
         {
             Cleanup(SocketError.Fault);
-        }
-
-        static Span<byte> getSpan(ref ReceivePipe pipe)
-        {
-            Span<byte> span = pipe.GetAvailableSpanToWrite();
-            if (!span.IsEmpty)
-                return span;
-
-            ReceivePipe newPipe = pipe.Next = new(RECV_SIZE);
-            pipe = newPipe;
-
-            return pipe.GetAvailableSpanToWrite();
         }
     }
 
