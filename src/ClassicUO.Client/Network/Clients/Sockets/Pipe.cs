@@ -33,7 +33,7 @@
 using System;
 using System.Numerics;
 
-namespace ClassicUO.Network.Sockets;
+namespace ClassicUO.Network.Clients.Sockets;
 
 #nullable enable
 

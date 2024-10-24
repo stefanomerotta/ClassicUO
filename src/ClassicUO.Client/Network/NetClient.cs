@@ -1,94 +1,84 @@
-﻿#region license
-
-// Copyright (c) 2024, andreakarasho
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.
-// 3. All advertising materials mentioning features or use of this software
-//    must display the following acknowledgement:
-//    This product includes software developed by andreakarasho - https://github.com/andreakarasho
-// 4. Neither the name of the copyright holder nor the
-//    names of its contributors may be used to endorse or promote products
-//    derived from this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ''AS IS'' AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY
-// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-#endregion
-
+﻿using ClassicUO.Network.Clients;
 using ClassicUO.Network.Encryptions;
-using ClassicUO.Network.Sockets;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Logging;
 using System;
 using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace ClassicUO.Network;
 
 #nullable enable
 
-internal sealed class NetClient
+internal abstract class NetClient
 {
-    private const int BUFF_SIZE = 4096;
-    private const int SEND_SIZE = BUFF_SIZE;
-    private const int RECV_ZIP_SIZE = BUFF_SIZE;
-    private const int RECV_UNZIP_SIZE = BUFF_SIZE * 3;
+    public static NetClient Socket { get; } = new AsyncNetClient();
 
-    public static NetClient Socket { get; } = new();
-
-    private readonly byte[] _receiveBuffer = new byte[RECV_ZIP_SIZE];
-    private readonly byte[] _decompressionBuffer = new byte[RECV_UNZIP_SIZE];
-    private readonly Huffman _huffman = new();
-
-    private ReceivePipe _receivePipe;
-    private SendPipe _sendPipe;
-    private bool _isCompressionEnabled;
-    private uint? _localIP;
-    private NetSocket? _socket;
-    private CancellationTokenSource _source;
-    private Task? _readLoopTask;
-    private Task? _writeLoopTask;
-    private ClientVersion _clientVersion;
-    private SocketError _socketError;
-    private Encryption? _encryption;
-
-    public bool IsConnected { get; private set; }
-    public bool IsWebSocket { get; private set; }
-    public NetStatistics Statistics { get; }
-    public PacketsTable? PacketsTable { get; private set; }
+    protected readonly Huffman _huffman = new();
+    protected bool _isCompressionEnabled;
+    protected ClientVersion _clientVersion;
+    protected Encryption? _encryption;
+    public EncryptionType EncryptionType { get; protected set; }
     public bool ServerDisconnectionExpected { get; set; }
-    public uint LocalIP => GetLocalIP();
-    public EncryptionType EncryptionType { get; private set; }
+    public NetStatistics Statistics { get; }
+
+    public PacketsTable PacketsTable { get; private set; }
+    public virtual bool IsConnected { get; protected set; }
+    public virtual bool IsWebSocket { get; protected set; }
+    public abstract uint LocalIP { get; }
 
     public event EventHandler? Connected;
     public event EventHandler<SocketError>? Disconnected;
 
-    public NetClient()
+    protected NetClient()
     {
         Statistics = new NetStatistics(this);
-        _source = new();
-
-        _receivePipe = new(0, CancellationToken.None);
-        _sendPipe = new(0, false, CancellationToken.None);
+        PacketsTable = null!;
     }
 
-    public EncryptionType Load(ClientVersion clientVersion, EncryptionType encryption)
+    public abstract Span<byte> CollectAvailableData();
+    public abstract void CommitReadData(int size);
+    public abstract void Connect(string ip, ushort port);
+
+    public void EnableCompression()
+    {
+        _isCompressionEnabled = true;
+        _huffman.Reset();
+    }
+
+    public virtual bool Send(Span<byte> message, bool ignorePlugin = false)
+    {
+        if (!IsConnected || message.IsEmpty)
+            return false;
+
+        if (!ignorePlugin && !Plugin.ProcessSendPacket(ref message))
+            return false;
+
+        if (message.IsEmpty)
+            return false;
+
+        PacketLogger.Default?.Log(message, true);
+
+        return true;
+    }
+
+    public virtual void Flush() 
+    { }
+
+    public virtual bool Disconnect(SocketError error = SocketError.Success)
+    {
+        if (!IsConnected)
+            return false;
+
+        IsConnected = false;
+        ServerDisconnectionExpected = false;
+        Statistics.Reset();
+        _encryption = null;
+        _isCompressionEnabled = false;
+
+        return true;
+    }
+
+    public virtual EncryptionType Load(ClientVersion clientVersion, EncryptionType encryption)
     {
         PacketsTable = new PacketsTable(clientVersion);
         _clientVersion = clientVersion;
@@ -110,140 +100,22 @@ internal sealed class NetClient
         return encryption;
     }
 
-    public void Connect(string ip, ushort port)
-    {
-        IsWebSocket = ip.StartsWith("ws", StringComparison.InvariantCultureIgnoreCase);
-        string addr = $"{(IsWebSocket ? "" : "tcp://")}{ip}:{port}";
-
-        if (!Uri.TryCreate(addr, UriKind.RelativeOrAbsolute, out Uri? uri))
-            throw new UriFormatException($"{nameof(NetClient)}::{nameof(Connect)} invalid Uri {addr}");
-
-        Log.Trace($"Connecting to {uri}");
-
-        bool connected = ConnectAsyncCore(uri, IsWebSocket).GetAwaiter().GetResult();
-
-        if (connected)
-        {
-            IsConnected = true;
-            Connected?.Invoke(this, EventArgs.Empty);
-        }
-        else
-        {
-            Disconnected?.Invoke(this, SocketError.ConnectionReset);
-        }
-    }
-
-    public bool Disconnect(SocketError error = SocketError.Success)
-    {
-        if (!IsConnected)
-            return false;
-
-        Cleanup(error);
-        return true;
-    }
-
-    private void Cleanup(SocketError error = SocketError.Success)
-    {
-        IsConnected = false;
-        _socketError = error;
-        _isCompressionEnabled = false;
-        _source.Cancel();
-
-        if (_readLoopTask is { Status: TaskStatus.Running })
-            _readLoopTask.Wait();
-
-        if (_writeLoopTask is { Status: TaskStatus.Running })
-            _writeLoopTask.Wait();
-
-        _socket!.Dispose();
-        _sendPipe.Dispose();
-        _receivePipe.Dispose();
-        Statistics.Reset();
-        _encryption = null;
-    }
-
-    public Span<byte> CollectAvailableData()
-    {
-        if (!IsConnected && _socketError != SocketError.Success)
-        {
-            Disconnected?.Invoke(this, _socketError);
-            _socketError = SocketError.Success;
-        }
-
-        return _receivePipe.GetAvailableSpanToRead();
-    }
-
-    public void CommitReadData(int size)
-    {
-        _receivePipe.CommitRead(size);
-    }
-
-    public void EnableCompression()
-    {
-        _isCompressionEnabled = true;
-        _huffman.Reset();
-    }
-
-    public void EnableEncryption(bool login, uint seed)
+    public virtual bool EnableEncryption(bool login, uint seed)
     {
         if (EncryptionType == EncryptionType.NONE)
-            return;
+            return false;
 
         _encryption = login ?
             Encryption.CreateForLogin(_clientVersion, seed)
             : Encryption.CreateForGame(EncryptionType, seed);
 
-        lock (this)
-        {
-            SendPipe.ChainPipe(ref _sendPipe, true);
-        }
+        return true;
     }
 
-    public void Send(Span<byte> message, bool ignorePlugin = false)
+    public void UpdateStatistics(int receivedPacketCount)
     {
-        if (!IsConnected || message.IsEmpty)
-            return;
-
-        if (!ignorePlugin && !Plugin.ProcessSendPacket(ref message))
-            return;
-
-        if (message.IsEmpty)
-            return;
-
-        PacketLogger.Default?.Log(message, true);
-
-        int messageLength = message.Length;
-
-        lock (this)
-        {
-            Span<byte> span = getSpan();
-
-            while (span.Length < message.Length)
-            {
-                message[..span.Length].CopyTo(span);
-                _sendPipe.CommitWrited(span.Length);
-
-                message = message[span.Length..];
-                span = getSpan();
-            }
-
-            message.CopyTo(span);
-            _sendPipe.CommitWrited(message.Length);
-        }
-
-        Statistics.TotalBytesSent += (uint)messageLength;
-        Statistics.TotalPacketsSent++;
-
-        Span<byte> getSpan()
-        {
-            Span<byte> span = _sendPipe.GetAvailableSpanToWrite();
-            if (!span.IsEmpty)
-                return span;
-
-            SendPipe.ChainPipe(ref _sendPipe);
-
-            return _sendPipe.GetAvailableSpanToWrite();
-        }
+        Statistics.TotalPacketsReceived += (uint)receivedPacketCount;
+        Statistics.Update();
     }
 
     public void SendPing()
@@ -259,179 +131,13 @@ internal sealed class NetClient
         Statistics.PingReceived(idx);
     }
 
-    public void UpdateStatistics(int receivedPacketCount)
+    protected void InvokeConnected()
     {
-        Statistics.TotalPacketsReceived += (uint)receivedPacketCount;
-        Statistics.Update();
+        Connected?.Invoke(this, EventArgs.Empty);
     }
 
-    private Memory<byte> Decompress(Memory<byte> buffer)
+    protected void InvokeDisconnected(SocketError error)
     {
-        if (!_isCompressionEnabled)
-            return buffer;
-
-        if (_huffman.Decompress(buffer.Span, _decompressionBuffer, out int size))
-            return _decompressionBuffer.AsMemory(..size);
-
-        throw new Exception("Huffman decompression failed");
-    }
-
-    private uint GetLocalIP()
-    {
-        if (!_localIP.HasValue)
-        {
-            try
-            {
-                byte[]? addressBytes = _socket?.LocalEndPoint?.Address.MapToIPv4().GetAddressBytes();
-
-                if (addressBytes is { Length: > 0 })
-                    _localIP = (uint)(addressBytes[0] | (addressBytes[1] << 8) | (addressBytes[2] << 16) | (addressBytes[3] << 24));
-
-                if (!_localIP.HasValue || _localIP == 0)
-                    _localIP = 0x100007f;
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"error while retriving local endpoint address: \n{ex}");
-
-                _localIP = 0x100007f;
-            }
-        }
-
-        return _localIP.Value;
-    }
-
-    private async Task<bool> ConnectAsyncCore(Uri uri, bool isWebSocket)
-    {
-        if (IsConnected)
-            Cleanup();
-
-        ServerDisconnectionExpected = false;
-
-        _source = new();
-        _socket = isWebSocket ? new WebSocket() : new TcpSocket();
-
-        CancellationToken token = _source.Token;
-
-        _sendPipe = new(SEND_SIZE, false, token);
-        _receivePipe = new(RECV_UNZIP_SIZE, token);
-
-        try
-        {
-            NetSocket socket = _socket;
-            ReceivePipe receivePipe = _receivePipe;
-            SendPipe sendPipe = _sendPipe;
-
-            await _socket.ConnectAsync(uri, token);
-
-            _readLoopTask = Task.Run(() => ReadLoop(socket, receivePipe, token));
-            _writeLoopTask = Task.Run(() => WriteLoop(socket, sendPipe, token));
-
-            return true;
-        }
-        catch
-        {
-            Cleanup();
-            return false;
-        }
-    }
-
-    private async Task ReadLoop(NetSocket socket, ReceivePipe pipe, CancellationToken token)
-    {
-        int receiveBufferPosition = 0;
-
-        try
-        {
-            while (!token.IsCancellationRequested)
-            {
-                Memory<byte> buffer = _receiveBuffer.AsMemory(receiveBufferPosition);
-
-                int bytesRead = await socket.ReceiveAsync(buffer, token);
-                if (bytesRead == 0)
-                    throw new SocketException((int)SocketError.ConnectionReset);
-
-                Statistics.TotalBytesReceived += (uint)bytesRead;
-
-                _encryption?.Decrypt(buffer.Span[..bytesRead]);
-                Memory<byte> chunk = Decompress(_receiveBuffer.AsMemory(0, bytesRead + receiveBufferPosition));
-
-                if (chunk.IsEmpty)
-                {
-                    receiveBufferPosition += bytesRead;
-                    continue;
-                }
-
-                receiveBufferPosition = 0;
-
-                Memory<byte> target = await pipe.GetAvailableMemoryToWrite();
-
-                while (chunk.Length > target.Length)
-                {
-                    chunk[..target.Length].CopyTo(target);
-                    pipe.CommitWrited(target.Length);
-                    chunk = chunk[target.Length..];
-
-                    target = await pipe.GetAvailableMemoryToWrite();
-                }
-
-                chunk.CopyTo(target);
-                pipe.CommitWrited(chunk.Length);
-            }
-        }
-        catch (OperationCanceledException)
-        { }
-        catch (SocketException se)
-        {
-            if (se.SocketErrorCode != SocketError.ConnectionReset || !ServerDisconnectionExpected)
-                Cleanup(se.SocketErrorCode);
-        }
-        catch (Exception e)
-        {
-            Cleanup(SocketError.Fault);
-        }
-    }
-
-    private async Task WriteLoop(NetSocket socket, SendPipe pipe, CancellationToken token)
-    {
-        try
-        {
-            while (!token.IsCancellationRequested)
-            {
-                Memory<byte> buffer = await pipe.GetAvailableMemoryToRead();
-
-                int bufferLength = buffer.Length;
-                if (bufferLength == 0)
-                {
-                    if (pipe.Next is not null)
-                    {
-                        pipe.Dispose();
-                        pipe = pipe.Next;
-                    }
-
-                    continue;
-                }
-
-                if (pipe.Encrypted)
-                    _encryption?.Encrypt(buffer.Span);
-
-                while (!buffer.IsEmpty)
-                {
-                    int bytesWritten = await socket!.SendAsync(buffer, token);
-                    buffer = buffer[bytesWritten..];
-                }
-
-                pipe.CommitRead(bufferLength);
-            }
-        }
-        catch (OperationCanceledException)
-        { }
-        catch (SocketException)
-        {
-            // ignored: socket errors are handled by ReadLoop
-        }
-        catch
-        {
-            Cleanup();
-        }
+        Disconnected?.Invoke(this, error);
     }
 }
