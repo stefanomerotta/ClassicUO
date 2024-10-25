@@ -57,7 +57,7 @@ internal sealed class SendPipe : Pipe, IDisposable
     public void Dispose()
     {
         _cancellationTokenRegistration.Unregister();
-        _event.Set();
+        _event.Dispose();
     }
 
     private Memory<byte> GetAvailableMemoryToReadCore()

@@ -98,25 +98,26 @@ internal sealed class AsyncNetClient : NetClient
         _socketError = error;
         _source.Cancel();
 
-        if (_readLoopTask is { Status: TaskStatus.Running })
-            _readLoopTask.Wait();
-
-        if (_writeLoopTask is { Status: TaskStatus.Running })
-            _writeLoopTask.Wait();
+        _readLoopTask?.GetAwaiter().GetResult();
+        _writeLoopTask?.GetAwaiter().GetResult();
 
         _socket!.Dispose();
         _sendPipe.Dispose();
         _receivePipe.Dispose();
-
         return true;
     }
 
     public override Span<byte> CollectAvailableData()
     {
-        if (!IsConnected && _socketError != SocketError.Success)
+        if (!IsConnected)
         {
-            InvokeDisconnected(_socketError);
-            _socketError = SocketError.Success;
+            if (_socketError != SocketError.Success)
+            {
+                InvokeDisconnected(_socketError);
+                _socketError = SocketError.Success;
+            }
+
+            return [];
         }
 
         return _receivePipe.GetAvailableSpanToRead();
@@ -142,7 +143,7 @@ internal sealed class AsyncNetClient : NetClient
 
     public override bool Send(Span<byte> message, bool ignorePlugin = false)
     {
-        if(!base.Send(message, ignorePlugin))
+        if (!base.Send(message, ignorePlugin))
             return false;
 
         int messageLength = message.Length;
