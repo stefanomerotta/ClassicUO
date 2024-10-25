@@ -275,7 +275,7 @@ internal sealed class AsyncNetClient : NetClient
 
                 receiveBufferPosition = 0;
 
-                Memory<byte> target = await pipe.GetAvailableMemoryToWrite();
+                Memory<byte> target = pipe.GetAvailableMemoryToWrite();
 
                 while (chunk.Length > target.Length)
                 {
@@ -283,7 +283,7 @@ internal sealed class AsyncNetClient : NetClient
                     pipe.CommitWrited(target.Length);
                     chunk = chunk[target.Length..];
 
-                    target = await pipe.GetAvailableMemoryToWrite();
+                    target = pipe.GetAvailableMemoryToWrite();
                 }
 
                 chunk.CopyTo(target);
@@ -309,7 +309,7 @@ internal sealed class AsyncNetClient : NetClient
         {
             while (!token.IsCancellationRequested)
             {
-                Memory<byte> buffer = await pipe.GetAvailableMemoryToRead();
+                Memory<byte> buffer = pipe.GetAvailableMemoryToRead();
 
                 int bufferLength = buffer.Length;
                 if (bufferLength == 0)

@@ -1,16 +1,14 @@
 ﻿using System;
 using System.Threading;
-using System.Threading.Tasks;
-using System.Threading.Tasks.Sources;
 
 namespace ClassicUO.Network.Clients.Sockets;
 
 #nullable enable
 
-internal sealed class SendPipe : Pipe, IValueTaskSource<Memory<byte>>, IDisposable
+internal sealed class SendPipe : Pipe, IDisposable
 {
     private readonly CancellationTokenRegistration _cancellationTokenRegistration;
-    private ManualResetValueTaskSourceCore<Memory<byte>> _source;
+    private readonly AutoResetEvent _event;
 
     public CancellationToken Token { get; }
     public SendPipe? Next { get; private set; }
@@ -19,25 +17,23 @@ internal sealed class SendPipe : Pipe, IValueTaskSource<Memory<byte>>, IDisposab
     public SendPipe(uint size, bool encrypted, CancellationToken cancellationToken)
         : base(size)
     {
+        _event = new(false);
+        _cancellationTokenRegistration = cancellationToken.Register(() => _event.Set());
+
         Token = cancellationToken;
         Encrypted = encrypted;
-
-        _source.RunContinuationsAsynchronously = true;
-        _source.SetResult(Memory<byte>.Empty);
-
-        _cancellationTokenRegistration = cancellationToken.Register(Cancel);
     }
 
-    public ValueTask<Memory<byte>> GetAvailableMemoryToRead()
+    public Memory<byte> GetAvailableMemoryToRead()
     {
-        Memory<byte> memory = GetAvailableMemoryToReadCore();
-        if (!memory.IsEmpty || Next is not null)
-            return new(memory);
+        if (Length > 0)
+            return GetAvailableMemoryToReadCore();
 
-        if (_source.GetStatus(_source.Version) == ValueTaskSourceStatus.Succeeded)
-            _source.Reset();
+        if (Next is not null)
+            return Memory<byte>.Empty;
 
-        return new(this, _source.Version);
+        _event.WaitOne();
+        return GetAvailableMemoryToReadCore();
     }
 
     public override void CommitWrited(int size)
@@ -46,9 +42,7 @@ internal sealed class SendPipe : Pipe, IValueTaskSource<Memory<byte>>, IDisposab
             return;
 
         base.CommitWrited(size);
-
-        if (_source.GetStatus(_source.Version) == ValueTaskSourceStatus.Pending)
-            _source.SetResult(GetAvailableMemoryToReadCore());
+        _event.Set();
     }
 
     public static void ChainPipe(ref SendPipe pipe, bool forceEncryption = false)
@@ -57,29 +51,13 @@ internal sealed class SendPipe : Pipe, IValueTaskSource<Memory<byte>>, IDisposab
         pipe.Next = new((uint)pipe._buffer.Length, pipe.Encrypted || forceEncryption, pipe.Token);
         pipe = pipe.Next;
 
-        if (old._source.GetStatus(old._source.Version) == ValueTaskSourceStatus.Pending)
-            old._source.SetResult(old.GetAvailableMemoryToReadCore());
-    }
-
-    public Memory<byte> GetResult(short token)
-    {
-        return _source.GetResult(token);
-    }
-
-    public ValueTaskSourceStatus GetStatus(short token)
-    {
-        return _source.GetStatus(token);
-    }
-
-    public void OnCompleted(Action<object?> continuation, object? state, short token, ValueTaskSourceOnCompletedFlags flags)
-    {
-        _source.OnCompleted(continuation, state, token, flags);
+        old._event.Set();
     }
 
     public void Dispose()
     {
         _cancellationTokenRegistration.Unregister();
-        Cancel();
+        _event.Set();
     }
 
     private Memory<byte> GetAvailableMemoryToReadCore()
@@ -94,11 +72,5 @@ internal sealed class SendPipe : Pipe, IValueTaskSource<Memory<byte>>, IDisposab
             return _buffer.AsMemory(readIndex);
 
         return _buffer.AsMemory(readIndex..writeIndex);
-    }
-
-    private void Cancel()
-    {
-        if (_source.GetStatus(_source.Version) == ValueTaskSourceStatus.Pending)
-            _source.SetException(new OperationCanceledException());
     }
 }
