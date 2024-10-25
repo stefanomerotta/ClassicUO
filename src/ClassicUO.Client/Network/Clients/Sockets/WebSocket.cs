@@ -8,7 +8,7 @@ using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ClassicUO.Network.Sockets;
+namespace ClassicUO.Network.Clients.Sockets;
 
 #nullable enable
 
