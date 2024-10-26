@@ -1,22 +1,21 @@
-using ClassicUO.IO.Encoders;
+﻿using ClassicUO.IO.Encoders;
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
-using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
-using System.Text;
+using System.Runtime.InteropServices;
 
-namespace ClassicUO.IO;
+namespace ClassicUO.IO.Buffers;
 
 #nullable enable
 
-public ref struct VariableSpanWriter : IDisposable
+public ref struct FixedSpanWriter : IDisposable
 {
     private const MethodImplOptions IMPL_OPTION = MethodImplOptions.AggressiveInlining;
 
-    private Span<byte> _buffer;
+    private readonly Span<byte> _buffer;
     private byte[]? _allocatedBuffer;
 
     public int BytesWritten { get; private set; }
@@ -35,12 +34,19 @@ public ref struct VariableSpanWriter : IDisposable
         }
     }
 
-    public VariableSpanWriter(int capacity)
+    public FixedSpanWriter(int capacity)
     {
-        EnsureSize(capacity);
+        byte[] newBuffer = ArrayPool<byte>.Shared.Rent(capacity);
+        _allocatedBuffer = newBuffer;
+        _buffer = _allocatedBuffer.AsSpan(0, capacity);
     }
 
-    public VariableSpanWriter(byte packetId, int capacity, bool variablePacketSize = false)
+    public FixedSpanWriter(Span<byte> buffer)
+    {
+        _buffer = buffer;
+    }
+
+    public FixedSpanWriter(byte packetId, int capacity, bool variablePacketSize = false)
     {
         Debug.Assert(variablePacketSize ? capacity > 2 : capacity > 0);
 
@@ -54,7 +60,7 @@ public ref struct VariableSpanWriter : IDisposable
             Seek(3, SeekOrigin.Begin);
     }
 
-    public VariableSpanWriter(byte packetId, Span<byte> buffer, bool variablePacketSize = false)
+    public FixedSpanWriter(byte packetId, Span<byte> buffer, bool variablePacketSize = false)
     {
         Debug.Assert(variablePacketSize ? buffer.Length > 2 : buffer.Length > 0);
 
@@ -71,32 +77,37 @@ public ref struct VariableSpanWriter : IDisposable
     {
         switch (origin)
         {
-            case SeekOrigin.Begin: Position = position; break;
-            case SeekOrigin.Current: Position += position; break;
-            case SeekOrigin.End: Position = BytesWritten + position; break;
+            case SeekOrigin.Begin:
+                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(position, _buffer.Length);
+                Position = position;
+                break;
+            case SeekOrigin.Current:
+                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(position, _buffer.Length - Position);
+                ArgumentOutOfRangeException.ThrowIfLessThan(position, Position);
+                Position += position;
+                break;
+            case SeekOrigin.End:
+                ArgumentOutOfRangeException.ThrowIfLessThan(position, -_buffer.Length);
+                Position -= _buffer.Length - position;
+                break;
         }
-
-        EnsureSize(Position - _buffer.Length + 1);
     }
 
     [MethodImpl(IMPL_OPTION)]
     public void WriteUInt8(byte value)
     {
-        EnsureSize(1);
         _buffer[Position++] = value;
     }
 
     [MethodImpl(IMPL_OPTION)]
     public void WriteInt8(sbyte value)
     {
-        EnsureSize(1);
         _buffer[Position++] = (byte)value;
     }
 
     [MethodImpl(IMPL_OPTION)]
     public unsafe void WriteBool(bool value)
     {
-        EnsureSize(1);
         _buffer[Position++] = *(byte*)&value;
     }
 
@@ -105,7 +116,6 @@ public ref struct VariableSpanWriter : IDisposable
     [MethodImpl(IMPL_OPTION)]
     public void WriteUInt16LE(ushort value)
     {
-        EnsureSize(sizeof(ushort));
         BinaryPrimitives.WriteUInt16LittleEndian(_buffer[Position..], value);
         Position += sizeof(ushort);
     }
@@ -113,7 +123,6 @@ public ref struct VariableSpanWriter : IDisposable
     [MethodImpl(IMPL_OPTION)]
     public void WriteInt16LE(short value)
     {
-        EnsureSize(sizeof(short));
         BinaryPrimitives.WriteInt16LittleEndian(_buffer[Position..], value);
         Position += sizeof(short);
     }
@@ -121,7 +130,6 @@ public ref struct VariableSpanWriter : IDisposable
     [MethodImpl(IMPL_OPTION)]
     public void WriteUInt32LE(uint value)
     {
-        EnsureSize(sizeof(uint));
         BinaryPrimitives.WriteUInt32LittleEndian(_buffer[Position..], value);
         Position += sizeof(uint);
     }
@@ -129,7 +137,6 @@ public ref struct VariableSpanWriter : IDisposable
     [MethodImpl(IMPL_OPTION)]
     public void WriteInt32LE(int value)
     {
-        EnsureSize(sizeof(int));
         BinaryPrimitives.WriteInt32LittleEndian(_buffer[Position..], value);
         Position += sizeof(int);
     }
@@ -137,7 +144,6 @@ public ref struct VariableSpanWriter : IDisposable
     [MethodImpl(IMPL_OPTION)]
     public void WriteUInt64LE(ulong value)
     {
-        EnsureSize(sizeof(ulong));
         BinaryPrimitives.WriteUInt64LittleEndian(_buffer[Position..], value);
         Position += sizeof(ulong);
     }
@@ -145,7 +151,6 @@ public ref struct VariableSpanWriter : IDisposable
     [MethodImpl(IMPL_OPTION)]
     public void WriteInt64LE(long value)
     {
-        EnsureSize(sizeof(long));
         BinaryPrimitives.WriteInt64LittleEndian(_buffer[Position..], value);
         Position += sizeof(long);
     }
@@ -155,7 +160,6 @@ public ref struct VariableSpanWriter : IDisposable
     [MethodImpl(IMPL_OPTION)]
     public void WriteUInt16BE(ushort value)
     {
-        EnsureSize(sizeof(ushort));
         BinaryPrimitives.WriteUInt16BigEndian(_buffer[Position..], value);
         Position += sizeof(ushort);
     }
@@ -163,7 +167,6 @@ public ref struct VariableSpanWriter : IDisposable
     [MethodImpl(IMPL_OPTION)]
     public void WriteInt16BE(short value)
     {
-        EnsureSize(sizeof(short));
         BinaryPrimitives.WriteInt16BigEndian(_buffer[Position..], value);
         Position += sizeof(short);
     }
@@ -171,7 +174,6 @@ public ref struct VariableSpanWriter : IDisposable
     [MethodImpl(IMPL_OPTION)]
     public void WriteUInt32BE(uint value)
     {
-        EnsureSize(sizeof(uint));
         BinaryPrimitives.WriteUInt32BigEndian(_buffer[Position..], value);
         Position += sizeof(uint);
     }
@@ -179,7 +181,6 @@ public ref struct VariableSpanWriter : IDisposable
     [MethodImpl(IMPL_OPTION)]
     public void WriteInt32BE(int value)
     {
-        EnsureSize(sizeof(int));
         BinaryPrimitives.WriteInt32BigEndian(_buffer[Position..], value);
         Position += sizeof(int);
     }
@@ -187,7 +188,6 @@ public ref struct VariableSpanWriter : IDisposable
     [MethodImpl(IMPL_OPTION)]
     public void WriteUInt64BE(ulong value)
     {
-        EnsureSize(sizeof(ulong));
         BinaryPrimitives.WriteUInt64BigEndian(_buffer[Position..], value);
         Position += sizeof(ulong);
     }
@@ -195,7 +195,6 @@ public ref struct VariableSpanWriter : IDisposable
     [MethodImpl(IMPL_OPTION)]
     public void WriteInt64BE(long value)
     {
-        EnsureSize(sizeof(long));
         BinaryPrimitives.WriteInt64BigEndian(_buffer[Position..], value);
         Position += sizeof(long);
     }
@@ -206,7 +205,6 @@ public ref struct VariableSpanWriter : IDisposable
         if (count <= 0)
             return;
 
-        EnsureSize(count);
         _buffer.Slice(Position, count).Clear();
         Position += count;
     }
@@ -217,21 +215,20 @@ public ref struct VariableSpanWriter : IDisposable
         if (span.IsEmpty)
             return;
 
-        EnsureSize(span.Length);
         span.CopyTo(_buffer[Position..]);
         Position += span.Length;
     }
 
-    public void WritePacketLength()
+    [MethodImpl(IMPL_OPTION)]
+    public readonly void WritePacketLength()
     {
-        Seek(1, SeekOrigin.Begin);
-        WriteUInt16BE((ushort)BytesWritten);
+        _buffer[1] = (byte)(BytesWritten >> 8);
+        _buffer[2] = (byte)(BytesWritten & byte.MaxValue);
     }
 
     [MethodImpl(IMPL_OPTION)]
-    public Span<byte> GetSpan(int size)
+    public readonly Span<byte> GetSpan(int size)
     {
-        EnsureSize(Position + size);
         return _buffer.Slice(Position, size);
     }
 
@@ -242,83 +239,63 @@ public ref struct VariableSpanWriter : IDisposable
     }
 
     [MethodImpl(IMPL_OPTION)]
-    public void WriteString<T>(ReadOnlySpan<char> value) where T : ITextEncoder
+    public Span<byte> Reserve(int size)
+    {
+        Span<byte> span = _buffer.Slice(Position, size);
+        Position += size;
+
+        return span;
+    }
+
+    [MethodImpl(IMPL_OPTION)]
+    public int WriteString<T>(ReadOnlySpan<char> value) where T : ITextEncoder
     {
         if (value.IsEmpty)
-            return;
-
-        int byteLength = T.GetByteCount(value);
-        EnsureSize(byteLength);
+            return 0;
 
         int bytesWritten = T.GetBytes(value, _buffer[Position..]);
         Position += bytesWritten;
+
+        return bytesWritten;
     }
 
     [MethodImpl(IMPL_OPTION)]
-    public void WriteString<T>(ReadOnlySpan<char> value, StringOptions options) where T : ITextEncoder
+    public void WriteFixedString<T>(ReadOnlySpan<char> value, int charLength) where T : ITextEncoder
     {
-        int byteLength = T.GetByteCount(value);
-
-        bool nullTerminated = options.HasFlag(StringOptions.NullTerminated);
-        if (nullTerminated)
-            byteLength++;
-
-        if (options.HasFlag(StringOptions.PrependByteSize))
-        {
-            EnsureSize(byteLength + 2);
-            BinaryPrimitives.WriteUInt16BigEndian(_buffer[Position..], (ushort)byteLength);
-            Position += 2;
-        }
-        else
-        {
-            EnsureSize(byteLength);
-        }
-
-        T.GetBytes(value, _buffer[Position..]);
-        Position += byteLength;
-
-        if (nullTerminated)
-            _buffer[Position - 1] = 0x0;
-    }
-
-    [MethodImpl(IMPL_OPTION)]
-    public void WriteFixedString<T>(ReadOnlySpan<char> value, int byteLength) where T : ITextEncoder
-    {
-        Debug.Assert(byteLength >= 0);
+        Debug.Assert(charLength >= 0);
 
         if (value.IsEmpty)
         {
-            WriteZero(byteLength);
+            WriteZero(charLength << T.ByteShift);
             return;
         }
 
-        EnsureSize(byteLength);
+        int bytesLength = charLength << T.ByteShift;
 
-        int stringLength = Math.Min(value.Length, byteLength >> T.ByteShift);
-        int bytesWritten = T.GetBytes(value[..stringLength], _buffer[Position..]);
+        charLength = Math.Min(value.Length, charLength);
+        int bytesWritten = T.GetBytes(value[..charLength], _buffer[Position..]);
         Position += bytesWritten;
 
-        int remainingBytes = (byteLength << T.ByteShift) - bytesWritten;
-        _buffer.Slice(Position, remainingBytes).Clear();
-        Position += remainingBytes;
+        int remainingBytes = bytesLength - bytesWritten;
+        WriteZero(remainingBytes);
     }
-       
+
     [MethodImpl(IMPL_OPTION)]
-    private void EnsureSize(int size)
+    public int WriteString<T>(in SpanInterpolatedStringHandler text) where T : ITextEncoder
     {
-        int newSize = Position + size;
-        if (newSize <= _buffer.Length)
-            return;
+        if (!text.Success)
+            throw new Exception("Error while trying to write text to span");
 
-        byte[] newBuffer = ArrayPool<byte>.Shared.Rent(newSize);
+        return WriteString<T>(text.Span);
+    }
 
-        if (_allocatedBuffer is not null)
-        {
-            _buffer[..BytesWritten].CopyTo(newBuffer);
-            Return();
-        }
+    [MethodImpl(IMPL_OPTION)]
+    public void WriteFixedString<T>(in SpanInterpolatedStringHandler text, int charLength) where T : ITextEncoder
+    {
+        if (!text.Success)
+            throw new Exception("Error while trying to write text to span");
 
-        _buffer = _allocatedBuffer = newBuffer;
+        WriteFixedString<T>(text.Span, charLength);
     }
 
     [MethodImpl(IMPL_OPTION)]

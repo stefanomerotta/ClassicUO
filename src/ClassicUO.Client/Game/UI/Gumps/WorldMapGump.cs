@@ -60,6 +60,7 @@ using System.Text;
 using System.Runtime.InteropServices;
 using ClassicUO.Network.Encryptions;
 using System.Threading;
+using ClassicUO.IO.Buffers;
 
 namespace ClassicUO.Game.UI.Gumps
 {

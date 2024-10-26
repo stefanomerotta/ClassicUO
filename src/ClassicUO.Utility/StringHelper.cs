@@ -38,6 +38,9 @@ namespace ClassicUO.Utility
 {
     public static class StringHelper
     {
+        public const char FIRST_SAFE_CHAR = (char)0x20;
+        public const char LAST_SAFE_CHAR = (char)0xFFDD;
+
         private static readonly char[] _dots = ['.', ',', ';', '!'];
 
         public static int StringToCp1252Bytes(ReadOnlySpan<char> source, Span<byte> dest)
@@ -78,20 +81,28 @@ namespace ClassicUO.Utility
             return destIndex;
         }
 
+        public static int Cp1252ToChars(ReadOnlySpan<byte> source, Span<char> dest)
+        {
+            int i;
+            
+            for (i = 0; i < source.Length; i++)
+            {
+                dest[i] = (char)Cp1252ToUnicode(source[i]);
+            }
+
+            return i;
+        }
+
         public static string Cp1252ToString(ReadOnlySpan<byte> strCp1252)
         {
-            var sb = new ValueStringBuilder(strCp1252.Length);
+            using ValueStringBuilder sb = new(strCp1252.Length);
 
-            for (int i = 0; i < strCp1252.Length; ++i)
+            for (int i = 0; i < strCp1252.Length; i++)
             {
                 sb.Append(char.ConvertFromUtf32(Cp1252ToUnicode(strCp1252[i])));
             }
 
-            var str = sb.ToString();
-
-            sb.Dispose();
-
-            return str;
+            return sb.ToString();
         }
 
         /// <summary>
@@ -258,7 +269,7 @@ namespace ClassicUO.Utility
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsSafeChar(int c)
         {
-            return c >= 0x20 && c < 0xFFFE;
+            return c >= FIRST_SAFE_CHAR && c <= LAST_SAFE_CHAR;
         }
 
         public static void AddSpaceBeforeCapital(string[] str, bool checkAcronyms = true)

@@ -31,6 +31,7 @@
 #endregion
 
 using ClassicUO.IO;
+using ClassicUO.IO.Buffers;
 using ClassicUO.Utility;
 using System;
 using System.IO;

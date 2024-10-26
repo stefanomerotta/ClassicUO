@@ -1,4 +1,4 @@
-﻿using ClassicUO.IO;
+﻿using ClassicUO.IO.Buffers;
 using ClassicUO.Network.Clients;
 using ClassicUO.Network.Encryptions;
 using ClassicUO.Utility;

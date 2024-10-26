@@ -35,7 +35,8 @@ using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.UI.Gumps;
-using ClassicUO.IO;
+using ClassicUO.IO.Buffers;
+using ClassicUO.IO.Encoders;
 using ClassicUO.Network;
 using ClassicUO.Resources;
 
@@ -185,7 +186,7 @@ namespace ClassicUO.Game.Managers
                 case 3:
                 case 4:
                     uint ser = p.ReadUInt32BE();
-                    string name = p.ReadUnicodeBE();
+                    string name = p.ReadString<UnicodeBE>();
 
                     for (int i = 0; i < PARTY_SIZE; i++)
                     {

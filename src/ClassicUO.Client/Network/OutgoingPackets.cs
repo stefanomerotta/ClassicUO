@@ -36,11 +36,13 @@ using ClassicUO.Game;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.Managers;
-using ClassicUO.IO;
+using ClassicUO.IO.Buffers;
 using ClassicUO.IO.Encoders;
 using ClassicUO.Utility;
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 namespace ClassicUO.Network;
@@ -206,7 +208,8 @@ internal static class OutgoingPackets
         writer.WriteUInt8((byte)type);
         writer.WriteUInt16BE(hue);
         writer.WriteUInt16BE(font);
-        writer.WriteString<ASCIICP1215>(text, StringOptions.NullTerminated);
+        writer.WriteString<ASCIICP1215>(text);
+        writer.WriteUInt8(0x00);
 
         writer.WritePacketLength();
 
@@ -282,7 +285,8 @@ internal static class OutgoingPackets
     {
         using FixedSpanWriter writer = new(0x12, stackalloc byte[21 + MAX_INT_STR_LEN * 2], true);
         writer.WriteUInt8(0x27);
-        writer.WriteString<ASCIICP1215>($"{idx} {serial}", StringOptions.NullTerminated);
+        writer.WriteString<ASCIICP1215>($"{idx} {serial}");
+        writer.WriteUInt8(0x00);
 
         writer.WritePacketLength();
 
@@ -294,7 +298,8 @@ internal static class OutgoingPackets
     {
         using FixedSpanWriter writer = new(0x12, stackalloc byte[14 + MAX_INT_STR_LEN], true);
         writer.WriteUInt8(0x24);
-        writer.WriteString<ASCIICP1215>($"{idx} 0", StringOptions.NullTerminated);
+        writer.WriteString<ASCIICP1215>($"{idx} 0");
+        writer.WriteUInt8(0x00);
 
         writer.WritePacketLength();
 
@@ -318,7 +323,8 @@ internal static class OutgoingPackets
     {
         using FixedSpanWriter writer = new(0x12, 3 + action.Length + 1, true);
         writer.WriteUInt8(0xC7);
-        writer.WriteString<ASCIICP1215>(action, StringOptions.NullTerminated);
+        writer.WriteString<ASCIICP1215>(action);
+        writer.WriteUInt8(0x00);
 
         writer.WritePacketLength();
 
@@ -330,7 +336,8 @@ internal static class OutgoingPackets
     {
         using VariableSpanWriter writer = new(0x12, stackalloc byte[3 + 7], true);
         writer.WriteUInt8(0xF4);
-        writer.WriteString<ASCIICP1215>(id.ToString(), StringOptions.NullTerminated);
+        writer.WriteString<ASCIICP1215>($"{id}");
+        writer.WriteUInt8(0x00);
 
         writer.WritePacketLength();
 
@@ -482,7 +489,7 @@ internal static class OutgoingPackets
 
         for (int i = 0; i < texts.Length; i++)
         {
-            textsLength += texts[i].Length + 1; // include null termination
+            textsLength += texts[i].Length * 2 + 1; // include null termination
         }
 
         using FixedSpanWriter writer = new(0x66, 3 + 11 + textsLength, true);
@@ -583,7 +590,8 @@ internal static class OutgoingPackets
         using FixedSpanWriter writer = new(0x6C, 3 + 12 + text.Length + 1, true);
         writer.WriteUInt64BE(world.MessageManager.PromptData.Data);
         writer.WriteUInt32BE((uint)(cancel ? 0 : 1));
-        writer.WriteString<ASCIICP1215>(text, StringOptions.NullTerminated);
+        writer.WriteString<ASCIICP1215>(text);
+        writer.WriteUInt8(0x00);
 
         writer.WritePacketLength();
 
@@ -672,8 +680,8 @@ internal static class OutgoingPackets
         {
             subject = subject.Replace("\r\n", "\n");
 
-            writer.WriteUInt8((byte)(subject.Length + 1));
-            writer.WriteString<UTF8>(subject);
+            Span<byte> subjectLength = writer.Reserve(1);
+            subjectLength[0] = (byte)(writer.WriteString<UTF8>(subject) + 1); // + null termination
         }
 
         writer.WriteUInt8(0x00);
@@ -696,7 +704,10 @@ internal static class OutgoingPackets
                 if (line[^1] == '\r')
                     line = line[..^2];
 
-                writer.WriteString<UTF8>(line, StringOptions.PrependByteSize | StringOptions.NullTerminated);
+                Span<byte> lineLength = writer.Reserve(1);
+                lineLength[0] = (byte)(writer.WriteString<UTF8>(line) + 1); // + null termination
+                
+                writer.WriteUInt8(0x00);
             }
         }
 
@@ -839,8 +850,10 @@ internal static class OutgoingPackets
     // 0x98
     public static void SendNameRequest(this NetClient socket, uint serial)
     {
-        using FixedSpanWriter writer = new(0x98, stackalloc byte[5]);
+        using FixedSpanWriter writer = new(0x98, stackalloc byte[3 + 5], true);
         writer.WriteUInt32BE(serial);
+
+        writer.WritePacketLength();
 
         socket.Send(writer);
     }
@@ -907,7 +920,7 @@ internal static class OutgoingPackets
     // 0xAD
     public static void SendUnicodeSpeechRequest(this NetClient socket, string text, MessageType type, byte font, ushort hue, string lang)
     {
-        using VariableSpanWriter writer = new(0xAD, 5 + text.Length * 2, true);
+        using VariableSpanWriter writer = new(0xAD, 3 + 9 + text.Length * 2 + 2, true);
 
         Span<SpeechEntry> keywords = Client.Game.UO.FileManager.Speeches.GetKeywords(text);
 
@@ -959,6 +972,7 @@ internal static class OutgoingPackets
         else
         {
             writer.WriteString<UnicodeBE>(text);
+            writer.WriteUInt16BE(0x00);
         }
 
         writer.WritePacketLength();
@@ -993,7 +1007,8 @@ internal static class OutgoingPackets
             if (text.Length > 239)
                 text = text[..239];
 
-            writer.WriteString<UnicodeBE>(text, StringOptions.PrependByteSize);
+            writer.WriteUInt16BE((ushort)text.Length);
+            writer.WriteString<UnicodeBE>(text);
         }
 
         writer.WritePacketLength();
@@ -1083,7 +1098,7 @@ internal static class OutgoingPackets
     {
         using FixedSpanWriter writer = new(0xB5, stackalloc byte[64]);
         writer.WriteUInt8(0x00);
-        writer.WriteFixedString<UnicodeBE>(name, 62);
+        writer.WriteFixedString<UnicodeBE>(name, 31);
 
         socket.Send(writer);
     }
@@ -1107,7 +1122,8 @@ internal static class OutgoingPackets
         writer.WriteUInt8(0x01);
         writer.WriteUInt32BE(serial);
         writer.WriteUInt16BE(0x01);
-        writer.WriteString<UnicodeBE>(text, StringOptions.PrependByteSize);
+        writer.WriteUInt16BE((ushort)text.Length);
+        writer.WriteString<UnicodeBE>(text);
 
         writer.WritePacketLength();
 
@@ -1118,7 +1134,8 @@ internal static class OutgoingPackets
     public static void SendClientVersion(this NetClient socket, string version)
     {
         using FixedSpanWriter writer = new(0xBD, stackalloc byte[3 + version.Length + 1], true);
-        writer.WriteString<ASCIICP1215>(version, StringOptions.NullTerminated);
+        writer.WriteString<ASCIICP1215>(version);
+        writer.WriteUInt8(0x00);
 
         writer.WritePacketLength();
 
@@ -1143,7 +1160,8 @@ internal static class OutgoingPackets
         {
             using VariableSpanWriter writer = new(0x12, stackalloc byte[3 + 6], true);
             writer.WriteUInt8(0x56);
-            writer.WriteString<ASCIICP1215>($"{idx}", StringOptions.NullTerminated);
+            writer.WriteString<ASCIICP1215>($"{idx}");
+            writer.WriteUInt8(0x00);
 
             writer.WritePacketLength();
 
@@ -1465,13 +1483,21 @@ internal static class OutgoingPackets
     // 0xD4
     public static void SendBookHeaderChanged(this NetClient socket, uint serial, string title, string author)
     {
-        using FixedSpanWriter writer = new(0xD4, 3 + 8 + title.Length * 2 + author.Length * 2, true);
+        using FixedSpanWriter writer = new(0xD4, 3 + 14 + title.Length * 2 + author.Length * 2, true);
         writer.WriteUInt32BE(serial);
         writer.WriteUInt8(0x00);
         writer.WriteUInt8(0x00);
         writer.WriteUInt16BE(0);
-        writer.WriteString<UTF8>(title, StringOptions.PrependByteSize);
-        writer.WriteString<UTF8>(author, StringOptions.PrependByteSize);
+
+        Span<byte> titleLengthSpan = writer.Reserve(2);
+        ushort titleLength = (ushort)(writer.WriteString<UTF8>(title) + 1);
+        BinaryPrimitives.WriteUInt16BigEndian(titleLengthSpan, titleLength);
+        writer.WriteUInt8(0x0);
+
+        Span<byte> authorLengthSpan = writer.Reserve(2);
+        ushort authorLength = (ushort)(writer.WriteString<UTF8>(author) + 1);
+        BinaryPrimitives.WriteUInt16BigEndian(authorLengthSpan, authorLength);
+        writer.WriteUInt8(0x0);
 
         writer.WritePacketLength();
 
@@ -1853,8 +1879,12 @@ internal static class OutgoingPackets
                 writer.WriteUInt16BE((ushort)def.ManaCost); // mana cost
                 writer.WriteUInt16BE((ushort)def.MinSkill); // min skill
                 writer.WriteUInt8((byte)def.TargetType); // target type
-                writer.WriteString<UnicodeBE>(def.Name, StringOptions.PrependByteSize); // spell name
-                writer.WriteString<UnicodeBE>(def.PowerWords, StringOptions.PrependByteSize); // power of word
+
+                writer.WriteUInt16BE((ushort)def.Name.Length);
+                writer.WriteString<UnicodeBE>(def.Name); // spell name
+
+                writer.WriteUInt16BE((ushort)def.PowerWords.Length);
+                writer.WriteString<UnicodeBE>(def.PowerWords); // power of word
 
                 writer.WriteUInt16BE((ushort)def.Regs.Length); // reagents
 
@@ -1879,7 +1909,8 @@ internal static class OutgoingPackets
         {
             writer.WriteUInt16BE((ushort)s.Index);
             writer.WriteBool(s.HasAction);
-            writer.WriteString<UnicodeBE>(s.Name, StringOptions.PrependByteSize);
+            writer.WriteUInt16BE((ushort)s.Name.Length);
+            writer.WriteString<UnicodeBE>(s.Name);
         }
 
         int len = writer.BytesWritten;

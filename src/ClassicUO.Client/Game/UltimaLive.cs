@@ -45,6 +45,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
+using ClassicUO.IO.Buffers;
 
 namespace ClassicUO.Game
 {

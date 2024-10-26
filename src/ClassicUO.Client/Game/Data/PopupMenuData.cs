@@ -30,7 +30,7 @@
 
 #endregion
 
-using ClassicUO.IO;
+using ClassicUO.IO.Buffers;
 using ClassicUO.Network;
 
 namespace ClassicUO.Game.Data

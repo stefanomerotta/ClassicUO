@@ -39,7 +39,8 @@ using ClassicUO.Game.Managers;
 using ClassicUO.Game.Scenes;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Game.UI.Gumps;
-using ClassicUO.IO;
+using ClassicUO.IO.Buffers;
+using ClassicUO.IO.Encoders;
 using ClassicUO.Renderer;
 using ClassicUO.Resources;
 using ClassicUO.Utility;
@@ -2375,7 +2376,7 @@ namespace ClassicUO.Network
                         if (index < gump.BookLines.Length)
                         {
                             gump.BookLines[index] = ModernBookGump.IsNewBook
-                                ? p.ReadUTF8(true)
+                                ? p.ReadString<UTF8>(true)
                                 : p.ReadASCII();
                         }
                         else
@@ -2545,7 +2546,7 @@ namespace ClassicUO.Network
                             int x = (Client.Game.Window.ClientBounds.Width >> 1) - 245;
                             int y = (Client.Game.Window.ClientBounds.Height >> 1) - 205;
 
-                            bulletinBoard = new BulletinBoardGump(world, item, x, y, p.ReadUTF8(22, true)); //p.ReadASCII(22));
+                            bulletinBoard = new BulletinBoardGump(world, item, x, y, p.ReadFixedString<UTF8>(22, true)); //p.ReadASCII(22));
                             UIManager.Add(bulletinBoard);
 
                             item.Opened = true;
@@ -2569,15 +2570,15 @@ namespace ClassicUO.Network
 
                             // poster
                             int len = p.ReadUInt8();
-                            string text = (len <= 0 ? string.Empty : p.ReadUTF8(len, true)) + " - ";
+                            string text = (len <= 0 ? string.Empty : p.ReadFixedString<UTF8>(len, true)) + " - ";
 
                             // subject
                             len = p.ReadUInt8();
-                            text += (len <= 0 ? string.Empty : p.ReadUTF8(len, true)) + " - ";
+                            text += (len <= 0 ? string.Empty : p.ReadFixedString<UTF8>(len, true)) + " - ";
 
                             // datetime
                             len = p.ReadUInt8();
-                            text += (len <= 0 ? string.Empty : p.ReadUTF8(len, true));
+                            text += (len <= 0 ? string.Empty : p.ReadFixedString<UTF8>(len, true));
 
                             bulletinBoard.AddBulletinObject(serial, text);
                         }
@@ -2601,7 +2602,7 @@ namespace ClassicUO.Network
                             string poster = len > 0 ? p.ReadASCII(len) : string.Empty;
 
                             len = p.ReadUInt8();
-                            string subject = len > 0 ? p.ReadUTF8(len, true) : string.Empty;
+                            string subject = len > 0 ? p.ReadFixedString<UTF8>(len, true) : string.Empty;
 
                             len = p.ReadUInt8();
                             string dataTime = len > 0 ? p.ReadASCII(len) : string.Empty;
@@ -2626,7 +2627,7 @@ namespace ClassicUO.Network
 
                                 if (lineLen > 0)
                                 {
-                                    string putta = p.ReadUTF8(lineLen, true);
+                                    string putta = p.ReadFixedString<UTF8>(lineLen, true);
                                     sb.Append(putta);
                                     sb.Append('\n');
                                 }
@@ -3207,11 +3208,11 @@ namespace ClassicUO.Network
             {
                 ushort page_count = p.ReadUInt16BE();
                 string title = oldpacket
-                    ? p.ReadUTF8(60, true)
-                    : p.ReadUTF8(p.ReadUInt16BE(), true);
+                    ? p.ReadFixedString<UTF8>(60, true)
+                    : p.ReadFixedString<UTF8>(p.ReadUInt16BE(), true);
                 string author = oldpacket
-                    ? p.ReadUTF8(30, true)
-                    : p.ReadUTF8(p.ReadUInt16BE(), true);
+                    ? p.ReadFixedString<UTF8>(30, true)
+                    : p.ReadFixedString<UTF8>(p.ReadUInt16BE(), true);
 
                 UIManager.Add(
                     new ModernBookGump(world, serial, page_count, title, author, editable, oldpacket)
@@ -3228,11 +3229,11 @@ namespace ClassicUO.Network
                 p.Skip(2);
                 bgump.IsEditable = editable;
                 bgump.SetTile(
-                    oldpacket ? p.ReadUTF8(60, true) : p.ReadUTF8(p.ReadUInt16BE(), true),
+                    oldpacket ? p.ReadFixedString<UTF8>(60, true) : p.ReadFixedString<UTF8>(p.ReadUInt16BE(), true),
                     editable
                 );
                 bgump.SetAuthor(
-                    oldpacket ? p.ReadUTF8(30, true) : p.ReadUTF8(p.ReadUInt16BE(), true),
+                    oldpacket ? p.ReadFixedString<UTF8>(30, true) : p.ReadFixedString<UTF8>(p.ReadUInt16BE(), true),
                     editable
                 );
                 bgump.UseNewHeader = !oldpacket;
@@ -3654,7 +3655,7 @@ namespace ClassicUO.Network
             if (p.Length > 48)
             {
                 p.Seek(48);
-                text = p.ReadUnicodeBE();
+                text = p.ReadString<UnicodeBE>();
             }
 
             TextType text_type = TextType.SYSTEM;
@@ -3778,7 +3779,7 @@ namespace ClassicUO.Network
 
                 if (length > 0)
                 {
-                    lines[i] = p.ReadUnicodeBE(length);
+                    lines[i] = p.ReadFixedString<UnicodeBE>(length);
                 }
                 else
                 {
@@ -3821,7 +3822,7 @@ namespace ClassicUO.Network
             {
                 case 0x03E8: // create conference
                     p.Skip(4);
-                    string channelName = p.ReadUnicodeBE();
+                    string channelName = p.ReadString<UnicodeBE>();
                     bool hasPassword = p.ReadUInt16BE() == 0x31;
                     world.ChatManager.CurrentChannelName = channelName;
                     world.ChatManager.AddChannel(channelName, hasPassword);
@@ -3832,7 +3833,7 @@ namespace ClassicUO.Network
 
                 case 0x03E9: // destroy conference
                     p.Skip(4);
-                    channelName = p.ReadUnicodeBE();
+                    channelName = p.ReadString<UnicodeBE>();
                     world.ChatManager.RemoveChannel(channelName);
 
                     UIManager.GetGump<ChatGump>()?.RequestUpdateContents();
@@ -3854,7 +3855,7 @@ namespace ClassicUO.Network
 
                 case 0x03ED: // username accepted, display chat
                     p.Skip(4);
-                    string username = p.ReadUnicodeBE();
+                    string username = p.ReadString<UnicodeBE>();
                     world.ChatManager.ChatIsEnabled = ChatStatus.Enabled;
                     NetClient.Socket.SendChatJoinCommand("General");
 
@@ -3863,13 +3864,13 @@ namespace ClassicUO.Network
                 case 0x03EE: // add user
                     p.Skip(4);
                     ushort userType = p.ReadUInt16BE();
-                    username = p.ReadUnicodeBE();
+                    username = p.ReadString<UnicodeBE>();
 
                     break;
 
                 case 0x03EF: // remove user
                     p.Skip(4);
-                    username = p.ReadUnicodeBE();
+                    username = p.ReadString<UnicodeBE>();
 
                     break;
 
@@ -3878,7 +3879,7 @@ namespace ClassicUO.Network
 
                 case 0x03F1: // you have joined a conference
                     p.Skip(4);
-                    channelName = p.ReadUnicodeBE();
+                    channelName = p.ReadString<UnicodeBE>();
                     world.ChatManager.CurrentChannelName = channelName;
 
                     UIManager.GetGump<ChatGump>()?.UpdateConference();
@@ -3895,7 +3896,7 @@ namespace ClassicUO.Network
 
                 case 0x03F4:
                     p.Skip(4);
-                    channelName = p.ReadUnicodeBE();
+                    channelName = p.ReadString<UnicodeBE>();
 
                     GameActions.Print(
                         world,
@@ -3912,8 +3913,8 @@ namespace ClassicUO.Network
                 case 0x0027:
                     p.Skip(4);
                     ushort msgType = p.ReadUInt16BE();
-                    username = p.ReadUnicodeBE();
-                    string msgSent = p.ReadUnicodeBE();
+                    username = p.ReadString<UnicodeBE>();
+                    string msgSent = p.ReadString<UnicodeBE>();
 
                     if (!string.IsNullOrEmpty(msgSent))
                     {
@@ -3951,7 +3952,7 @@ namespace ClassicUO.Network
                         }
 
                         p.Skip(4);
-                        string text = p.ReadUnicodeBE();
+                        string text = p.ReadString<UnicodeBE>();
 
                         if (!string.IsNullOrEmpty(text))
                         {
@@ -3997,9 +3998,9 @@ namespace ClassicUO.Network
 
             uint serial = p.ReadUInt32BE();
             string header = p.ReadASCII();
-            string footer = p.ReadUnicodeBE();
+            string footer = p.ReadString<UnicodeBE>();
 
-            string body = p.ReadUnicodeBE();
+            string body = p.ReadString<UnicodeBE>();
 
             UIManager.GetGump<ProfileGump>(serial)?.Dispose();
 
@@ -4776,11 +4777,11 @@ namespace ClassicUO.Network
             {
                 if (p[0] == 0xCC)
                 {
-                    arguments = p.ReadUnicodeBE(remains);
+                    arguments = p.ReadFixedString<UnicodeBE>(remains);
                 }
                 else
                 {
-                    arguments = p.ReadUnicodeLE(remains / 2);
+                    arguments = p.ReadFixedString<UnicodeLE>(remains / 2);
                 }
             }
 
@@ -4953,7 +4954,7 @@ namespace ClassicUO.Network
 
                 if (length != 0)
                 {
-                    argument = p.ReadUnicodeLE(length / 2);
+                    argument = p.ReadFixedString<UnicodeLE>(length / 2);
                 }
 
                 string str = Client.Game.UO.FileManager.Clilocs.Translate(cliloc, argument, true);
@@ -5414,7 +5415,7 @@ namespace ClassicUO.Network
 
                                 if (length > 0)
                                 {
-                                    lines[i] = reader.ReadUnicodeBE(length);
+                                    lines[i] = reader.ReadFixedString<UnicodeBE>(length);
                                 }
                                 else
                                 {
@@ -5519,8 +5520,8 @@ namespace ClassicUO.Network
                         uint wtfCliloc = p.ReadUInt32BE();
 
                         ushort arg_length = p.ReadUInt16BE();
-                        var str = p.ReadUnicodeLE(2);
-                        var args = str + p.ReadUnicodeLE();
+                        var str = p.ReadFixedString<UnicodeLE>(2);
+                        var args = str + p.ReadString<UnicodeLE>();
                         string title = Client.Game.UO.FileManager.Clilocs.Translate(
                             (int)titleCliloc,
                             args,
@@ -5528,7 +5529,7 @@ namespace ClassicUO.Network
                         );
 
                         arg_length = p.ReadUInt16BE();
-                        string args_2 = p.ReadUnicodeLE();
+                        string args_2 = p.ReadString<UnicodeLE>();
                         string description = string.Empty;
 
                         if (descriptionCliloc != 0)
@@ -5548,7 +5549,7 @@ namespace ClassicUO.Network
                         }
 
                         arg_length = p.ReadUInt16BE();
-                        string args_3 = p.ReadUnicodeLE();
+                        string args_3 = p.ReadString<UnicodeLE>();
                         string wtf = string.Empty;
 
                         if (wtfCliloc != 0)
@@ -5618,7 +5619,7 @@ namespace ClassicUO.Network
             WaypointsType type = (WaypointsType)p.ReadUInt16BE();
             bool ignoreobject = p.ReadUInt16BE() != 0;
             uint cliloc = p.ReadUInt32BE();
-            string name = p.ReadUnicodeLE();
+            string name = p.ReadString<UnicodeLE>();
         }
 
         private static void RemoveWaypoint(World world, ref SpanReader p)

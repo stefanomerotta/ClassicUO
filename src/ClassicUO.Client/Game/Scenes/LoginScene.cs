@@ -37,7 +37,7 @@ using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Game.UI.Gumps.CharCreation;
 using ClassicUO.Game.UI.Gumps.Login;
-using ClassicUO.IO;
+using ClassicUO.IO.Buffers;
 using ClassicUO.Network;
 using ClassicUO.Resources;
 using ClassicUO.Utility;

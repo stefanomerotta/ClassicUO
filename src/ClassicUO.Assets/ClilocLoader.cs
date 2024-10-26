@@ -31,6 +31,8 @@
 #endregion
 
 using ClassicUO.IO;
+using ClassicUO.IO.Buffers;
+using ClassicUO.IO.Encoders;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Logging;
 using System;
@@ -115,7 +117,7 @@ namespace ClassicUO.Assets
                 var number = reader.ReadInt32LE();
                 var flag = reader.ReadUInt8();
                 var length = reader.ReadInt16LE();
-                var text = string.Intern(reader.ReadUTF8(length));
+                var text = string.Intern(reader.ReadFixedString<UTF8>(length));
 
                 _entries[number] = text;
             }
