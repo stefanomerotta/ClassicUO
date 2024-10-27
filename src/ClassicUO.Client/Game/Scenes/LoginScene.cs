@@ -38,6 +38,7 @@ using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Game.UI.Gumps.CharCreation;
 using ClassicUO.Game.UI.Gumps.Login;
 using ClassicUO.IO.Buffers;
+using ClassicUO.IO.Encoders;
 using ClassicUO.Network;
 using ClassicUO.Resources;
 using ClassicUO.Utility;
@@ -726,7 +727,7 @@ namespace ClassicUO.Game.Scenes
 
             for (ushort i = 0; i < count; i++)
             {
-                Characters[i] = p.ReadASCII(30).TrimEnd('\0');
+                Characters[i] = p.ReadFixedString<ASCIICP1215>(30).TrimEnd('\0');
 
                 p.Skip(30);
             }
@@ -761,8 +762,8 @@ namespace ClassicUO.Game.Scenes
                 if (isNew)
                 {
                     byte cityIndex = p.ReadUInt8();
-                    string cityName = p.ReadASCII(32);
-                    string cityBuilding = p.ReadASCII(32);
+                    string cityName = p.ReadFixedString<ASCIICP1215>(32);
+                    string cityBuilding = p.ReadFixedString<ASCIICP1215>(32);
                     ushort cityX = (ushort)p.ReadUInt32BE();
                     ushort cityY = (ushort)p.ReadUInt32BE();
                     sbyte cityZ = (sbyte)p.ReadUInt32BE();
@@ -786,8 +787,8 @@ namespace ClassicUO.Game.Scenes
                 else
                 {
                     byte cityIndex = p.ReadUInt8();
-                    string cityName = p.ReadASCII(31);
-                    string cityBuilding = p.ReadASCII(31);
+                    string cityName = p.ReadFixedString<ASCIICP1215>(31);
+                    string cityBuilding = p.ReadFixedString<ASCIICP1215>(31);
 
                     cityInfo = new CityInfo
                     (
@@ -954,7 +955,7 @@ namespace ClassicUO.Game.Scenes
             ServerListEntry entry = new ServerListEntry()
             {
                 Index = p.ReadUInt16BE(),
-                Name = p.ReadASCII(32, true),
+                Name = p.ReadFixedString<ASCIICP1215>(32, true),
                 PercentFull = p.ReadUInt8(),
                 Timezone = p.ReadUInt8(),
                 Address = p.ReadUInt32BE()

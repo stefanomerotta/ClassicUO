@@ -22,7 +22,7 @@ namespace ClassicUO.UnitTests.IO
 
             SpanReader reader = new(data);
 
-            string s = reader.ReadASCII(str.Length);
+            string s = reader.ReadFixedString<ASCIICP1215>(str.Length);
 
             Assert.Equal(s, result);
             Assert.Equal(0, reader.Remaining);
@@ -44,7 +44,7 @@ namespace ClassicUO.UnitTests.IO
 
             SpanReader reader = new(data);
 
-            string s = reader.ReadASCII();
+            string s = reader.ReadString<ASCIICP1215>();
 
             Assert.Equal(s, result);
 
@@ -235,12 +235,12 @@ namespace ClassicUO.UnitTests.IO
 
             SpanReader reader = new(data);
 
-            reader.ReadASCII();
+            reader.ReadString<ASCIICP1215>();
             Assert.Equal(remains, reader.Remaining);
 
             if (remains != 0)
             {
-                reader.ReadASCII();
+                reader.ReadString<ASCIICP1215>();
                 Assert.Equal(0, reader.Remaining);
             }
 
@@ -257,10 +257,10 @@ namespace ClassicUO.UnitTests.IO
 
             SpanReader reader = new(data);
 
-            reader.ReadASCII(str.Length);
+            reader.ReadFixedString<ASCIICP1215>(str.Length);
             Assert.Equal(reader.Remaining, remains);
 
-            reader.ReadASCII(remains);
+            reader.ReadFixedString<ASCIICP1215>(remains);
             Assert.Equal(0, reader.Remaining);
 
             reader.Release();
@@ -436,15 +436,13 @@ namespace ClassicUO.UnitTests.IO
         [InlineData("this is a very long text", 1000)]
         public void Read_More_Data_Than_Remains_ASCII(string str, int length)
         {
-            Span<byte> data = Encoding.ASCII.GetBytes(str);
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+            {
+                Span<byte> data = Encoding.ASCII.GetBytes(str);
+                SpanReader reader = new(data);
 
-            SpanReader reader = new(data);
-
-            string s = reader.ReadASCII(length);
-
-            Assert.Equal(str, s);
-
-            reader.Release();
+                string s = reader.ReadFixedString<ASCIICP1215>(length);
+            });
         }
 
         [Theory]

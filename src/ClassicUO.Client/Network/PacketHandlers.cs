@@ -417,7 +417,7 @@ namespace ClassicUO.Network
 
                 if (hasName && p.Position < p.Length)
                 {
-                    name = p.ReadASCII();
+                    name = p.ReadString<ASCIICP1215>();
                 }
 
                 UIManager.Add(new TradingGump(world, serial, name, id1, id2));
@@ -515,7 +515,7 @@ namespace ClassicUO.Network
             }
 
             string oldName = entity.Name;
-            entity.Name = p.ReadASCII(30);
+            entity.Name = p.ReadFixedString<ASCIICP1215>(30);
             entity.Hits = p.ReadUInt16BE();
             entity.HitsMax = p.ReadUInt16BE();
 
@@ -980,13 +980,13 @@ namespace ClassicUO.Network
             MessageType type = (MessageType)p.ReadUInt8();
             ushort hue = p.ReadUInt16BE();
             ushort font = p.ReadUInt16BE();
-            string name = p.ReadASCII(30);
+            string name = p.ReadFixedString<ASCIICP1215>(30);
             string text;
 
             if (p.Length > 44)
             {
                 p.Seek(44);
-                text = p.ReadASCII();
+                text = p.ReadString<ASCIICP1215>();
             }
             else
             {
@@ -1961,7 +1961,7 @@ namespace ClassicUO.Network
                     int nameLength = p.ReadUInt8();
 
                     Client.Game.UO.FileManager.Skills.Skills.Add(
-                        new SkillEntry(i, p.ReadASCII(nameLength), haveButton)
+                        new SkillEntry(i, p.ReadFixedString<ASCIICP1215>(nameLength), haveButton)
                     );
                 }
 
@@ -2377,7 +2377,7 @@ namespace ClassicUO.Network
                         {
                             gump.BookLines[index] = ModernBookGump.IsNewBook
                                 ? p.ReadString<UTF8>(true)
-                                : p.ReadASCII();
+                                : p.ReadString<ASCIICP1215>();
                         }
                         else
                         {
@@ -2599,13 +2599,13 @@ namespace ClassicUO.Network
                             uint serial = p.ReadUInt32BE();
 
                             int len = p.ReadUInt8();
-                            string poster = len > 0 ? p.ReadASCII(len) : string.Empty;
+                            string poster = len > 0 ? p.ReadFixedString<ASCIICP1215>(len) : string.Empty;
 
                             len = p.ReadUInt8();
                             string subject = len > 0 ? p.ReadFixedString<UTF8>(len, true) : string.Empty;
 
                             len = p.ReadUInt8();
-                            string dataTime = len > 0 ? p.ReadASCII(len) : string.Empty;
+                            string dataTime = len > 0 ? p.ReadFixedString<ASCIICP1215>(len) : string.Empty;
 
                             p.Skip(4);
 
@@ -2751,7 +2751,7 @@ namespace ClassicUO.Network
 
                     it.Price = p.ReadUInt32BE();
                     byte nameLen = p.ReadUInt8();
-                    string name = p.ReadASCII(nameLen);
+                    string name = p.ReadFixedString<ASCIICP1215>(nameLen);
 
                     if (world.OPL.TryGetNameAndData(it.Serial, out string s, out _))
                     {
@@ -2964,7 +2964,7 @@ namespace ClassicUO.Network
 
             uint serial = p.ReadUInt32BE();
             ushort id = p.ReadUInt16BE();
-            string name = p.ReadASCII(p.ReadUInt8());
+            string name = p.ReadFixedString<ASCIICP1215>(p.ReadUInt8());
             int count = p.ReadUInt8();
 
             ushort menuid = p.ReadUInt16BE();
@@ -2980,7 +2980,7 @@ namespace ClassicUO.Network
                 {
                     ushort graphic = p.ReadUInt16BE();
                     ushort hue = p.ReadUInt16BE();
-                    name = p.ReadASCII(p.ReadUInt8());
+                    name = p.ReadFixedString<ASCIICP1215>(p.ReadUInt8());
 
                     ref readonly var artInfo = ref Client.Game.UO.Arts.GetArt(graphic);
 
@@ -3019,7 +3019,7 @@ namespace ClassicUO.Network
                 for (int i = 0; i < count; i++)
                 {
                     p.Skip(4);
-                    name = p.ReadASCII(p.ReadUInt8());
+                    name = p.ReadFixedString<ASCIICP1215>(p.ReadUInt8());
 
                     int addHeight = gump.AddItem(name, offsetY);
 
@@ -3067,7 +3067,7 @@ namespace ClassicUO.Network
                 return;
             }
 
-            string text = p.ReadASCII(60);
+            string text = p.ReadFixedString<ASCIICP1215>(60);
             byte flags = p.ReadUInt8();
 
             mobile.Title = text;
@@ -3284,7 +3284,7 @@ namespace ClassicUO.Network
             }
 
             uint serial = p.ReadUInt32BE();
-            string name = p.ReadASCII();
+            string name = p.ReadString<ASCIICP1215>();
 
             WMapEntity wme = world.WMapManager.GetEntity(serial);
 
@@ -3378,7 +3378,7 @@ namespace ClassicUO.Network
                 ushort hue = p.ReadUInt16BE();
                 ushort amount = p.ReadUInt16BE();
                 ushort price = p.ReadUInt16BE();
-                string name = p.ReadASCII(p.ReadUInt16BE());
+                string name = p.ReadFixedString<ASCIICP1215>(p.ReadUInt16BE());
                 bool fromcliloc = false;
 
                 if (int.TryParse(name, out int clilocnum))
@@ -3466,7 +3466,7 @@ namespace ClassicUO.Network
 
         private static void OpenUrl(World world, ref SpanReader p)
         {
-            string url = p.ReadASCII();
+            string url = p.ReadString<ASCIICP1215>();
 
             if (!string.IsNullOrEmpty(url))
             {
@@ -3484,7 +3484,7 @@ namespace ClassicUO.Network
             }
 
             uint tip = p.ReadUInt32BE();
-            string str = p.ReadASCII(p.ReadUInt16BE())?.Replace('\r', '\n');
+            string str = p.ReadFixedString<ASCIICP1215>(p.ReadUInt16BE())?.Replace('\r', '\n');
 
             int x = 20;
             int y = 20;
@@ -3526,14 +3526,14 @@ namespace ClassicUO.Network
             byte buttonID = p.ReadUInt8();
 
             ushort textLen = p.ReadUInt16BE();
-            string text = p.ReadASCII(textLen);
+            string text = p.ReadFixedString<ASCIICP1215>(textLen);
 
             bool haveCancel = p.ReadBool();
             byte variant = p.ReadUInt8();
             uint maxLength = p.ReadUInt32BE();
 
             ushort descLen = p.ReadUInt16BE();
-            string desc = p.ReadASCII(descLen);
+            string desc = p.ReadFixedString<ASCIICP1215>(descLen);
 
             TextEntryDialogGump gump = new TextEntryDialogGump(
                 world,
@@ -3589,8 +3589,8 @@ namespace ClassicUO.Network
             MessageType type = (MessageType)p.ReadUInt8();
             ushort hue = p.ReadUInt16BE();
             ushort font = p.ReadUInt16BE();
-            string lang = p.ReadASCII(4);
-            string name = p.ReadASCII();
+            string lang = p.ReadFixedString<ASCIICP1215>(4);
+            string name = p.ReadString<ASCIICP1215>();
 
             if (
                 serial == 0
@@ -3767,7 +3767,7 @@ namespace ClassicUO.Network
             int y = (int)p.ReadUInt32BE();
 
             ushort cmdLen = p.ReadUInt16BE();
-            string cmd = p.ReadASCII(cmdLen);
+            string cmd = p.ReadFixedString<ASCIICP1215>(cmdLen);
 
             ushort textLinesCount = p.ReadUInt16BE();
 
@@ -3997,7 +3997,7 @@ namespace ClassicUO.Network
             }
 
             uint serial = p.ReadUInt32BE();
-            string header = p.ReadASCII();
+            string header = p.ReadString<ASCIICP1215>();
             string footer = p.ReadString<UnicodeBE>();
 
             string body = p.ReadString<UnicodeBE>();
@@ -4261,7 +4261,7 @@ namespace ClassicUO.Network
                         if (crafterNameLen > 0)
                         {
                             strBuffer.Append(ResGeneral.CraftedBy);
-                            strBuffer.Append(p.ReadASCII(crafterNameLen));
+                            strBuffer.Append(p.ReadFixedString<ASCIICP1215>(crafterNameLen));
                         }
                     }
 
@@ -4755,8 +4755,8 @@ namespace ClassicUO.Network
             ushort font = p.ReadUInt16BE();
             uint cliloc = p.ReadUInt32BE();
             AffixType flags = p[0] == 0xCC ? (AffixType)p.ReadUInt8() : 0x00;
-            string name = p.ReadASCII(30);
-            string affix = p[0] == 0xCC ? p.ReadASCII() : string.Empty;
+            string name = p.ReadFixedString<ASCIICP1215>(30);
+            string affix = p[0] == 0xCC ? p.ReadString<ASCIICP1215>() : string.Empty;
 
             string arguments = null;
 

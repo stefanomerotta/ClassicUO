@@ -46,6 +46,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using ClassicUO.IO.Buffers;
+using ClassicUO.IO.Encoders;
 
 namespace ClassicUO.Game
 {
@@ -446,7 +447,7 @@ namespace ClassicUO.Game
 
                     //from byte 0x03 to 0x14 data is unused
                     p.Seek(15);
-                    string name = ValidatePath(p.ReadASCII());
+                    string name = ValidatePath(p.ReadString<ASCIICP1215>());
 
                     if (string.IsNullOrWhiteSpace(name))
                     {
