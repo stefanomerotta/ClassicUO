@@ -527,28 +527,13 @@ namespace ClassicUO.Game
 
         public static void DropItem(uint serial, int x, int y, int z, uint container)
         {
-            if (Client.Game.UO.GameCursor.ItemHold.Enabled && !Client.Game.UO.GameCursor.ItemHold.IsFixedPosition && (Client.Game.UO.GameCursor.ItemHold.Serial != container || Client.Game.UO.GameCursor.ItemHold.ItemData.IsStackable))
+            if (Client.Game.UO.GameCursor.ItemHold is { Enabled: true, IsFixedPosition: true } hold
+                && (hold.Serial != container || hold.ItemData.IsStackable))
             {
-                if (Client.Game.UO.Version >= ClientVersion.CV_6017)
-                {
-                    Socket.SendDropRequest(serial,
-                                            (ushort)x,
-                                            (ushort)y,
-                                            (sbyte)z,
-                                            0,
-                                            container);
-                }
-                else
-                {
-                    Socket.SendDropRequestOld(serial,
-                                                (ushort)x,
-                                                (ushort)y,
-                                                (sbyte)z,
-                                                container);
-                }
+                Socket.SendDropRequest(serial, x, y, z, container);
 
-                Client.Game.UO.GameCursor.ItemHold.Enabled = false;
-                Client.Game.UO.GameCursor.ItemHold.Dropped = true;
+                hold.Enabled = false;
+                hold.Dropped = true;
             }
         }
 
@@ -568,7 +553,7 @@ namespace ClassicUO.Game
             }
         }
 
-        public static void ReplyGump(uint local, uint server, int button, ReadOnlySpan<uint> switches = default, 
+        public static void ReplyGump(uint local, uint server, int button, ReadOnlySpan<uint> switches = default,
             ReadOnlySpan<(ushort, string)> entries = default)
         {
             Socket.SendGumpResponse(local, server, button, switches, entries);

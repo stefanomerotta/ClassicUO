@@ -334,26 +334,11 @@ namespace ClassicUO.Network
         public static void SendMegaClilocRequests(World world)
         {
             if (world.ClientFeatures.TooltipsEnabled && Handler._clilocRequests.Count != 0)
-            {
-                if (Client.Game.UO.Version >= Utility.ClientVersion.CV_5090)
-                {
-                    if (Handler._clilocRequests.Count != 0)
-                        NetClient.Socket.SendMegaClilocRequest(Handler._clilocRequests);
-                }
-                else
-                {
-                    foreach (uint serial in Handler._clilocRequests)
-                    {
-                        NetClient.Socket.SendMegaClilocRequestOld(serial);
-                    }
-
-                    Handler._clilocRequests.Clear();
-                }
-            }
+                NetClient.Socket.SendMegaClilocRequest(Handler._clilocRequests);
 
             if (Handler._customHouseRequests.Count > 0)
             {
-                for (int i = 0; i < Handler._customHouseRequests.Count; ++i)
+                for (int i = 0; i < Handler._customHouseRequests.Count; i++)
                 {
                     NetClient.Socket.SendCustomHouseDataRequest(Handler._customHouseRequests[i]);
                 }
@@ -4337,7 +4322,7 @@ namespace ClassicUO.Network
 
                     strBuffer.Dispose();
 
-                    NetClient.Socket.SendMegaClilocRequestOld(item);
+                    NetClient.Socket.SendMegaClilocRequest(item);
 
                     break;
 

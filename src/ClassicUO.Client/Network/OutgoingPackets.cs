@@ -42,7 +42,6 @@ using ClassicUO.Utility;
 using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 
 namespace ClassicUO.Network;
@@ -245,7 +244,7 @@ internal static class OutgoingPackets
     }
 
     // 0x08
-    public static void SendDropRequestOld(this NetClient socket, uint serial, ushort x, ushort y, sbyte z, uint container)
+    private static void SendDropRequestOld(this NetClient socket, uint serial, ushort x, ushort y, sbyte z, uint container)
     {
         using FixedSpanWriter writer = new(0x08, stackalloc byte[14]);
         writer.WriteUInt32BE(serial);
@@ -258,7 +257,7 @@ internal static class OutgoingPackets
     }
 
     // 0x08
-    public static void SendDropRequest(this NetClient socket, uint serial, ushort x, ushort y, sbyte z, byte slot, uint container)
+    private static void SendDropRequestNew(this NetClient socket, uint serial, ushort x, ushort y, sbyte z, byte slot, uint container)
     {
         using FixedSpanWriter writer = new(0x08, stackalloc byte[15]);
         writer.WriteUInt32BE(serial);
@@ -706,7 +705,7 @@ internal static class OutgoingPackets
 
                 Span<byte> lineLength = writer.Reserve(1);
                 lineLength[0] = (byte)(writer.WriteString<UTF8>(line) + 1); // + null termination
-                
+
                 writer.WriteUInt8(0x00);
             }
         }
@@ -1346,7 +1345,7 @@ internal static class OutgoingPackets
     }
 
     // 0xBF
-    public static void SendMegaClilocRequestOld(this NetClient socket, uint serial)
+    public static void SendMegaClilocRequest(this NetClient socket, uint serial)
     {
         using VariableSpanWriter writer = new(0xBF, stackalloc byte[3 + 6], true);
         writer.WriteUInt16BE(0x10);
@@ -1505,7 +1504,7 @@ internal static class OutgoingPackets
     }
 
     // 0xD6
-    public static void SendMegaClilocRequest(this NetClient socket, List<uint> serials)
+    private static void SendMegaClilocRequestNew(this NetClient socket, List<uint> serials)
     {
         int count = Math.Min(15, serials.Count);
 
@@ -1920,5 +1919,31 @@ internal static class OutgoingPackets
         writer.Buffer.CopyTo(temp);
 
         Plugin.ProcessRecvPacket(temp, ref len);
+    }
+
+    public static void SendMegaClilocRequest(this NetClient client, List<uint> clilocRequests)
+    {
+        if (Client.Game.UO.Version >= ClientVersion.CV_5090)
+        {
+            if (clilocRequests.Count != 0)
+                client.SendMegaClilocRequestNew(clilocRequests);
+        }
+        else
+        {
+            foreach (uint serial in clilocRequests)
+            {
+                client.SendMegaClilocRequest(serial);
+            }
+
+            clilocRequests.Clear();
+        }
+    }
+
+    public static void SendDropRequest(this NetClient client, uint serial, int x, int y, int z, uint container)
+    {
+        if (Client.Game.UO.Version >= ClientVersion.CV_6017)
+            client.SendDropRequestNew(serial, (ushort)x, (ushort)y, (sbyte)z, 0, container);
+        else
+            client.SendDropRequestOld(serial, (ushort)x, (ushort)y, (sbyte)z, container);
     }
 }
