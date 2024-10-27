@@ -58,7 +58,7 @@ internal class PlayerMobile : Mobile
 
     public Ability[] Abilities = [Ability.Invalid, Ability.Invalid];
 
-    public Skill[] Skills { get; }
+    public Skill?[] Skills { get; }
     internal WalkerManager Walker { get; }
     public Pathfinder Pathfinder { get; }
     public override bool InWarMode { get; set; }

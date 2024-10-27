@@ -30,31 +30,21 @@
 
 #endregion
 
-using System;
-using System.Runtime.CompilerServices;
 using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
-using ClassicUO.Game.Managers;
 using ClassicUO.Game.Map;
-using ClassicUO.Assets;
-using ClassicUO.Renderer;
 using ClassicUO.Utility;
 using Microsoft.Xna.Framework;
+using System;
+using System.Runtime.CompilerServices;
 
 namespace ClassicUO.Game.GameObjects
 {
-    internal abstract class BaseGameObject : LinkedObject
-    {
-        protected BaseGameObject(World world) => World = world;
-
-        public Point RealScreenPosition;
-
-        public World World { get; }
-    }
-
     internal abstract partial class GameObject : BaseGameObject
     {
-        protected GameObject(World world) : base(world) { }
+        protected GameObject(World world)
+            : base(world)
+        { }
 
         public bool IsDestroyed { get; protected set; }
         public bool IsPositionChanged { get; protected set; }
@@ -64,22 +54,16 @@ namespace ClassicUO.Game.GameObjects
         {
             get
             {
-                if (
-                    World.Player == null /*|| IsDestroyed*/
-                )
-                {
+                if (World.Player is null)
                     return ushort.MaxValue;
-                }
 
                 if (ReferenceEquals(this, World.Player))
-                {
                     return 0;
-                }
 
-                int x = X,
-                    y = Y;
+                int x = X;
+                int y = Y;
 
-                if (this is Mobile mobile && mobile.Steps.Count != 0)
+                if (this is Mobile { Steps.Count: not 0 } mobile)
                 {
                     ref Mobile.Step step = ref mobile.Steps.Back();
                     x = step.X;
@@ -93,7 +77,8 @@ namespace ClassicUO.Game.GameObjects
             }
         }
 
-        public virtual void Update() { }
+        public virtual void Update() 
+        { }
 
         public abstract bool CheckMouseSelection();
 

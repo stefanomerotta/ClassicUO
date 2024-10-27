@@ -2,7 +2,7 @@
 
 // Copyright (c) 2024, andreakarasho
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
 // 1. Redistributions of source code must retain the above copyright
@@ -16,7 +16,7 @@
 // 4. Neither the name of the copyright holder nor the
 //    names of its contributors may be used to endorse or promote products
 //    derived from this software without specific prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ''AS IS'' AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -30,31 +30,19 @@
 
 #endregion
 
-using System.Collections.Generic;
+using Microsoft.Xna.Framework;
 
-namespace ClassicUO.Game.GameObjects;
-
-#nullable enable
-
-internal static class DictExt
+namespace ClassicUO.Game.GameObjects
 {
-    public static T? Get<T>(this Dictionary<uint, T> dict, uint serial) where T : Entity
+    internal abstract class BaseGameObject : LinkedObject
     {
-        dict.TryGetValue(serial, out var v);
-        return v;
-    }
+        public Point RealScreenPosition;
 
-    public static bool Contains<T>(this Dictionary<uint, T> dict, uint serial) where T : Entity
-    {
-        return dict.ContainsKey(serial);
-    }
+        public World World { get; }
 
-    public static bool Add<T>(this Dictionary<uint, T> dict, T entity) where T : Entity
-    {
-        if (dict.ContainsKey(entity.Serial))
-            return false;
-
-        dict[entity.Serial] = entity;
-        return true;
+        protected BaseGameObject(World world)
+        {
+            World = world;
+        }
     }
 }

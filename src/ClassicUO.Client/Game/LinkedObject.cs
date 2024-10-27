@@ -218,7 +218,7 @@ internal abstract class LinkedObject
                 for (int i = 0; i < unitsize; i++)
                 {
                     psize++;
-                    q = (T)q.Next;
+                    q = (T?)q.Next;
 
                     if (q is null)
                         break;
@@ -231,25 +231,25 @@ internal abstract class LinkedObject
                     if (psize == 0)
                     {
                         e = q;
-                        q = (T)q.Next;
+                        q = (T?)q.Next;
                         qsize--;
                     }
                     else if (qsize == 0 || q is null)
                     {
                         e = p;
-                        p = (T)p.Next;
+                        p = (T?)p.Next;
                         psize--;
                     }
                     else if (comparison(p, q) <= 0)
                     {
                         e = p;
-                        p = (T)p.Next;
+                        p = (T?)p.Next;
                         psize--;
                     }
                     else
                     {
                         e = q;
-                        q = (T)q.Next;
+                        q = (T?)q.Next;
                         qsize--;
                     }
 

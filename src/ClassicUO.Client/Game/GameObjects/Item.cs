@@ -30,21 +30,14 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
+using ClassicUO.Assets;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.Scenes;
 using ClassicUO.Game.UI.Gumps;
-using ClassicUO.IO;
-using ClassicUO.Assets;
-using ClassicUO.Renderer;
-using ClassicUO.Utility;
-using ClassicUO.Utility.Logging;
-using ClassicUO.Utility.Platforms;
 using Microsoft.Xna.Framework;
-using System.Runtime.InteropServices;
-using System.Runtime.CompilerServices;
+using System;
+using System.Collections.Generic;
 
 namespace ClassicUO.Game.GameObjects
 {

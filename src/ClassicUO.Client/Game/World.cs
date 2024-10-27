@@ -376,40 +376,30 @@ internal sealed class World
         return SerialHelper.IsMobile(serial) && Mobiles.Contains(serial);
     }
 
-    public Entity Get(uint serial)
+    public Entity? Get(uint serial)
     {
-        Entity ent;
+        Entity? ent;
 
         if (SerialHelper.IsMobile(serial))
         {
             ent = Mobiles.Get(serial);
-
-            if (ent == null)
-            {
-                ent = Items.Get(serial);
-            }
+            ent ??= Items.Get(serial);
         }
         else
         {
             ent = Items.Get(serial);
-
-            if (ent == null)
-            {
-                ent = Mobiles.Get(serial);
-            }
+            ent ??= Mobiles.Get(serial);
         }
 
-        if (ent != null && ent.IsDestroyed)
-        {
+        if (ent is { IsDestroyed: true })
             ent = null;
-        }
 
         return ent;
     }
 
     public Item GetOrCreateItem(uint serial)
     {
-        Item item = Items.Get(serial);
+        Item? item = Items.Get(serial);
 
         if (item != null && item.IsDestroyed)
         {

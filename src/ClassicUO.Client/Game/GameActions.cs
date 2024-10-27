@@ -1,36 +1,27 @@
-﻿#region license
-
-// Copyright (c) 2024, andreakarasho
+﻿// Copyright (c) 2024, andreakarasho
 // All rights reserved.
 //
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.
-// 3. All advertising materials mentioning features or use of this software
-//    must display the following acknowledgement:
-//    This product includes software developed by andreakarasho - https://github.com/andreakarasho
-// 4. Neither the name of the copyright holder nor the
-//    names of its contributors may be used to endorse or promote products
-//    derived from this software without specific prior written permission.
+//  Redistribution and use in source and binary forms, with or without
+//  modification, are permitted provided that the following conditions are met:
+//  1. Redistributions of source code must retain the above copyright
+//     notice, this list of conditions and the following disclaimer.
+//  2. Redistributions in binary form must reproduce the above copyright
+//     notice, this list of conditions and the following disclaimer in the
+//     documentation and/or other materials provided with the distribution.
+//  3. All advertising materials mentioning features or use of this software
+//     must display the following acknowledgement:
+//     This product includes software developed by andreakarasho - https://github.com/andreakarasho
+//  4. Neither the name of the copyright holder nor the
+//     names of its contributors may be used to endorse or promote products
+//     derived from this software without specific prior written permission.
 //
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ''AS IS'' AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY
-// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ''AS IS'' AND ANY
+//  EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+//  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+//  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY
+//  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+//  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES
 
-#endregion
-
-using System;
 using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
@@ -42,815 +33,808 @@ using ClassicUO.Network;
 using ClassicUO.Resources;
 using ClassicUO.Utility;
 using Microsoft.Xna.Framework;
+using System;
 using static ClassicUO.Network.NetClient;
 
-namespace ClassicUO.Game
+namespace ClassicUO.Game;
+
+#nullable enable
+
+internal static class GameActions
 {
-    internal static class GameActions
+    public static int LastSpellIndex { get; set; } = 1;
+    public static int LastSkillIndex { get; set; } = 1;
+
+    public static void ToggleWarMode(PlayerMobile player)
     {
-        public static int LastSpellIndex { get; set; } = 1;
-        public static int LastSkillIndex { get; set; } = 1;
+        RequestWarMode(player, !player.InWarMode);
+    }
 
-
-        public static void ToggleWarMode(PlayerMobile player)
+    public static void RequestWarMode(PlayerMobile player, bool war)
+    {
+        if (!player.IsDead)
         {
-            RequestWarMode(player, !player.InWarMode);
+            if (war && ProfileManager.CurrentProfile != null && ProfileManager.CurrentProfile.EnableMusic)
+            {
+                Client.Game.Audio.PlayMusic((RandomHelper.GetValue(0, 3) % 3) + 38, true);
+            }
+            else if (!war)
+            {
+                Client.Game.Audio.StopWarMusic();
+            }
         }
 
-        public static void RequestWarMode(PlayerMobile player, bool war)
+        Socket.SendChangeWarMode(war);
+    }
+
+    public static void OpenMacroGump(World world, string name)
+    {
+        MacroGump macroGump = UIManager.GetGump<MacroGump>();
+
+        macroGump?.Dispose();
+        UIManager.Add(new MacroGump(world, name));
+    }
+
+    public static void OpenPaperdoll(World world, uint serial)
+    {
+        PaperDollGump paperDollGump = UIManager.GetGump<PaperDollGump>(serial);
+
+        if (paperDollGump == null)
         {
-            if (!player.IsDead)
+            DoubleClick(world, serial | 0x80000000);
+        }
+        else
+        {
+            if (paperDollGump.IsMinimized)
             {
-                if (war && ProfileManager.CurrentProfile != null && ProfileManager.CurrentProfile.EnableMusic)
-                {
-                    Client.Game.Audio.PlayMusic((RandomHelper.GetValue(0, 3) % 3) + 38, true);
-                }
-                else if (!war)
-                {
-                    Client.Game.Audio.StopWarMusic();
-                }
+                paperDollGump.IsMinimized = false;
             }
 
-            Socket.SendChangeWarMode(war);
+            paperDollGump.SetInScreen();
+            paperDollGump.BringOnTop();
         }
+    }
 
-        public static void OpenMacroGump(World world, string name)
+    public static void OpenSettings(World world, int page = 0)
+    {
+        OptionsGump opt = UIManager.GetGump<OptionsGump>();
+
+        if (opt == null)
         {
-            MacroGump macroGump = UIManager.GetGump<MacroGump>();
-
-            macroGump?.Dispose();
-            UIManager.Add(new MacroGump(world, name));
-        }
-
-        public static void OpenPaperdoll(World world, uint serial)
-        {
-            PaperDollGump paperDollGump = UIManager.GetGump<PaperDollGump>(serial);
-
-            if (paperDollGump == null)
+            OptionsGump optionsGump = new OptionsGump(world)
             {
-                DoubleClick(world, serial | 0x80000000);
+                X = (Client.Game.Window.ClientBounds.Width >> 1) - 300,
+                Y = (Client.Game.Window.ClientBounds.Height >> 1) - 250
+            };
+
+            UIManager.Add(optionsGump);
+            optionsGump.ChangePage(page);
+            optionsGump.SetInScreen();
+        }
+        else
+        {
+            opt.SetInScreen();
+            opt.BringOnTop();
+        }
+    }
+
+    public static void OpenStatusBar(World world)
+    {
+        Client.Game.Audio.StopWarMusic();
+
+        if (StatusGumpBase.GetStatusGump() == null)
+        {
+            UIManager.Add(StatusGumpBase.AddStatusGump(world, 100, 100));
+        }
+    }
+
+    public static void OpenJournal(World world)
+    {
+        JournalGump journalGump = UIManager.GetGump<JournalGump>();
+
+        if (journalGump == null)
+        {
+            UIManager.Add(new JournalGump(world) { X = 64, Y = 64 });
+        }
+        else
+        {
+            journalGump.SetInScreen();
+            journalGump.BringOnTop();
+
+            if (journalGump.IsMinimized)
+            {
+                journalGump.IsMinimized = false;
+            }
+        }
+    }
+
+    public static void OpenSkills(World world)
+    {
+        StandardSkillsGump skillsGump = UIManager.GetGump<StandardSkillsGump>();
+
+        if (skillsGump != null && skillsGump.IsMinimized)
+        {
+            skillsGump.IsMinimized = false;
+        }
+        else
+        {
+            world.SkillsRequested = true;
+            Socket.SendSkillsRequest(world.Player.Serial);
+        }
+    }
+
+    public static void OpenMiniMap(World world)
+    {
+        MiniMapGump miniMapGump = UIManager.GetGump<MiniMapGump>();
+
+        if (miniMapGump == null)
+        {
+            UIManager.Add(new MiniMapGump(world));
+        }
+        else
+        {
+            miniMapGump.ToggleSize();
+            miniMapGump.SetInScreen();
+            miniMapGump.BringOnTop();
+        }
+    }
+
+    public static void OpenWorldMap(World world)
+    {
+        WorldMapGump worldMap = UIManager.GetGump<WorldMapGump>();
+
+        if (worldMap == null || worldMap.IsDisposed)
+        {
+            worldMap = new WorldMapGump(world);
+            UIManager.Add(worldMap);
+        }
+        else
+        {
+            worldMap.BringOnTop();
+            worldMap.SetInScreen();
+        }
+    }
+
+    public static void OpenChat(World world)
+    {
+        if (world.ChatManager.ChatIsEnabled == ChatStatus.Enabled)
+        {
+            ChatGump chatGump = UIManager.GetGump<ChatGump>();
+
+            if (chatGump == null)
+            {
+                UIManager.Add(new ChatGump(world));
             }
             else
             {
-                if (paperDollGump.IsMinimized)
-                {
-                    paperDollGump.IsMinimized = false;
-                }
+                chatGump.SetInScreen();
+                chatGump.BringOnTop();
+            }
+        }
+        else if (world.ChatManager.ChatIsEnabled == ChatStatus.EnabledUserRequest)
+        {
+            ChatGumpChooseName chatGump = UIManager.GetGump<ChatGumpChooseName>();
 
-                paperDollGump.SetInScreen();
-                paperDollGump.BringOnTop();
+            if (chatGump == null)
+            {
+                UIManager.Add(new ChatGumpChooseName(world));
+            }
+            else
+            {
+                chatGump.SetInScreen();
+                chatGump.BringOnTop();
+            }
+        }
+    }
+
+    public static bool OpenCorpse(World world, uint serial)
+    {
+        if (!SerialHelper.IsItem(serial))
+        {
+            return false;
+        }
+
+        Item item = world.Items.Get(serial);
+
+        if (item == null || !item.IsCorpse || item.IsDestroyed)
+        {
+            return false;
+        }
+
+        world.Player.ManualOpenedCorpses.Add(serial);
+        DoubleClick(world, serial);
+
+        return true;
+    }
+
+    public static bool OpenBackpack(World world)
+    {
+        Item backpack = world.Player.FindItemByLayer(Layer.Backpack);
+
+        if (backpack == null)
+        {
+            return false;
+        }
+
+        ContainerGump backpackGump = UIManager.GetGump<ContainerGump>(backpack);
+
+        if (backpackGump == null)
+        {
+            DoubleClick(world, backpack);
+        }
+        else
+        {
+            if (backpackGump.IsMinimized)
+            {
+                backpackGump.IsMinimized = false;
+            }
+
+            backpackGump.SetInScreen();
+            backpackGump.BringOnTop();
+        }
+
+        return true;
+    }
+
+    public static void Attack(World world, uint serial)
+    {
+        if (ProfileManager.CurrentProfile.EnabledCriminalActionQuery)
+        {
+            Mobile m = world.Mobiles.Get(serial);
+
+            if (m != null && (world.Player.NotorietyFlag == NotorietyFlag.Innocent || world.Player.NotorietyFlag == NotorietyFlag.Ally) && m.NotorietyFlag == NotorietyFlag.Innocent && m != world.Player)
+            {
+                QuestionGump messageBox = new QuestionGump
+                (
+                    world,
+                    ResGeneral.ThisMayFlagYouCriminal,
+                    s =>
+                    {
+                        if (s)
+                        {
+                            Socket.SendAttackRequest(serial);
+                        }
+                    }
+                );
+
+                UIManager.Add(messageBox);
+
+                return;
             }
         }
 
-        public static void OpenSettings(World world, int page = 0)
-        {
-            OptionsGump opt = UIManager.GetGump<OptionsGump>();
+        world.TargetManager.NewTargetSystemSerial = serial;
+        world.TargetManager.LastAttack = serial;
+        Socket.SendAttackRequest(serial);
+    }
 
-            if (opt == null)
+    public static void DoubleClickQueued(uint serial)
+    {
+        Client.Game.GetScene<GameScene>()?.DoubleClickDelayed(serial);
+    }
+
+    public static void DoubleClick(World world, uint serial)
+    {
+        if (serial != world.Player && SerialHelper.IsMobile(serial) && world.Player.InWarMode)
+        {
+            RequestMobileStatus(world, serial);
+            Attack(world, serial);
+        }
+        else
+        {
+            Socket.SendDoubleClick(serial);
+        }
+
+        if (SerialHelper.IsItem(serial) || (SerialHelper.IsMobile(serial) && (world.Mobiles.Get(serial)?.IsHuman ?? false)))
+        {
+            world.LastObject = serial;
+        }
+        else
+        {
+            world.LastObject = 0;
+        }
+    }
+
+    public static void SingleClick(World world, uint serial)
+    {
+        // add  request context menu
+        Socket.SendClickRequest(serial);
+
+        Entity entity = world.Get(serial);
+
+        if (entity != null)
+        {
+            entity.IsClicked = true;
+        }
+    }
+
+    public static void Say(string message, ushort hue = 0xFFFF, MessageType type = MessageType.Regular, byte font = 3)
+    {
+        if (hue == 0xFFFF)
+        {
+            hue = ProfileManager.CurrentProfile.SpeechHue;
+        }
+
+        // TODO: identify what means 'older client' that uses ASCIISpeechRquest [0x03]
+        //
+        // Fix -> #1267
+        if (Client.Game.UO.Version >= ClientVersion.CV_200)
+        {
+            Socket.SendUnicodeSpeechRequest(message,
+                                             type,
+                                             font,
+                                             hue,
+                                             Settings.GlobalSettings.Language);
+        }
+        else
+        {
+            Socket.SendASCIISpeechRequest(message, type, font, hue);
+        }
+    }
+
+
+    public static void Print(World world, string message, ushort hue = 946, MessageType type = MessageType.Regular,
+        byte font = 3, bool unicode = true)
+    {
+        Print(world, null, message, hue, type, font, unicode);
+    }
+
+    public static void Print
+    (
+        World world,
+        Entity entity,
+        string message,
+        ushort hue = 946,
+        MessageType type = MessageType.Regular,
+        byte font = 3,
+        bool unicode = true
+    )
+    {
+        world.MessageManager.HandleMessage
+        (
+            entity,
+            message,
+            entity != null ? entity.Name : "System",
+            hue,
+            type,
+            font,
+            entity == null ? TextType.SYSTEM : TextType.OBJECT,
+            unicode,
+            Settings.GlobalSettings.Language
+        );
+    }
+
+    public static void SayParty(string message, uint serial = 0)
+    {
+        Socket.SendPartyMessage(message, serial);
+    }
+
+    public static void RequestPartyAccept(uint serial)
+    {
+        Socket.SendPartyAccept(serial);
+
+        UIManager.GetGump<PartyInviteGump>()?.Dispose();
+    }
+
+    public static void RequestPartyRemoveMemberByTarget()
+    {
+        Socket.SendPartyRemoveRequest(0x00);
+    }
+
+    public static void RequestPartyRemoveMember(uint serial)
+    {
+        Socket.SendPartyRemoveRequest(serial);
+    }
+
+    public static void RequestPartyQuit(PlayerMobile player)
+    {
+        Socket.SendPartyRemoveRequest(player.Serial);
+    }
+
+    public static void RequestPartyInviteByTarget()
+    {
+        Socket.SendPartyInviteRequest();
+    }
+
+    public static void RequestPartyLootState(bool isLootable)
+    {
+        Socket.SendPartyChangeLootTypeRequest(isLootable);
+    }
+
+    public static bool PickUp
+    (
+        World world,
+        uint serial,
+        int x,
+        int y,
+        int amount = -1,
+        Point? offset = null,
+        bool is_gump = false
+    )
+    {
+        if (world.Player.IsDead || Client.Game.UO.GameCursor.ItemHold.Enabled)
+        {
+            return false;
+        }
+
+        Item item = world.Items.Get(serial);
+
+        if (item == null || item.IsDestroyed || item.IsMulti || item.OnGround && (item.IsLocked || item.Distance > Constants.DRAG_ITEMS_DISTANCE))
+        {
+            return false;
+        }
+
+        if (amount <= -1 && item.Amount > 1 && item.ItemData.IsStackable)
+        {
+            if (ProfileManager.CurrentProfile.HoldShiftToSplitStack == Keyboard.Shift)
             {
-                OptionsGump optionsGump = new OptionsGump(world)
+                SplitMenuGump gump = UIManager.GetGump<SplitMenuGump>(item);
+
+                if (gump != null)
                 {
-                    X = (Client.Game.Window.ClientBounds.Width >> 1) - 300,
-                    Y = (Client.Game.Window.ClientBounds.Height >> 1) - 250
+                    return false;
+                }
+
+                gump = new SplitMenuGump(world, item, new Point(x, y))
+                {
+                    X = Mouse.Position.X - 80,
+                    Y = Mouse.Position.Y - 40
                 };
 
-                UIManager.Add(optionsGump);
-                optionsGump.ChangePage(page);
-                optionsGump.SetInScreen();
-            }
-            else
-            {
-                opt.SetInScreen();
-                opt.BringOnTop();
+                UIManager.Add(gump);
+                UIManager.AttemptDragControl(gump, true);
+
+                return true;
             }
         }
 
-        public static void OpenStatusBar(World world)
+        if (amount <= 0)
         {
-            Client.Game.Audio.StopWarMusic();
-
-            if (StatusGumpBase.GetStatusGump() == null)
-            {
-                UIManager.Add(StatusGumpBase.AddStatusGump(world, 100, 100));
-            }
+            amount = item.Amount;
         }
 
-        public static void OpenJournal(World world)
+        Client.Game.UO.GameCursor.ItemHold.Clear();
+        Client.Game.UO.GameCursor.ItemHold.Set(item, (ushort)amount, offset);
+        Client.Game.UO.GameCursor.ItemHold.IsGumpTexture = is_gump;
+        Socket.SendPickUpRequest(item, (ushort)amount);
+
+        if (item.OnGround)
         {
-            JournalGump journalGump = UIManager.GetGump<JournalGump>();
+            item.RemoveFromTile();
+        }
 
-            if (journalGump == null)
+        item.TextContainer?.Clear();
+
+        world.ObjectToRemove = item.Serial;
+
+        return true;
+    }
+
+    public static void DropItem(uint serial, int x, int y, int z, uint container)
+    {
+        if (Client.Game.UO.GameCursor.ItemHold is { Enabled: true, IsFixedPosition: true } hold
+            && (hold.Serial != container || hold.ItemData.IsStackable))
+        {
+            Socket.SendDropRequest(serial, x, y, z, container);
+
+            hold.Enabled = false;
+            hold.Dropped = true;
+        }
+    }
+
+    public static void Equip(World world, uint container = 0)
+    {
+        if (Client.Game.UO.GameCursor.ItemHold.Enabled && !Client.Game.UO.GameCursor.ItemHold.IsFixedPosition && Client.Game.UO.GameCursor.ItemHold.ItemData.IsWearable)
+        {
+            if (!SerialHelper.IsValid(container))
             {
-                UIManager.Add(new JournalGump(world) { X = 64, Y = 64 });
+                container = world.Player.Serial;
             }
-            else
-            {
-                journalGump.SetInScreen();
-                journalGump.BringOnTop();
 
-                if (journalGump.IsMinimized)
+            Socket.SendEquipRequest(Client.Game.UO.GameCursor.ItemHold.Serial, (Layer)Client.Game.UO.GameCursor.ItemHold.ItemData.Layer, container);
+
+            Client.Game.UO.GameCursor.ItemHold.Enabled = false;
+            Client.Game.UO.GameCursor.ItemHold.Dropped = true;
+        }
+    }
+
+    public static void ReplyGump(uint local, uint server, int button, ReadOnlySpan<uint> switches = default,
+        ReadOnlySpan<(ushort, string)> entries = default)
+    {
+        Socket.SendGumpResponse(local, server, button, switches, entries);
+    }
+
+    public static void RequestHelp()
+    {
+        Socket.SendHelpRequest();
+    }
+
+    public static void RequestQuestMenu(World world)
+    {
+        Socket.SendQuestMenuRequest(world);
+    }
+
+    public static void RequestProfile(uint serial)
+    {
+        Socket.SendProfileRequest(serial);
+    }
+
+    public static void ChangeSkillLockStatus(ushort skillindex, byte lockstate)
+    {
+        Socket.SendSkillStatusChangeRequest(skillindex, lockstate);
+    }
+
+    public static void RequestMobileStatus(World world, uint serial, bool force = false)
+    {
+        if (world.InGame)
+        {
+            Entity ent = world.Get(serial);
+
+            if (ent != null)
+            {
+                if (force)
                 {
-                    journalGump.IsMinimized = false;
-                }
-            }
-        }
-
-        public static void OpenSkills(World world)
-        {
-            StandardSkillsGump skillsGump = UIManager.GetGump<StandardSkillsGump>();
-
-            if (skillsGump != null && skillsGump.IsMinimized)
-            {
-                skillsGump.IsMinimized = false;
-            }
-            else
-            {
-                world.SkillsRequested = true;
-                Socket.SendSkillsRequest(world.Player.Serial);
-            }
-        }
-
-        public static void OpenMiniMap(World world)
-        {
-            MiniMapGump miniMapGump = UIManager.GetGump<MiniMapGump>();
-
-            if (miniMapGump == null)
-            {
-                UIManager.Add(new MiniMapGump(world));
-            }
-            else
-            {
-                miniMapGump.ToggleSize();
-                miniMapGump.SetInScreen();
-                miniMapGump.BringOnTop();
-            }
-        }
-
-        public static void OpenWorldMap(World world)
-        {
-            WorldMapGump worldMap = UIManager.GetGump<WorldMapGump>();
-
-            if (worldMap == null || worldMap.IsDisposed)
-            {
-                worldMap = new WorldMapGump(world);
-                UIManager.Add(worldMap);
-            }
-            else
-            {
-                worldMap.BringOnTop();
-                worldMap.SetInScreen();
-            }
-        }
-
-        public static void OpenChat(World world)
-        {
-            if (world.ChatManager.ChatIsEnabled == ChatStatus.Enabled)
-            {
-                ChatGump chatGump = UIManager.GetGump<ChatGump>();
-
-                if (chatGump == null)
-                {
-                    UIManager.Add(new ChatGump(world));
-                }
-                else
-                {
-                    chatGump.SetInScreen();
-                    chatGump.BringOnTop();
-                }
-            }
-            else if (world.ChatManager.ChatIsEnabled == ChatStatus.EnabledUserRequest)
-            {
-                ChatGumpChooseName chatGump = UIManager.GetGump<ChatGumpChooseName>();
-
-                if (chatGump == null)
-                {
-                    UIManager.Add(new ChatGumpChooseName(world));
-                }
-                else
-                {
-                    chatGump.SetInScreen();
-                    chatGump.BringOnTop();
-                }
-            }
-        }
-
-        public static bool OpenCorpse(World world, uint serial)
-        {
-            if (!SerialHelper.IsItem(serial))
-            {
-                return false;
-            }
-
-            Item item = world.Items.Get(serial);
-
-            if (item == null || !item.IsCorpse || item.IsDestroyed)
-            {
-                return false;
-            }
-
-            world.Player.ManualOpenedCorpses.Add(serial);
-            DoubleClick(world, serial);
-
-            return true;
-        }
-
-        public static bool OpenBackpack(World world)
-        {
-            Item backpack = world.Player.FindItemByLayer(Layer.Backpack);
-
-            if (backpack == null)
-            {
-                return false;
-            }
-
-            ContainerGump backpackGump = UIManager.GetGump<ContainerGump>(backpack);
-
-            if (backpackGump == null)
-            {
-                DoubleClick(world, backpack);
-            }
-            else
-            {
-                if (backpackGump.IsMinimized)
-                {
-                    backpackGump.IsMinimized = false;
-                }
-
-                backpackGump.SetInScreen();
-                backpackGump.BringOnTop();
-            }
-
-            return true;
-        }
-
-        public static void Attack(World world, uint serial)
-        {
-            if (ProfileManager.CurrentProfile.EnabledCriminalActionQuery)
-            {
-                Mobile m = world.Mobiles.Get(serial);
-
-                if (m != null && (world.Player.NotorietyFlag == NotorietyFlag.Innocent || world.Player.NotorietyFlag == NotorietyFlag.Ally) && m.NotorietyFlag == NotorietyFlag.Innocent && m != world.Player)
-                {
-                    QuestionGump messageBox = new QuestionGump
-                    (
-                        world,
-                        ResGeneral.ThisMayFlagYouCriminal,
-                        s =>
-                        {
-                            if (s)
-                            {
-                                Socket.SendAttackRequest(serial);
-                            }
-                        }
-                    );
-
-                    UIManager.Add(messageBox);
-
-                    return;
-                }
-            }
-
-            world.TargetManager.NewTargetSystemSerial = serial;
-            world.TargetManager.LastAttack = serial;
-            Socket.SendAttackRequest(serial);
-        }
-
-        public static void DoubleClickQueued(uint serial)
-        {
-            Client.Game.GetScene<GameScene>()?.DoubleClickDelayed(serial);
-        }
-
-        public static void DoubleClick(World world, uint serial)
-        {
-            if (serial != world.Player && SerialHelper.IsMobile(serial) && world.Player.InWarMode)
-            {
-                RequestMobileStatus(world, serial);
-                Attack(world, serial);
-            }
-            else
-            {
-                Socket.SendDoubleClick(serial);
-            }
-
-            if (SerialHelper.IsItem(serial) || (SerialHelper.IsMobile(serial) && (world.Mobiles.Get(serial)?.IsHuman ?? false)))
-            {
-                world.LastObject = serial;
-            }
-            else
-            {
-                world.LastObject = 0;
-            }
-        }
-
-        public static void SingleClick(World world, uint serial)
-        {
-            // add  request context menu
-            Socket.SendClickRequest(serial);
-
-            Entity entity = world.Get(serial);
-
-            if (entity != null)
-            {
-                entity.IsClicked = true;
-            }
-        }
-
-        public static void Say(string message, ushort hue = 0xFFFF, MessageType type = MessageType.Regular, byte font = 3)
-        {
-            if (hue == 0xFFFF)
-            {
-                hue = ProfileManager.CurrentProfile.SpeechHue;
-            }
-
-            // TODO: identify what means 'older client' that uses ASCIISpeechRquest [0x03]
-            //
-            // Fix -> #1267
-            if (Client.Game.UO.Version >= ClientVersion.CV_200)
-            {
-                Socket.SendUnicodeSpeechRequest(message,
-                                                 type,
-                                                 font,
-                                                 hue,
-                                                 Settings.GlobalSettings.Language);
-            }
-            else
-            {
-                Socket.SendASCIISpeechRequest(message, type, font, hue);
-            }
-        }
-
-
-        public static void Print(World world, string message, ushort hue = 946, MessageType type = MessageType.Regular, byte font = 3, bool unicode = true)
-        {
-            Print
-            (
-                world,
-                null,
-                message,
-                hue,
-                type,
-                font,
-                unicode
-            );
-        }
-
-        public static void Print
-        (
-            World world,
-            Entity entity,
-            string message,
-            ushort hue = 946,
-            MessageType type = MessageType.Regular,
-            byte font = 3,
-            bool unicode = true
-        )
-        {
-            world.MessageManager.HandleMessage
-            (
-                entity,
-                message,
-                entity != null ? entity.Name : "System",
-                hue,
-                type,
-                font,
-                entity == null ? TextType.SYSTEM : TextType.OBJECT,
-                unicode,
-                Settings.GlobalSettings.Language
-            );
-        }
-
-        public static void SayParty(string message, uint serial = 0)
-        {
-            Socket.SendPartyMessage(message, serial);
-        }
-
-        public static void RequestPartyAccept(uint serial)
-        {
-            Socket.SendPartyAccept(serial);
-
-            UIManager.GetGump<PartyInviteGump>()?.Dispose();
-        }
-
-        public static void RequestPartyRemoveMemberByTarget()
-        {
-            Socket.SendPartyRemoveRequest(0x00);
-        }
-
-        public static void RequestPartyRemoveMember(uint serial)
-        {
-            Socket.SendPartyRemoveRequest(serial);
-        }
-
-        public static void RequestPartyQuit(PlayerMobile player)
-        {
-            Socket.SendPartyRemoveRequest(player.Serial);
-        }
-
-        public static void RequestPartyInviteByTarget()
-        {
-            Socket.SendPartyInviteRequest();
-        }
-
-        public static void RequestPartyLootState(bool isLootable)
-        {
-            Socket.SendPartyChangeLootTypeRequest(isLootable);
-        }
-
-        public static bool PickUp
-        (
-            World world,
-            uint serial,
-            int x,
-            int y,
-            int amount = -1,
-            Point? offset = null,
-            bool is_gump = false
-        )
-        {
-            if (world.Player.IsDead || Client.Game.UO.GameCursor.ItemHold.Enabled)
-            {
-                return false;
-            }
-
-            Item item = world.Items.Get(serial);
-
-            if (item == null || item.IsDestroyed || item.IsMulti || item.OnGround && (item.IsLocked || item.Distance > Constants.DRAG_ITEMS_DISTANCE))
-            {
-                return false;
-            }
-
-            if (amount <= -1 && item.Amount > 1 && item.ItemData.IsStackable)
-            {
-                if (ProfileManager.CurrentProfile.HoldShiftToSplitStack == Keyboard.Shift)
-                {
-                    SplitMenuGump gump = UIManager.GetGump<SplitMenuGump>(item);
-
-                    if (gump != null)
+                    if (ent.HitsRequest >= HitsRequestStatus.Pending)
                     {
-                        return false;
-                    }
-
-                    gump = new SplitMenuGump(world, item, new Point(x, y))
-                    {
-                        X = Mouse.Position.X - 80,
-                        Y = Mouse.Position.Y - 40
-                    };
-
-                    UIManager.Add(gump);
-                    UIManager.AttemptDragControl(gump, true);
-
-                    return true;
-                }
-            }
-
-            if (amount <= 0)
-            {
-                amount = item.Amount;
-            }
-
-            Client.Game.UO.GameCursor.ItemHold.Clear();
-            Client.Game.UO.GameCursor.ItemHold.Set(item, (ushort)amount, offset);
-            Client.Game.UO.GameCursor.ItemHold.IsGumpTexture = is_gump;
-            Socket.SendPickUpRequest(item, (ushort)amount);
-
-            if (item.OnGround)
-            {
-                item.RemoveFromTile();
-            }
-
-            item.TextContainer?.Clear();
-
-            world.ObjectToRemove = item.Serial;
-
-            return true;
-        }
-
-        public static void DropItem(uint serial, int x, int y, int z, uint container)
-        {
-            if (Client.Game.UO.GameCursor.ItemHold is { Enabled: true, IsFixedPosition: true } hold
-                && (hold.Serial != container || hold.ItemData.IsStackable))
-            {
-                Socket.SendDropRequest(serial, x, y, z, container);
-
-                hold.Enabled = false;
-                hold.Dropped = true;
-            }
-        }
-
-        public static void Equip(World world, uint container = 0)
-        {
-            if (Client.Game.UO.GameCursor.ItemHold.Enabled && !Client.Game.UO.GameCursor.ItemHold.IsFixedPosition && Client.Game.UO.GameCursor.ItemHold.ItemData.IsWearable)
-            {
-                if (!SerialHelper.IsValid(container))
-                {
-                    container = world.Player.Serial;
-                }
-
-                Socket.SendEquipRequest(Client.Game.UO.GameCursor.ItemHold.Serial, (Layer)Client.Game.UO.GameCursor.ItemHold.ItemData.Layer, container);
-
-                Client.Game.UO.GameCursor.ItemHold.Enabled = false;
-                Client.Game.UO.GameCursor.ItemHold.Dropped = true;
-            }
-        }
-
-        public static void ReplyGump(uint local, uint server, int button, ReadOnlySpan<uint> switches = default,
-            ReadOnlySpan<(ushort, string)> entries = default)
-        {
-            Socket.SendGumpResponse(local, server, button, switches, entries);
-        }
-
-        public static void RequestHelp()
-        {
-            Socket.SendHelpRequest();
-        }
-
-        public static void RequestQuestMenu(World world)
-        {
-            Socket.SendQuestMenuRequest(world);
-        }
-
-        public static void RequestProfile(uint serial)
-        {
-            Socket.SendProfileRequest(serial);
-        }
-
-        public static void ChangeSkillLockStatus(ushort skillindex, byte lockstate)
-        {
-            Socket.SendSkillStatusChangeRequest(skillindex, lockstate);
-        }
-
-        public static void RequestMobileStatus(World world, uint serial, bool force = false)
-        {
-            if (world.InGame)
-            {
-                Entity ent = world.Get(serial);
-
-                if (ent != null)
-                {
-                    if (force)
-                    {
-                        if (ent.HitsRequest >= HitsRequestStatus.Pending)
-                        {
-                            SendCloseStatus(world, serial);
-                        }
-                    }
-
-                    if (ent.HitsRequest < HitsRequestStatus.Received)
-                    {
-                        ent.HitsRequest = HitsRequestStatus.Pending;
-                        force = true;
+                        SendCloseStatus(world, serial);
                     }
                 }
 
-                if (force && SerialHelper.IsValid(serial))
+                if (ent.HitsRequest < HitsRequestStatus.Received)
                 {
-                    //ent = ent ?? World.Player;
-                    //ent.AddMessage(MessageType.Regular, $"PACKET SENT: 0x{serial:X8}", 3, 0x34, true, TextType.OBJECT);
-                    Socket.SendStatusRequest(serial);
-                }
-            }
-        }
-
-        public static void SendCloseStatus(World world, uint serial, bool force = false)
-        {
-            if (Client.Game.UO.Version >= ClientVersion.CV_200 && world.InGame)
-            {
-                Entity ent = world.Get(serial);
-
-                if (ent != null && ent.HitsRequest >= HitsRequestStatus.Pending)
-                {
-                    ent.HitsRequest = HitsRequestStatus.None;
+                    ent.HitsRequest = HitsRequestStatus.Pending;
                     force = true;
                 }
-
-                if (force && SerialHelper.IsValid(serial))
-                {
-                    //ent = ent ?? World.Player;
-                    //ent.AddMessage(MessageType.Regular, $"PACKET REMOVED SENT: 0x{serial:X8}", 3, 0x34 + 10, true, TextType.OBJECT);
-                    Socket.SendCloseStatusBarGump(serial);
-                }
             }
-        }
 
-        public static void CastSpellFromBook(int index, uint bookSerial)
-        {
-            if (index >= 0)
+            if (force && SerialHelper.IsValid(serial))
             {
-                LastSpellIndex = index;
-                Socket.SendCastSpellFromBook(index, bookSerial);
+                //ent = ent ?? World.Player;
+                //ent.AddMessage(MessageType.Regular, $"PACKET SENT: 0x{serial:X8}", 3, 0x34, true, TextType.OBJECT);
+                Socket.SendStatusRequest(serial);
             }
         }
+    }
 
-        public static void CastSpell(int index)
+    public static void SendCloseStatus(World world, uint serial, bool force = false)
+    {
+        if (Client.Game.UO.Version >= ClientVersion.CV_200 && world.InGame)
         {
-            if (index >= 0)
+            Entity ent = world.Get(serial);
+
+            if (ent != null && ent.HitsRequest >= HitsRequestStatus.Pending)
             {
-                LastSpellIndex = index;
-                Socket.SendCastSpell(index);
+                ent.HitsRequest = HitsRequestStatus.None;
+                force = true;
             }
-        }
 
-        public static void OpenGuildGump(World world)
-        {
-            Socket.SendGuildMenuRequest(world);
-        }
-
-        public static void ChangeStatLock(byte stat, Lock state)
-        {
-            Socket.SendStatLockStateRequest(stat, state);
-        }
-
-        public static void Rename(uint serial, string name)
-        {
-            Socket.SendRenameRequest(serial, name);
-        }
-
-        public static void UseSkill(int index)
-        {
-            if (index >= 0)
+            if (force && SerialHelper.IsValid(serial))
             {
-                LastSkillIndex = index;
-                Socket.SendUseSkill(index);
+                //ent = ent ?? World.Player;
+                //ent.AddMessage(MessageType.Regular, $"PACKET REMOVED SENT: 0x{serial:X8}", 3, 0x34 + 10, true, TextType.OBJECT);
+                Socket.SendCloseStatusBarGump(serial);
             }
         }
+    }
 
-        public static void OpenPopupMenu(uint serial, bool shift = false)
+    public static void CastSpellFromBook(int index, uint bookSerial)
+    {
+        if (index >= 0)
         {
-            shift = shift || Keyboard.Shift;
+            LastSpellIndex = index;
+            Socket.SendCastSpellFromBook(index, bookSerial);
+        }
+    }
 
-            if (ProfileManager.CurrentProfile.HoldShiftForContext && !shift)
+    public static void CastSpell(int index)
+    {
+        if (index >= 0)
+        {
+            LastSpellIndex = index;
+            Socket.SendCastSpell(index);
+        }
+    }
+
+    public static void OpenGuildGump(World world)
+    {
+        Socket.SendGuildMenuRequest(world);
+    }
+
+    public static void ChangeStatLock(byte stat, Lock state)
+    {
+        Socket.SendStatLockStateRequest(stat, state);
+    }
+
+    public static void Rename(uint serial, string name)
+    {
+        Socket.SendRenameRequest(serial, name);
+    }
+
+    public static void UseSkill(int index)
+    {
+        if (index >= 0)
+        {
+            LastSkillIndex = index;
+            Socket.SendUseSkill(index);
+        }
+    }
+
+    public static void OpenPopupMenu(uint serial, bool shift = false)
+    {
+        shift = shift || Keyboard.Shift;
+
+        if (ProfileManager.CurrentProfile.HoldShiftForContext && !shift)
+        {
+            return;
+        }
+
+        Socket.SendRequestPopupMenu(serial);
+    }
+
+    public static void ResponsePopupMenu(uint serial, ushort index)
+    {
+        Socket.SendPopupMenuSelection(serial, index);
+    }
+
+    public static void MessageOverhead(World world, string message, uint entity)
+    {
+        Print(world, world.Get(entity), message);
+    }
+
+    public static void MessageOverhead(World world, string message, ushort hue, uint entity)
+    {
+        Print(world, world.Get(entity), message, hue);
+    }
+
+    public static void AcceptTrade(uint serial, bool accepted)
+    {
+        Socket.SendTradeResponse(serial, 2, accepted);
+    }
+
+    public static void CancelTrade(uint serial)
+    {
+        Socket.SendTradeResponse(serial, 1, false);
+    }
+
+    public static void AllNames(World world)
+    {
+        foreach (Mobile mobile in world.Mobiles.Values)
+        {
+            if (mobile != world.Player)
             {
-                return;
+                Socket.SendClickRequest(mobile.Serial);
             }
-
-            Socket.SendRequestPopupMenu(serial);
         }
 
-        public static void ResponsePopupMenu(uint serial, ushort index)
+        foreach (Item item in world.Items.Values)
         {
-            Socket.SendPopupMenuSelection(serial, index);
-        }
-
-        public static void MessageOverhead(World world, string message, uint entity)
-        {
-            Print(world, world.Get(entity), message);
-        }
-
-        public static void MessageOverhead(World world, string message, ushort hue, uint entity)
-        {
-            Print(world, world.Get(entity), message, hue);
-        }
-
-        public static void AcceptTrade(uint serial, bool accepted)
-        {
-            Socket.SendTradeResponse(serial, 2, accepted);
-        }
-
-        public static void CancelTrade(uint serial)
-        {
-            Socket.SendTradeResponse(serial, 1, false);
-        }
-
-        public static void AllNames(World world)
-        {
-            foreach (Mobile mobile in world.Mobiles.Values)
+            if (item.IsCorpse)
             {
-                if (mobile != world.Player)
-                {
-                    Socket.SendClickRequest(mobile.Serial);
-                }
-            }
-
-            foreach (Item item in world.Items.Values)
-            {
-                if (item.IsCorpse)
-                {
-                    Socket.SendClickRequest(item.Serial);
-                }
+                Socket.SendClickRequest(item.Serial);
             }
         }
+    }
 
-        public static void OpenDoor()
+    public static void OpenDoor()
+    {
+        Socket.SendOpenDoor();
+    }
+
+    public static void EmoteAction(string action)
+    {
+        Socket.SendEmoteAction(action);
+    }
+
+    public static void OpenAbilitiesBook(World world)
+    {
+        if (UIManager.GetGump<CombatBookGump>() == null)
         {
-            Socket.SendOpenDoor();
+            UIManager.Add(new CombatBookGump(world, 100, 100));
         }
+    }
 
-        public static void EmoteAction(string action)
+    private static void SendAbility(World world, byte idx, bool primary)
+    {
+        if ((world.ClientLockedFeatures.Flags & LockedFeatureFlags.AOS) == 0)
         {
-            Socket.SendEmoteAction(action);
-        }
-
-        public static void OpenAbilitiesBook(World world)
-        {
-            if (UIManager.GetGump<CombatBookGump>() == null)
-            {
-                UIManager.Add(new CombatBookGump(world, 100, 100));
-            }
-        }
-
-        private static void SendAbility(World world, byte idx, bool primary)
-        {
-            if ((world.ClientLockedFeatures.Flags & LockedFeatureFlags.AOS) == 0)
-            {
-                if (primary)
-                    Socket.SendStunRequest();
-                else
-                    Socket.SendDisarmRequest();
-            }
+            if (primary)
+                Socket.SendStunRequest();
             else
-            {
-                Socket.SendUseCombatAbility(world, idx);
-            }
+                Socket.SendDisarmRequest();
         }
-
-        public static void UsePrimaryAbility(World world)
+        else
         {
-            ref var ability = ref world.Player.Abilities[0];
-
-            if (((byte)ability & 0x80) == 0)
-            {
-                for (int i = 0; i < 2; i++)
-                {
-                    world.Player.Abilities[i] &= (Ability)0x7F;
-                }
-
-                SendAbility(world, (byte)ability, true);
-            }
-            else
-            {
-                SendAbility(world, 0, true);
-            }
-
-            ability ^= (Ability)0x80;
+            Socket.SendUseCombatAbility(world, idx);
         }
+    }
 
-        public static void UseSecondaryAbility(World world)
+    public static void UsePrimaryAbility(World world)
+    {
+        ref var ability = ref world.Player.Abilities[0];
+
+        if (((byte)ability & 0x80) == 0)
         {
-            ref Ability ability = ref world.Player.Abilities[1];
-
-            if (((byte)ability & 0x80) == 0)
+            for (int i = 0; i < 2; i++)
             {
-                for (int i = 0; i < 2; i++)
-                {
-                    world.Player.Abilities[i] &= (Ability)0x7F;
-                }
-
-                SendAbility(world, (byte)ability, false);
-            }
-            else
-            {
-                SendAbility(world, 0, true);
+                world.Player.Abilities[i] &= (Ability)0x7F;
             }
 
-            ability ^= (Ability)0x80;
+            SendAbility(world, (byte)ability, true);
         }
-
-        // ===================================================
-        [Obsolete("temporary workaround to not break assistants")]
-        public static void UsePrimaryAbility() => UsePrimaryAbility(ClassicUO.Client.Game.UO.World);
-
-        [Obsolete("temporary workaround to not break assistants")]
-        public static void UseSecondaryAbility() => UseSecondaryAbility(ClassicUO.Client.Game.UO.World);
-        // ===================================================
-
-        public static void QuestArrow(bool rightClick)
+        else
         {
-            Socket.SendClickQuestArrow(rightClick);
+            SendAbility(world, 0, true);
         }
 
-        public static void GrabItem(World world, uint serial, ushort amount, uint bag = 0)
+        ability ^= (Ability)0x80;
+    }
+
+    public static void UseSecondaryAbility(World world)
+    {
+        ref Ability ability = ref world.Player.Abilities[1];
+
+        if (((byte)ability & 0x80) == 0)
         {
-            //Socket.Send(new PPickUpRequest(serial, amount));
-
-            Item backpack = world.Player.FindItemByLayer(Layer.Backpack);
-
-            if (backpack == null)
+            for (int i = 0; i < 2; i++)
             {
-                return;
+                world.Player.Abilities[i] &= (Ability)0x7F;
             }
 
-            if (bag == 0)
-            {
-                bag = ProfileManager.CurrentProfile.GrabBagSerial == 0 ? backpack.Serial : ProfileManager.CurrentProfile.GrabBagSerial;
-            }
-
-            if (!world.Items.Contains(bag))
-            {
-                Print(world, ResGeneral.GrabBagNotFound);
-                ProfileManager.CurrentProfile.GrabBagSerial = 0;
-                bag = backpack.Serial;
-            }
-
-            PickUp(world, serial, 0, 0, amount);
-
-            DropItem
-            (
-                serial,
-                0xFFFF,
-                0xFFFF,
-                0,
-                bag
-            );
+            SendAbility(world, (byte)ability, false);
         }
+        else
+        {
+            SendAbility(world, 0, true);
+        }
+
+        ability ^= (Ability)0x80;
+    }
+
+    // ===================================================
+    [Obsolete("temporary workaround to not break assistants")]
+    public static void UsePrimaryAbility() => UsePrimaryAbility(ClassicUO.Client.Game.UO.World);
+
+    [Obsolete("temporary workaround to not break assistants")]
+    public static void UseSecondaryAbility() => UseSecondaryAbility(ClassicUO.Client.Game.UO.World);
+    // ===================================================
+
+    public static void QuestArrow(bool rightClick)
+    {
+        Socket.SendClickQuestArrow(rightClick);
+    }
+
+    public static void GrabItem(World world, uint serial, ushort amount, uint bag = 0)
+    {
+        //Socket.Send(new PPickUpRequest(serial, amount));
+
+        Item backpack = world.Player.FindItemByLayer(Layer.Backpack);
+
+        if (backpack == null)
+        {
+            return;
+        }
+
+        if (bag == 0)
+        {
+            bag = ProfileManager.CurrentProfile.GrabBagSerial == 0 ? backpack.Serial : ProfileManager.CurrentProfile.GrabBagSerial;
+        }
+
+        if (!world.Items.Contains(bag))
+        {
+            Print(world, ResGeneral.GrabBagNotFound);
+            ProfileManager.CurrentProfile.GrabBagSerial = 0;
+            bag = backpack.Serial;
+        }
+
+        PickUp(world, serial, 0, 0, amount);
+
+        DropItem
+        (
+            serial,
+            0xFFFF,
+            0xFFFF,
+            0,
+            bag
+        );
     }
 }

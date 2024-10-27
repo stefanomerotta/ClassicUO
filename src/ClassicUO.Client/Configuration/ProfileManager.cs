@@ -34,76 +34,77 @@ using System.IO;
 using ClassicUO.Utility;
 using Microsoft.Xna.Framework;
 
-namespace ClassicUO.Configuration
+namespace ClassicUO.Configuration;
+
+#nullable enable
+
+internal static class ProfileManager
 {
-    internal static class ProfileManager
+    public static Profile? CurrentProfile { get; private set; }
+    public static string? ProfilePath { get; private set; }
+
+    public static void Load(string servername, string username, string charactername)
     {
-        public static Profile CurrentProfile { get; private set; }
-        public static string ProfilePath { get; private set; }
+        string rootpath;
 
-        public static void Load(string servername, string username, string charactername)
+        if (string.IsNullOrWhiteSpace(Settings.GlobalSettings.ProfilesPath))
         {
-            string rootpath;
-
-            if (string.IsNullOrWhiteSpace(Settings.GlobalSettings.ProfilesPath))
-            {
-                rootpath = Path.Combine(CUOEnviroment.ExecutablePath, "Data", "Profiles");
-            }
-            else
-            {
-                rootpath = Settings.GlobalSettings.ProfilesPath;
-            }
-
-            string path = FileSystemHelper.CreateFolderIfNotExists(rootpath, username, servername, charactername);
-            string fileToLoad = Path.Combine(path, "profile.json");
-
-            ProfilePath = path;
-            CurrentProfile = ConfigurationResolver.Load<Profile>(fileToLoad, ProfileJsonContext.DefaultToUse.Profile) ?? new Profile();
-
-            CurrentProfile.Username = username;
-            CurrentProfile.ServerName = servername;
-            CurrentProfile.CharacterName = charactername;
-
-            ValidateFields(CurrentProfile);
+            rootpath = Path.Combine(CUOEnviroment.ExecutablePath, "Data", "Profiles");
+        }
+        else
+        {
+            rootpath = Settings.GlobalSettings.ProfilesPath;
         }
 
+        string path = FileSystemHelper.CreateFolderIfNotExists(rootpath, username, servername, charactername);
+        string fileToLoad = Path.Combine(path, "profile.json");
 
-        private static void ValidateFields(Profile profile)
+        ProfilePath = path;
+        CurrentProfile = ConfigurationResolver.Load<Profile>(fileToLoad, ProfileJsonContext.DefaultToUse.Profile) ?? new Profile();
+
+        CurrentProfile.Username = username;
+        CurrentProfile.ServerName = servername;
+        CurrentProfile.CharacterName = charactername;
+
+        ValidateFields(CurrentProfile);
+    }
+
+
+    private static void ValidateFields(Profile profile)
+    {
+        if (profile == null)
         {
-            if (profile == null)
-            {
-                return;
-            }
-
-            if (string.IsNullOrEmpty(profile.ServerName))
-            {
-                throw new InvalidDataException();
-            }
-
-            if (string.IsNullOrEmpty(profile.Username))
-            {
-                throw new InvalidDataException();
-            }
-
-            if (string.IsNullOrEmpty(profile.CharacterName))
-            {
-                throw new InvalidDataException();
-            }
-
-            if (profile.WindowClientBounds.X < 600)
-            {
-                profile.WindowClientBounds = new Point(600, profile.WindowClientBounds.Y);
-            }
-
-            if (profile.WindowClientBounds.Y < 480)
-            {
-                profile.WindowClientBounds = new Point(profile.WindowClientBounds.X, 480);
-            }
+            return;
         }
 
-        public static void UnLoadProfile()
+        if (string.IsNullOrEmpty(profile.ServerName))
         {
-            CurrentProfile = null;
+            throw new InvalidDataException();
         }
+
+        if (string.IsNullOrEmpty(profile.Username))
+        {
+            throw new InvalidDataException();
+        }
+
+        if (string.IsNullOrEmpty(profile.CharacterName))
+        {
+            throw new InvalidDataException();
+        }
+
+        if (profile.WindowClientBounds.X < 600)
+        {
+            profile.WindowClientBounds = new Point(600, profile.WindowClientBounds.Y);
+        }
+
+        if (profile.WindowClientBounds.Y < 480)
+        {
+            profile.WindowClientBounds = new Point(profile.WindowClientBounds.X, 480);
+        }
+    }
+
+    public static void UnLoadProfile()
+    {
+        CurrentProfile = null;
     }
 }

@@ -1,34 +1,26 @@
-#region license
-
 // Copyright (c) 2024, andreakarasho
 // All rights reserved.
 //
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.
-// 3. All advertising materials mentioning features or use of this software
-//    must display the following acknowledgement:
-//    This product includes software developed by andreakarasho - https://github.com/andreakarasho
-// 4. Neither the name of the copyright holder nor the
-//    names of its contributors may be used to endorse or promote products
-//    derived from this software without specific prior written permission.
+//  Redistribution and use in source and binary forms, with or without
+//  modification, are permitted provided that the following conditions are met:
+//  1. Redistributions of source code must retain the above copyright
+//     notice, this list of conditions and the following disclaimer.
+//  2. Redistributions in binary form must reproduce the above copyright
+//     notice, this list of conditions and the following disclaimer in the
+//     documentation and/or other materials provided with the distribution.
+//  3. All advertising materials mentioning features or use of this software
+//     must display the following acknowledgement:
+//     This product includes software developed by andreakarasho - https://github.com/andreakarasho
+//  4. Neither the name of the copyright holder nor the
+//     names of its contributors may be used to endorse or promote products
+//     derived from this software without specific prior written permission.
 //
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ''AS IS'' AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY
-// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-#endregion
+//  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ''AS IS'' AND ANY
+//  EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+//  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+//  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY
+//  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+//  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES
 
 using ClassicUO.Game.Data;
 using ClassicUO.Game.Managers;
@@ -43,7 +35,7 @@ namespace ClassicUO.Game.GameObjects;
 
 #nullable enable
 
-enum HitsRequestStatus
+internal enum HitsRequestStatus
 {
     None,
     Pending,
@@ -52,14 +44,7 @@ enum HitsRequestStatus
 
 internal abstract class Entity : GameObject, IEquatable<Entity>
 {
-    private static readonly RenderedText[] _hitsPercText = new RenderedText[101];
-    private Direction _direction;
-
-
-    protected Entity(World world, uint serial) : base(world)
-    {
-        Serial = serial;
-    }
+    private static readonly RenderedText?[] _hitsPercText = new RenderedText[101];
 
     public byte AnimIndex;
     public bool ExecuteAnimation = true;
@@ -70,34 +55,36 @@ internal abstract class Entity : GameObject, IEquatable<Entity>
     public byte HitsPercentage;
     public bool IsClicked;
     public uint LastStepTime;
-    public string Name;
+    public string? Name;
     public uint Serial;
     public HitsRequestStatus HitsRequest;
 
-
     public bool IsHidden => (Flags & Flags.Hidden) != 0;
+    public bool Exists => World.Contains(Serial);
+    public RenderedText? HitsTexture => _hitsPercText[HitsPercentage % _hitsPercText.Length];
 
     public Direction Direction
     {
-        get => _direction;
+        get;
         set
         {
-            if (_direction != value)
-            {
-                _direction = value;
-                OnDirectionChanged();
-            }
+            if ((field) == value)
+                return;
+
+            field = value;
+            OnDirectionChanged();
         }
     }
 
-    public bool Exists => World.Contains(Serial);
-
-    public RenderedText HitsTexture => _hitsPercText[HitsPercentage % _hitsPercText.Length];
-
-
-    public bool Equals(Entity e)
+    protected Entity(World world, uint serial)
+        : base(world)
     {
-        return e != null && Serial == e.Serial;
+        Serial = serial;
+    }
+
+    public bool Equals(Entity? e)
+    {
+        return e is not null && Serial == e.Serial;
     }
 
     public void FixHue(ushort hue)
@@ -107,9 +94,7 @@ internal abstract class Entity : GameObject, IEquatable<Entity>
         if (fixedColor != 0)
         {
             if (fixedColor >= 0x0BB8)
-            {
                 fixedColor = 1;
-            }
 
             fixedColor |= (ushort)(hue & 0xC000);
         }
@@ -127,33 +112,24 @@ internal abstract class Entity : GameObject, IEquatable<Entity>
         {
             HitsPercentage = perc;
 
-            ref var rtext = ref _hitsPercText[perc % _hitsPercText.Length];
+            ref RenderedText? rtext = ref _hitsPercText[perc % _hitsPercText.Length];
+            if (rtext is { IsDestroyed: false })
+                return;
 
-            if (rtext == null || rtext.IsDestroyed)
+            ushort color = perc switch
             {
-                ushort color = 0x0044;
+                < 30 => 0x0021,
+                < 50 => 0x0030,
+                < 80 => 0x0058,
+                _ => 0x0044
+            };
 
-                if (perc < 30)
-                {
-                    color = 0x0021;
-                }
-                else if (perc < 50)
-                {
-                    color = 0x0030;
-                }
-                else if (perc < 80)
-                {
-                    color = 0x0058;
-                }
-
-                rtext = RenderedText.Create($"[{perc}%]", color, 3, false);
-            }
+            rtext = RenderedText.Create($"[{perc}%]", color, 3, false);
         }
     }
 
     public virtual void CheckGraphicChange(byte animIndex = 0)
-    {
-    }
+    { }
 
     public override void Update()
     {
@@ -166,9 +142,7 @@ internal abstract class Entity : GameObject, IEquatable<Entity>
             // TODO: Some servers may not want to receive this (causing original client to not send it),
             //but all servers tested (latest POL, old POL, ServUO, Outlands) do.
             if ( /*Client.Game.UO.Version > ClientVersion.CV_200 &&*/ SerialHelper.IsMobile(Serial))
-            {
                 Socket.SendNameRequest(Serial);
-            }
 
             UIManager.Add(new NameOverheadGump(World, this));
         }
@@ -176,8 +150,8 @@ internal abstract class Entity : GameObject, IEquatable<Entity>
 
         if (HitsMax > 0)
         {
-            var perc = MathHelper.PercetangeOf(Hits, HitsMax);
-            perc = perc > 100 ? 100 : perc < 0 ? 0 : perc;
+            int perc = MathHelper.PercetangeOf(Hits, HitsMax);
+            perc = Math.Clamp(perc, 0, 100);
 
             UpdateHits((byte)perc);
         }
@@ -193,32 +167,29 @@ internal abstract class Entity : GameObject, IEquatable<Entity>
         LastAnimationChangeTime = 0;
     }
 
-    public Item FindItem(ushort graphic, ushort hue = 0xFFFF)
+    public Item? FindItem(ushort graphic, ushort hue = 0xFFFF)
     {
-        Item item = null;
+        Item? item = null;
 
         if (hue == 0xFFFF)
         {
             int minColor = 0xFFFF;
 
-            for (LinkedObject i = Items; i != null; i = i.Next)
+            for (LinkedObject? i = Items; i != null; i = i.Next)
             {
                 Item it = (Item)i;
 
-                if (it.Graphic == graphic)
+                if (it.Graphic == graphic && it.Hue < minColor)
                 {
-                    if (it.Hue < minColor)
-                    {
-                        item = it;
-                        minColor = it.Hue;
-                    }
+                    item = it;
+                    minColor = it.Hue;
                 }
 
                 if (SerialHelper.IsValid(it.Container))
                 {
-                    Item found = it.FindItem(graphic, hue);
+                    Item? found = it.FindItem(graphic, hue);
 
-                    if (found != null && found.Hue < minColor)
+                    if (found is not null && found.Hue < minColor)
                     {
                         item = found;
                         minColor = found.Hue;
@@ -228,23 +199,18 @@ internal abstract class Entity : GameObject, IEquatable<Entity>
         }
         else
         {
-            for (LinkedObject i = Items; i != null; i = i.Next)
+            for (LinkedObject? i = Items; i != null; i = i.Next)
             {
                 Item it = (Item)i;
 
                 if (it.Graphic == graphic && it.Hue == hue)
-                {
                     item = it;
-                }
 
                 if (SerialHelper.IsValid(it.Container))
                 {
-                    Item found = it.FindItem(graphic, hue);
-
-                    if (found != null)
-                    {
+                    Item? found = it.FindItem(graphic, hue);
+                    if (found is not null)
                         item = found;
-                    }
                 }
             }
         }
@@ -252,30 +218,25 @@ internal abstract class Entity : GameObject, IEquatable<Entity>
         return item;
     }
 
-    public Item GetItemByGraphic(ushort graphic, bool deepsearch = false)
+    public Item? GetItemByGraphic(ushort graphic, bool deepsearch = false)
     {
-        for (LinkedObject i = Items; i != null; i = i.Next)
+        for (LinkedObject? i = Items; i != null; i = i.Next)
         {
             Item item = (Item)i;
 
             if (item.Graphic == graphic)
-            {
                 return item;
-            }
 
-            if (deepsearch && !item.IsEmpty)
+            if (!deepsearch || item.IsEmpty)
+                continue;
+            
+            for (LinkedObject? ic = Items; ic != null; ic = ic.Next)
             {
-                for (LinkedObject ic = Items; ic != null; ic = ic.Next)
-                {
-                    Item childItem = (Item)ic;
+                Item childItem = (Item)ic;
 
-                    Item res = childItem.GetItemByGraphic(graphic, deepsearch);
-
-                    if (res != null)
-                    {
-                        return res;
-                    }
-                }
+                Item? res = childItem.GetItemByGraphic(graphic, deepsearch);
+                if (res is not null)
+                    return res;
             }
         }
 
@@ -285,14 +246,12 @@ internal abstract class Entity : GameObject, IEquatable<Entity>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Item? FindItemByLayer(Layer layer)
     {
-        for (LinkedObject i = Items; i != null; i = i.Next)
+        for (LinkedObject? i = Items; i != null; i = i.Next)
         {
             Item it = (Item)i;
 
             if (!it.IsDestroyed && it.Layer == layer)
-            {
                 return it;
-            }
         }
 
         return null;
@@ -303,17 +262,17 @@ internal abstract class Entity : GameObject, IEquatable<Entity>
         return entity.Serial;
     }
 
-    public static bool operator ==(Entity e, Entity s)
+    public static bool operator ==(Entity? e, Entity? s)
     {
         return Equals(e, s);
     }
 
-    public static bool operator !=(Entity e, Entity s)
+    public static bool operator !=(Entity? e, Entity? s)
     {
         return !Equals(e, s);
     }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is Entity ent && Equals(ent);
     }
