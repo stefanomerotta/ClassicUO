@@ -4,6 +4,7 @@ using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -15,6 +16,7 @@ public unsafe ref struct SpanReader
 {
     private const MethodImplOptions IMPL_OPTION = MethodImplOptions.AggressiveInlining;
 
+    [SuppressMessage("Style", "IDE0032:Use auto property", Justification = "Explicit field access")]
     private readonly ReadOnlySpan<byte> _data;
 
     public int Position { get; private set; }
@@ -30,12 +32,6 @@ public unsafe ref struct SpanReader
         _data = data;
         Length = data.Length;
         Position = 0;
-    }
-
-    [MethodImpl(IMPL_OPTION)]
-    public readonly void Release()
-    {
-        // do nothing right now.
     }
 
     [MethodImpl(IMPL_OPTION)]
@@ -132,7 +128,7 @@ public unsafe ref struct SpanReader
     {
         Debug.Assert(Position + sizeof(long) <= Length);
 
-        long v = BinaryPrimitives.ReadInt64LittleEndian(_data.Slice(Position));
+        long v = BinaryPrimitives.ReadInt64LittleEndian(_data[Position..]);
         Position += sizeof(long);
 
         return v;

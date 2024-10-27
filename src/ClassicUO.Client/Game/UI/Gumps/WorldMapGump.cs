@@ -1121,8 +1121,6 @@ namespace ClassicUO.Game.UI.Gumps
 
                     SDL.SDL_FreeSurface((IntPtr)surface);
 
-                    reader.Release();
-
                     return texture;
                 }
                 finally

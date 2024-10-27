@@ -5237,8 +5237,6 @@ namespace ClassicUO.Network
 
                         break;
                 }
-
-                reader.Release();
             }
             finally
             {
@@ -5427,8 +5425,6 @@ namespace ClassicUO.Network
                                 lines[i] = string.Empty;
                             }
                         }
-
-                        reader.Release();
 
                         //for (int i = 0, index = 0; i < linesNum && index < dlen; i++)
                         //{

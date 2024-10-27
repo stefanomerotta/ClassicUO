@@ -26,8 +26,6 @@ namespace ClassicUO.UnitTests.IO
 
             Assert.Equal(s, result);
             Assert.Equal(0, reader.Remaining);
-
-            reader.Release();
         }
 
         [Theory]
@@ -47,8 +45,6 @@ namespace ClassicUO.UnitTests.IO
             string s = reader.ReadString<ASCIICP1215>();
 
             Assert.Equal(s, result);
-
-            reader.Release();
         }
 
         [Theory]
@@ -69,8 +65,6 @@ namespace ClassicUO.UnitTests.IO
 
             Assert.Equal(s, result);
             Assert.Equal(0, reader.Remaining);
-
-            reader.Release();
         }
 
         [Theory]
@@ -90,8 +84,6 @@ namespace ClassicUO.UnitTests.IO
             string s = reader.ReadString<UnicodeLE>();
 
             Assert.Equal(s, result);
-
-            reader.Release();
         }
 
         [Theory]
@@ -112,8 +104,6 @@ namespace ClassicUO.UnitTests.IO
 
             Assert.Equal(s, result);
             Assert.Equal(0, reader.Remaining);
-
-            reader.Release();
         }
 
         [Theory]
@@ -133,8 +123,6 @@ namespace ClassicUO.UnitTests.IO
             string s = reader.ReadString<UnicodeBE>();
 
             Assert.Equal(s, result);
-
-            reader.Release();
         }
 
 
@@ -156,8 +144,6 @@ namespace ClassicUO.UnitTests.IO
 
             Assert.Equal(s, result);
             Assert.Equal(0, reader.Remaining);
-
-            reader.Release();
         }
 
         [Theory]
@@ -177,8 +163,6 @@ namespace ClassicUO.UnitTests.IO
             string s = reader.ReadString<UTF8>();
 
             Assert.Equal(s, result);
-
-            reader.Release();
         }
 
         [Theory]
@@ -199,8 +183,6 @@ namespace ClassicUO.UnitTests.IO
 
             Assert.Equal(s, result);
             Assert.Equal(0, reader.Remaining);
-
-            reader.Release();
         }
 
         [Theory]
@@ -220,8 +202,6 @@ namespace ClassicUO.UnitTests.IO
             string s = reader.ReadString<UTF8>(true);
 
             Assert.Equal(s, result);
-
-            reader.Release();
         }
 
 
@@ -243,8 +223,6 @@ namespace ClassicUO.UnitTests.IO
                 reader.ReadString<ASCIICP1215>();
                 Assert.Equal(0, reader.Remaining);
             }
-
-            reader.Release();
         }
 
         [Theory]
@@ -262,8 +240,6 @@ namespace ClassicUO.UnitTests.IO
 
             reader.ReadFixedString<ASCIICP1215>(remains);
             Assert.Equal(0, reader.Remaining);
-
-            reader.Release();
         }
 
         [Theory]
@@ -284,8 +260,6 @@ namespace ClassicUO.UnitTests.IO
                 reader.ReadString<UnicodeBE>();
                 Assert.Equal(0, reader.Remaining);
             }
-
-            reader.Release();
         }
 
         [Theory]
@@ -303,8 +277,6 @@ namespace ClassicUO.UnitTests.IO
 
             reader.ReadFixedString<UnicodeBE>(remains);
             Assert.Equal(0, reader.Remaining);
-
-            reader.Release();
         }
 
         [Theory]
@@ -325,8 +297,6 @@ namespace ClassicUO.UnitTests.IO
                 reader.ReadString<UnicodeLE>();
                 Assert.Equal(0, reader.Remaining);
             }
-
-            reader.Release();
         }
 
         [Theory]
@@ -344,8 +314,6 @@ namespace ClassicUO.UnitTests.IO
 
             reader.ReadFixedString<UnicodeLE>(remains);
             Assert.Equal(0, reader.Remaining);
-
-            reader.Release();
         }
 
         [Theory]
@@ -366,8 +334,6 @@ namespace ClassicUO.UnitTests.IO
                 reader.ReadString<UTF8>();
                 Assert.Equal(0, reader.Remaining);
             }
-
-            reader.Release();
         }
 
         [Theory]
@@ -385,8 +351,6 @@ namespace ClassicUO.UnitTests.IO
 
             reader.ReadFixedString<UTF8>(remains);
             Assert.Equal(0, reader.Remaining);
-
-            reader.Release();
         }
 
         [Theory]
@@ -407,8 +371,6 @@ namespace ClassicUO.UnitTests.IO
                 reader.ReadString<UTF8>(true);
                 Assert.Equal(0, reader.Remaining);
             }
-
-            reader.Release();
         }
 
         [Theory]
@@ -426,11 +388,7 @@ namespace ClassicUO.UnitTests.IO
 
             reader.ReadFixedString<UTF8>(remains, true);
             Assert.Equal(0, reader.Remaining);
-
-            reader.Release();
         }
-
-
 
         [Theory]
         [InlineData("this is a very long text", 1000)]
