@@ -49,7 +49,6 @@ internal sealed class AsyncNetClient : NetClient
     private const int RECV_UNZIP_SIZE = BUFF_SIZE * 3;
 
     private readonly byte[] _receiveBuffer = new byte[RECV_ZIP_SIZE];
-    private readonly byte[] _decompressionBuffer = new byte[RECV_UNZIP_SIZE];
 
     private ReceivePipe _receivePipe;
     private SendPipe _sendPipe;
@@ -182,17 +181,6 @@ internal sealed class AsyncNetClient : NetClient
         }
     }
 
-    private Span<byte> Decompress(Span<byte> buffer)
-    {
-        if (!_isCompressionEnabled)
-            return buffer;
-
-        if (_huffman.Decompress(buffer, _decompressionBuffer, out int size))
-            return _decompressionBuffer.AsSpan(..size);
-
-        throw new Exception("Huffman decompression failed");
-    }
-
     private uint GetLocalIP()
     {
         if (!_localIP.HasValue)
@@ -264,26 +252,37 @@ internal sealed class AsyncNetClient : NetClient
                 Statistics.TotalBytesReceived += (uint)bytesRead;
 
                 Span<byte> buffer = socketBuffer.Span[..bytesRead];
-                
+
                 _encryption?.Decrypt(buffer);
-                
-                buffer = Decompress(buffer);
-                if (buffer.IsEmpty)
-                    continue;
 
-                Span<byte> target = pipe.GetAvailableSpanToWrite();
-
-                while (buffer.Length > target.Length)
+                if (_isCompressionEnabled)
                 {
-                    buffer[..target.Length].CopyTo(target);
-                    pipe.CommitWrited(target.Length);
-                    buffer = buffer[target.Length..];
+                    do
+                    {
+                        Span<byte> target = pipe.GetAvailableSpanToWrite();
+                        int bytesProcessed = _huffman.Decompress(buffer, target, out int targetLength);
 
-                    target = pipe.GetAvailableSpanToWrite();
+                        pipe.CommitWrited(targetLength);
+                        buffer = buffer[bytesProcessed..];
+                    }
+                    while (!buffer.IsEmpty);
                 }
+                else
+                {
+                    Span<byte> target = pipe.GetAvailableSpanToWrite();
 
-                buffer.CopyTo(target);
-                pipe.CommitWrited(buffer.Length);
+                    while (buffer.Length > target.Length)
+                    {
+                        buffer[..target.Length].CopyTo(target);
+                        pipe.CommitWrited(target.Length);
+                        buffer = buffer[target.Length..];
+
+                        target = pipe.GetAvailableSpanToWrite();
+                    }
+
+                    buffer.CopyTo(target);
+                    pipe.CommitWrited(buffer.Length);
+                }
             }
         }
         catch (OperationCanceledException)

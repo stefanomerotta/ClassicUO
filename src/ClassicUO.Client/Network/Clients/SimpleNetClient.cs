@@ -15,11 +15,10 @@ namespace ClassicUO.Network.Clients
         private readonly byte[] _sendBuffer = new byte[SEND_SIZE];
         private readonly byte[] _receiveBuffer = new byte[RECV_ZIP_SIZE];
         private readonly byte[] _decompressionBuffer = new byte[RECV_UNZIP_SIZE];
-        
+
         private Socket _socket;
         private uint _localIP;
-        private int _receivePosition;
-        private int _receiveDecompressedSize;
+        private int _receiveSize;
         private int _sendPosition;
 
         public override uint LocalIP => GetLocalIP();
@@ -42,34 +41,35 @@ namespace ClassicUO.Network.Clients
                 return [];
             }
 
-            int bytesRead = _socket.Receive(_receiveBuffer.AsSpan(_receivePosition));
+            int bytesRead = _socket.Receive(_receiveBuffer.AsSpan());
             if (bytesRead == 0)
             {
                 Disconnect(SocketError.ConnectionReset);
                 return [];
             }
 
-            Span<byte> span = _receiveBuffer.AsSpan(_receivePosition, bytesRead);
+            Span<byte> span = _receiveBuffer.AsSpan(0, bytesRead);
 
             _encryption?.Decrypt(span);
-            span = _receiveBuffer.AsSpan(0, bytesRead + _receivePosition);
+            span = _receiveBuffer.AsSpan(0, bytesRead);
 
-            Span<byte> decompressed = Decompress(span);
-            _receiveDecompressedSize = decompressed.Length;
+            if (_isCompressionEnabled)
+            {
+                _huffman.Decompress(span, _decompressionBuffer, out int size);
+                span = _decompressionBuffer.AsSpan(..size);
+            }
 
-            if (decompressed.IsEmpty)
-                _receivePosition += span.Length;
+            _receiveSize = span.Length;
 
-            return decompressed;
+            return span;
         }
 
         public override void CommitReadData(int size)
         {
-            if (size != _receiveDecompressedSize)
+            if (size != _receiveSize)
                 throw new NotSupportedException();
 
-            _receivePosition = 0;
-            _receiveDecompressedSize = 0;
+            _receiveSize = 0;
         }
 
         public override void Connect(string ip, ushort port)
@@ -103,8 +103,7 @@ namespace ClassicUO.Network.Clients
                 return false;
 
             _socket.Disconnect(false);
-            _receivePosition = 0;
-            _receiveDecompressedSize = 0;
+            _receiveSize = 0;
             _sendPosition = 0;
             InvokeDisconnected(error);
 
@@ -113,7 +112,7 @@ namespace ClassicUO.Network.Clients
 
         public override bool Send(Span<byte> message, bool ignorePlugin = false)
         {
-            if(!base.Send(message, ignorePlugin)) 
+            if (!base.Send(message, ignorePlugin))
                 return false;
 
             _encryption?.Encrypt(message);
@@ -166,17 +165,6 @@ namespace ClassicUO.Network.Clients
             }
 
             _sendPosition = 0;
-        }
-
-        private Span<byte> Decompress(Span<byte> buffer)
-        {
-            if (!_isCompressionEnabled)
-                return buffer;
-
-            if (_huffman.Decompress(buffer, _decompressionBuffer, out int size))
-                return _decompressionBuffer.AsSpan(..size);
-
-            throw new Exception("Huffman decompression failed");
         }
 
         private uint GetLocalIP()
