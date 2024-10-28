@@ -182,13 +182,13 @@ internal sealed class AsyncNetClient : NetClient
         }
     }
 
-    private Memory<byte> Decompress(Memory<byte> buffer)
+    private Span<byte> Decompress(Span<byte> buffer)
     {
         if (!_isCompressionEnabled)
             return buffer;
 
-        if (_huffman.Decompress(buffer.Span, _decompressionBuffer, out int size))
-            return _decompressionBuffer.AsMemory(..size);
+        if (_huffman.Decompress(buffer, _decompressionBuffer, out int size))
+            return _decompressionBuffer.AsSpan(..size);
 
         throw new Exception("Huffman decompression failed");
     }
@@ -251,44 +251,39 @@ internal sealed class AsyncNetClient : NetClient
 
     private async Task ReadLoop(NetSocket socket, ReceivePipe pipe, CancellationToken token)
     {
-        int receiveBufferPosition = 0;
-
         try
         {
             while (!token.IsCancellationRequested)
             {
-                Memory<byte> buffer = _receiveBuffer.AsMemory(receiveBufferPosition);
+                Memory<byte> socketBuffer = _receiveBuffer.AsMemory();
 
-                int bytesRead = await socket.ReceiveAsync(buffer, token);
+                int bytesRead = await socket.ReceiveAsync(socketBuffer, token);
                 if (bytesRead == 0)
                     throw new SocketException((int)SocketError.ConnectionReset);
 
                 Statistics.TotalBytesReceived += (uint)bytesRead;
 
-                _encryption?.Decrypt(buffer.Span[..bytesRead]);
-                Memory<byte> chunk = Decompress(_receiveBuffer.AsMemory(0, bytesRead + receiveBufferPosition));
-
-                if (chunk.IsEmpty)
-                {
-                    receiveBufferPosition += bytesRead;
+                Span<byte> buffer = socketBuffer.Span[..bytesRead];
+                
+                _encryption?.Decrypt(buffer);
+                
+                buffer = Decompress(buffer);
+                if (buffer.IsEmpty)
                     continue;
-                }
 
-                receiveBufferPosition = 0;
+                Span<byte> target = pipe.GetAvailableSpanToWrite();
 
-                Memory<byte> target = pipe.GetAvailableMemoryToWrite();
-
-                while (chunk.Length > target.Length)
+                while (buffer.Length > target.Length)
                 {
-                    chunk[..target.Length].CopyTo(target);
+                    buffer[..target.Length].CopyTo(target);
                     pipe.CommitWrited(target.Length);
-                    chunk = chunk[target.Length..];
+                    buffer = buffer[target.Length..];
 
-                    target = pipe.GetAvailableMemoryToWrite();
+                    target = pipe.GetAvailableSpanToWrite();
                 }
 
-                chunk.CopyTo(target);
-                pipe.CommitWrited(chunk.Length);
+                buffer.CopyTo(target);
+                pipe.CommitWrited(buffer.Length);
             }
         }
         catch (OperationCanceledException)

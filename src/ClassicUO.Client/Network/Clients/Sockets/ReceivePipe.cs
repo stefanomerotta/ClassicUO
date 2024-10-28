@@ -17,14 +17,14 @@ internal sealed class ReceivePipe : Pipe, IDisposable
         _cancellationTokenRegistration = cancellationToken.Register(() => _event.Set());
     }
 
-    public Memory<byte> GetAvailableMemoryToWrite()
+    public override Span<byte> GetAvailableSpanToWrite()
     {
-        Memory<byte> memory = GetAvailableMemoryToWriteCore();
-        if (!memory.IsEmpty)
-            return memory;
+        Span<byte> span = base.GetAvailableSpanToWrite();
+        if (!span.IsEmpty)
+            return span;
 
         _event.WaitOne();
-        return GetAvailableMemoryToWrite();
+        return base.GetAvailableSpanToWrite();
     }
 
     public override void CommitRead(int size)
@@ -40,19 +40,5 @@ internal sealed class ReceivePipe : Pipe, IDisposable
     {
         _cancellationTokenRegistration.Unregister();
         _event.Dispose();
-    }
-
-    private Memory<byte> GetAvailableMemoryToWriteCore()
-    {
-        int readIndex = (int)(_readIndex & _mask);
-        int writeIndex = (int)(_writeIndex & _mask);
-
-        if (readIndex > writeIndex)
-            return _buffer.AsMemory(writeIndex..readIndex);
-
-        if (Length == _buffer.Length)
-            return Memory<byte>.Empty;
-
-        return _buffer.AsMemory(writeIndex);
     }
 }
