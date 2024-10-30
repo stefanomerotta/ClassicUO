@@ -31,13 +31,11 @@ using ClassicUO.Game.Scenes;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.IO.Buffers;
-using ClassicUO.IO.Encoders;
-using ClassicUO.Renderer;
-using ClassicUO.Resources;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Logging;
 using Microsoft.Xna.Framework;
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Text;
 
@@ -149,21 +147,21 @@ internal sealed partial class PacketHandlers
     }
 
     private static bool GetPacketInfo(NetClient socket, CircularBuffer buffer, int bufferLen, out byte packetId,
-        out int packetOffset, out int packetLen)
+        out int packetOffset, out int packetLength)
     {
         if (bufferLen <= 0)
         {
             packetId = 0xFF;
-            packetLen = 0;
+            packetLength = 0;
             packetOffset = 0;
 
             return false;
         }
 
-        packetLen = socket.PacketsTable.GetPacketLength(packetId = buffer[0]);
+        packetLength = socket.PacketsTable.GetPacketLength(packetId = buffer[0]);
         packetOffset = 1;
 
-        if (packetLen == -1)
+        if (packetLength == -1)
         {
             if (bufferLen < 3)
                 return false;
@@ -171,7 +169,7 @@ internal sealed partial class PacketHandlers
             byte b0 = buffer[1];
             byte b1 = buffer[2];
 
-            packetLen = (b0 << 8) | b1;
+            packetLength = (b0 << 8) | b1;
             packetOffset = 3;
         }
 
@@ -220,38 +218,23 @@ internal sealed partial class PacketHandlers
     private static void KREncryptionResponse(World world, ref SpanReader p) { }
     private static void FreeshardListR(World world, ref SpanReader p) { }
 
-    private static unsafe void ReadUnsafeCustomHouseData(
-        ReadOnlySpan<byte> source,
-        int sourcePosition,
-        int dlen,
-        int clen,
-        int planeZ,
-        int planeMode,
-        short minX,
-        short minY,
-        short maxY,
-        Item item,
-        House house
-    )
+    private static unsafe void ReadUnsafeCustomHouseData(ReadOnlySpan<byte> source, int sourcePosition, int dlen, int clen, int planeZ,
+        int planeMode, short minX, short minY, short maxY, Item item, House house)
     {
-        //byte* decompressedBytes = stackalloc byte[dlen];
         bool ismovable = item.ItemData.IsMultiMovable;
 
-        byte[] buffer = null;
-        Span<byte> span =
-            dlen <= 1024
-                ? stackalloc byte[dlen]
-                : (buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(dlen));
+        byte[]? buffer = null;
+        Span<byte> span = dlen <= 1024 ? stackalloc byte[dlen] : (buffer = ArrayPool<byte>.Shared.Rent(dlen));
 
         try
         {
-            var result = ZLib.Decompress(source.Slice(sourcePosition, clen), span.Slice(0, dlen));
-            var reader = new SpanReader(span.Slice(0, dlen));
+            ZLib.ZLibError result = ZLib.Decompress(source.Slice(sourcePosition, clen), span[..dlen]);
+            SpanReader reader = new SpanReader(span[..dlen]);
 
             ushort id = 0;
-            sbyte x = 0,
-                y = 0,
-                z = 0;
+            sbyte x = 0;
+            sbyte y = 0;
+            sbyte z = 0;
 
             switch (planeMode)
             {
@@ -266,17 +249,7 @@ internal sealed partial class PacketHandlers
                         z = reader.ReadInt8();
 
                         if (id != 0)
-                        {
-                            house.Add(
-                                id,
-                                0,
-                                (ushort)(item.X + x),
-                                (ushort)(item.Y + y),
-                                (sbyte)(item.Z + z),
-                                true,
-                                ismovable
-                            );
-                        }
+                            house.Add(id, 0, (ushort)(item.X + x), (ushort)(item.Y + y), (sbyte)(item.Z + z), true, ismovable);
                     }
 
                     break;
@@ -284,13 +257,9 @@ internal sealed partial class PacketHandlers
                 case 1:
 
                     if (planeZ > 0)
-                    {
                         z = (sbyte)((planeZ - 1) % 4 * 20 + 7);
-                    }
                     else
-                    {
                         z = 0;
-                    }
 
                     c = dlen >> 2;
 
@@ -301,34 +270,20 @@ internal sealed partial class PacketHandlers
                         y = reader.ReadInt8();
 
                         if (id != 0)
-                        {
-                            house.Add(
-                                id,
-                                0,
-                                (ushort)(item.X + x),
-                                (ushort)(item.Y + y),
-                                (sbyte)(item.Z + z),
-                                true,
-                                ismovable
-                            );
-                        }
+                            house.Add(id, 0, (ushort)(item.X + x), (ushort)(item.Y + y), (sbyte)(item.Z + z), true, ismovable);
                     }
 
                     break;
 
                 case 2:
-                    short offX = 0,
-                        offY = 0;
+                    short offX = 0;
+                    short offY = 0;
                     short multiHeight = 0;
 
                     if (planeZ > 0)
-                    {
                         z = (sbyte)((planeZ - 1) % 4 * 20 + 7);
-                    }
                     else
-                    {
                         z = 0;
-                    }
 
                     if (planeZ <= 0)
                     {
@@ -358,17 +313,7 @@ internal sealed partial class PacketHandlers
                         y = (sbyte)(i % multiHeight + offY);
 
                         if (id != 0)
-                        {
-                            house.Add(
-                                id,
-                                0,
-                                (ushort)(item.X + x),
-                                (ushort)(item.Y + y),
-                                (sbyte)(item.Z + z),
-                                true,
-                                ismovable
-                            );
-                        }
+                            house.Add(id, 0, (ushort)(item.X + x), (ushort)(item.Y + y), (sbyte)(item.Z + z), true, ismovable);
                     }
 
                     break;
@@ -376,51 +321,29 @@ internal sealed partial class PacketHandlers
         }
         finally
         {
-            if (buffer != null)
-            {
-                System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
-            }
+            if (buffer is not null)
+                ArrayPool<byte>.Shared.Return(buffer);
         }
     }
 
-    private static void AddItemToContainer(
-        World world,
-        uint serial,
-        ushort graphic,
-        ushort amount,
-        ushort x,
-        ushort y,
-        ushort hue,
-        uint containerSerial
-    )
+    private static void AddItemToContainer(World world, uint serial, ushort graphic, ushort amount, ushort x, ushort y,
+        ushort hue, uint containerSerial)
     {
-        if (Client.Game.UO.GameCursor.ItemHold.Serial == serial)
+        if (Client.Game.UO.GameCursor.ItemHold is { Dropped: true } itemHold && itemHold.Serial == serial)
         {
-            if (Client.Game.UO.GameCursor.ItemHold.Dropped)
-            {
-                Console.WriteLine("ADD ITEM TO CONTAINER -- CLEAR HOLD");
-                Client.Game.UO.GameCursor.ItemHold.Clear();
-            }
-
-            //else if (ItemHold.Graphic == graphic && ItemHold.Amount == amount &&
-            //         ItemHold.Container == containerSerial)
-            //{
-            //    ItemHold.Enabled = false;
-            //    ItemHold.Dropped = false;
-            //}
+            Console.WriteLine("ADD ITEM TO CONTAINER -- CLEAR HOLD");
+            itemHold.Clear();
         }
 
-        Entity container = world.Get(containerSerial);
+        Entity? container = world.Get(containerSerial);
 
-        if (container == null)
+        if (container is null)
         {
             Log.Warn($"No container ({containerSerial}) found");
-
-            //container = world.GetOrCreateItem(containerSerial);
             return;
         }
 
-        Item item = world.Items.Get(serial);
+        Item? item = world.Items.Get(serial);
 
         if (SerialHelper.IsMobile(serial))
         {
@@ -428,10 +351,8 @@ internal sealed partial class PacketHandlers
             Log.Warn("AddItemToContainer function adds mobile as Item");
         }
 
-        if (item != null && (container.Graphic != 0x2006 || item.Layer == Layer.Invalid))
-        {
+        if (item is not null && (container.Graphic != 0x2006 || item.Layer == Layer.Invalid))
             world.RemoveItem(item, true);
-        }
 
         item = world.GetOrCreateItem(serial);
         item.Graphic = graphic;
@@ -448,53 +369,38 @@ internal sealed partial class PacketHandlers
 
         if (SerialHelper.IsMobile(containerSerial))
         {
-            Mobile m = world.Mobiles.Get(containerSerial);
-            Item secureBox = m?.GetSecureTradeBox();
+            Mobile? m = world.Mobiles.Get(containerSerial);
+            Item? secureBox = m?.GetSecureTradeBox();
 
-            if (secureBox != null)
-            {
+            if (secureBox is not null)
                 UIManager.GetTradingGump(secureBox)?.RequestUpdateContents();
-            }
             else
-            {
                 UIManager.GetGump<PaperDollGump>(containerSerial)?.RequestUpdateContents();
-            }
         }
         else if (SerialHelper.IsItem(containerSerial))
         {
-            Gump gump = UIManager.GetGump<BulletinBoardGump>(containerSerial);
+            Gump? gump = UIManager.GetGump<BulletinBoardGump>(containerSerial);
 
-            if (gump != null)
+            if (gump is not null)
             {
-                NetClient.Socket.SendBulletinBoardRequestMessageSummary(
-                    containerSerial,
-                    serial
-                );
+                NetClient.Socket.SendBulletinBoardRequestMessageSummary(containerSerial, serial);
             }
             else
             {
                 gump = UIManager.GetGump<SpellbookGump>(containerSerial);
 
-                if (gump == null)
+                if (gump is null)
                 {
                     gump = UIManager.GetGump<ContainerGump>(containerSerial);
 
-                    if (gump != null)
-                    {
+                    if (gump is not null)
                         ((ContainerGump)gump).CheckItemControlPosition(item);
-                    }
 
                     if (ProfileManager.CurrentProfile.GridLootType > 0)
                     {
-                        GridLootGump grid_gump = UIManager.GetGump<GridLootGump>(
-                            containerSerial
-                        );
+                        GridLootGump? grid_gump = UIManager.GetGump<GridLootGump>(containerSerial);
 
-                        if (
-                            grid_gump == null
-                            && SerialHelper.IsValid(_requestedGridLoot)
-                            && _requestedGridLoot == containerSerial
-                        )
+                        if (grid_gump is null && SerialHelper.IsValid(_requestedGridLoot) && _requestedGridLoot == containerSerial)
                         {
                             grid_gump = new GridLootGump(world, _requestedGridLoot);
                             UIManager.Add(grid_gump);
@@ -505,12 +411,10 @@ internal sealed partial class PacketHandlers
                     }
                 }
 
-                if (gump != null)
+                if (gump is not null)
                 {
                     if (SerialHelper.IsItem(containerSerial))
-                    {
                         ((Item)container).Opened = true;
-                    }
 
                     gump.RequestUpdateContents();
                 }
@@ -520,65 +424,37 @@ internal sealed partial class PacketHandlers
         UIManager.GetTradingGump(containerSerial)?.RequestUpdateContents();
     }
 
-    private static void UpdateGameObject(
-        World world,
-        uint serial,
-        ushort graphic,
-        byte graphic_inc,
-        ushort count,
-        ushort x,
-        ushort y,
-        sbyte z,
-        Direction direction,
-        ushort hue,
-        Flags flagss,
-        int UNK,
-        byte type,
-        ushort UNK_2
-    )
+    private static void UpdateGameObject(World world, uint serial, ushort graphic, byte graphic_inc, ushort count,
+        ushort x, ushort y, sbyte z, Direction direction, ushort hue, Flags flagss, byte type)
     {
-        Mobile mobile = null;
-        Item item = null;
-        Entity obj = world.Get(serial);
+        Mobile? mobile = null;
+        Item? item = null;
+        Entity? obj = world.Get(serial);
 
-        if (
-            Client.Game.UO.GameCursor.ItemHold.Enabled
-            && Client.Game.UO.GameCursor.ItemHold.Serial == serial
-        )
+        if (Client.Game.UO.GameCursor.ItemHold is { Enabled: true } itemHold && itemHold.Serial == serial)
         {
-            if (SerialHelper.IsValid(Client.Game.UO.GameCursor.ItemHold.Container))
+            if (SerialHelper.IsValid(itemHold.Container))
             {
-                if (Client.Game.UO.GameCursor.ItemHold.Layer == 0)
-                {
-                    UIManager
-                        .GetGump<ContainerGump>(Client.Game.UO.GameCursor.ItemHold.Container)
-                        ?.RequestUpdateContents();
-                }
+                if (itemHold.Layer == 0)
+                    UIManager.GetGump<ContainerGump>(itemHold.Container)?.RequestUpdateContents();
                 else
-                {
-                    UIManager
-                        .GetGump<PaperDollGump>(Client.Game.UO.GameCursor.ItemHold.Container)
-                        ?.RequestUpdateContents();
-                }
+                    UIManager.GetGump<PaperDollGump>(itemHold.Container)?.RequestUpdateContents();
             }
 
-            Client.Game.UO.GameCursor.ItemHold.UpdatedInWorld = true;
+            itemHold.UpdatedInWorld = true;
         }
 
         bool created = false;
 
-        if (obj == null || obj.IsDestroyed)
+        if (obj is not { IsDestroyed: false })
         {
             created = true;
 
             if (SerialHelper.IsMobile(serial) && type != 3)
             {
                 mobile = world.GetOrCreateMobile(serial);
-
-                if (mobile == null)
-                {
+                if (mobile is null)
                     return;
-                }
 
                 obj = mobile;
                 mobile.Graphic = (ushort)(graphic + graphic_inc);
@@ -593,11 +469,8 @@ internal sealed partial class PacketHandlers
             else
             {
                 item = world.GetOrCreateItem(serial);
-
-                if (item == null)
-                {
+                if (item is null)
                     return;
-                }
 
                 obj = item;
             }
@@ -609,9 +482,7 @@ internal sealed partial class PacketHandlers
                 item = item1;
 
                 if (SerialHelper.IsValid(item.Container))
-                {
                     world.RemoveItemFromContainer(item);
-                }
             }
             else
             {
@@ -619,28 +490,20 @@ internal sealed partial class PacketHandlers
             }
         }
 
-        if (obj == null)
-        {
+        if (obj is null)
             return;
-        }
 
-        if (item != null)
+        if (item is not null)
         {
             if (graphic != 0x2006)
-            {
                 graphic += graphic_inc;
-            }
 
             if (type == 2)
             {
                 item.IsMulti = true;
-                item.WantUpdateMulti =
-                    (graphic & 0x3FFF) != item.Graphic
-                    || item.X != x
-                    || item.Y != y
-                    || item.Z != z
-                    || item.Hue != hue;
-                item.Graphic = (ushort)(graphic & 0x3FFF);
+
+                item.WantUpdateMulti = (graphic & 0x3FFF) != item.Graphic || item.X != x || item.Y != y
+                    || item.Z != z || item.Hue != hue; item.Graphic = (ushort)(graphic & 0x3FFF);
             }
             else
             {
@@ -655,16 +518,12 @@ internal sealed partial class PacketHandlers
             item.LightID = (byte)direction;
 
             if (graphic == 0x2006)
-            {
                 item.Layer = (Layer)direction;
-            }
 
             item.FixHue(hue);
 
             if (count == 0)
-            {
                 count = 1;
-            }
 
             item.Amount = count;
             item.Flags = flagss;
@@ -680,7 +539,7 @@ internal sealed partial class PacketHandlers
                 Direction cleaned_dir = direction & Direction.Up;
                 bool isrun = (direction & Direction.Running) != 0;
 
-                if (world.Get(mobile) == null || mobile.X == 0xFFFF && mobile.Y == 0xFFFF)
+                if (world.Get(mobile) is null || mobile.X == 0xFFFF && mobile.Y == 0xFFFF)
                 {
                     mobile.X = x;
                     mobile.Y = y;
@@ -708,23 +567,19 @@ internal sealed partial class PacketHandlers
 
         if (created && !obj.IsClicked)
         {
-            if (mobile != null)
+            if (mobile is not null)
             {
                 if (ProfileManager.CurrentProfile.ShowNewMobileNameIncoming)
-                {
                     GameActions.SingleClick(world, serial);
-                }
             }
             else if (graphic == 0x2006)
             {
                 if (ProfileManager.CurrentProfile.ShowNewCorpseNameIncoming)
-                {
                     GameActions.SingleClick(world, serial);
-                }
             }
         }
 
-        if (mobile != null)
+        if (mobile is not null)
         {
             mobile.SetInWorldTile(mobile.X, mobile.Y, mobile.Z);
 
@@ -734,24 +589,15 @@ internal sealed partial class PacketHandlers
                 // Real UO client does it only when LastAttack == serial.
                 // We force to close suddenly.
                 GameActions.RequestMobileStatus(world, serial);
-
-                //if (TargetManager.LastAttack != serial)
-                //{
-                //    GameActions.SendCloseStatus(serial);
-                //}
             }
         }
         else
         {
-            if (
-                Client.Game.UO.GameCursor.ItemHold.Serial == serial
-                && Client.Game.UO.GameCursor.ItemHold.Dropped
-            )
+            if (Client.Game.UO.GameCursor.ItemHold is { Dropped: true } itmHold && itmHold.Serial == serial)
             {
                 // we want maintain the item data due to the denymoveitem packet
-                //ItemHold.Clear();
-                Client.Game.UO.GameCursor.ItemHold.Enabled = false;
-                Client.Game.UO.GameCursor.ItemHold.Dropped = false;
+                itmHold.Enabled = false;
+                itmHold.Dropped = false;
             }
 
             if (item.OnGround)
@@ -759,26 +605,13 @@ internal sealed partial class PacketHandlers
                 item.SetInWorldTile(item.X, item.Y, item.Z);
 
                 if (graphic == 0x2006 && ProfileManager.CurrentProfile.AutoOpenCorpses)
-                {
                     world.Player.TryOpenCorpses();
-                }
             }
         }
     }
 
-    private static void UpdatePlayer(
-        World world,
-        uint serial,
-        ushort graphic,
-        byte graph_inc,
-        ushort hue,
-        Flags flags,
-        ushort x,
-        ushort y,
-        sbyte z,
-        ushort serverID,
-        Direction direction
-    )
+    private static void UpdatePlayer(World world, uint serial, ushort graphic, byte graph_inc, ushort hue, Flags flags,
+        ushort x, ushort y, sbyte z, Direction direction)
     {
         if (serial == world.Player)
         {
@@ -786,7 +619,6 @@ internal sealed partial class PacketHandlers
             world.RangeSize.Y = y;
 
             bool olddead = world.Player.IsDead;
-            ushort old_graphic = world.Player.Graphic;
 
             world.Player.CloseBank();
             world.Player.Walker.WalkingFailed = false;
@@ -796,33 +628,19 @@ internal sealed partial class PacketHandlers
             world.Player.Flags = flags;
             world.Player.Walker.DenyWalk(0xFF, -1, -1, -1);
 
-            GameScene gs = Client.Game.GetScene<GameScene>();
-
-            if (gs != null)
+            GameScene? gs = Client.Game.GetScene<GameScene>();
+            if (gs is not null)
             {
                 world.Weather.Reset();
                 gs.UpdateDrawPosition = true;
             }
 
-            // std client keeps the target open!
-            /*if (old_graphic != 0 && old_graphic != world.Player.Graphic)
-            {
-                if (world.Player.IsDead)
-                {
-                    TargetManager.Reset();
-                }
-            }*/
-
             if (olddead != world.Player.IsDead)
             {
                 if (world.Player.IsDead)
-                {
                     world.ChangeSeason(Game.Managers.Season.Desolation, 42);
-                }
                 else
-                {
                     world.ChangeSeason(world.OldSeason, world.OldMusicIndex);
-                }
             }
 
             world.Player.Walker.ResendPacketResync = false;
@@ -832,36 +650,23 @@ internal sealed partial class PacketHandlers
         }
     }
 
-    private static void ClearContainerAndRemoveItems(
-        World world,
-        Entity container,
-        bool remove_unequipped = false
-    )
+    private static void ClearContainerAndRemoveItems(World world, Entity container, bool remove_unequipped = false)
     {
-        if (container == null || container.IsEmpty)
-        {
+        if (container is not { IsEmpty: false })
             return;
-        }
 
-        LinkedObject first = container.Items;
-        LinkedObject new_first = null;
+        LinkedObject? first = container.Items;
+        LinkedObject? new_first = null;
 
-        while (first != null)
+        while (first is not null)
         {
-            LinkedObject next = first.Next;
+            LinkedObject? next = first.Next;
             Item it = (Item)first;
 
             if (remove_unequipped && it.Layer != 0)
-            {
-                if (new_first == null)
-                {
-                    new_first = first;
-                }
-            }
+                new_first ??= first;
             else
-            {
                 world.RemoveItem(it, true);
-            }
 
             first = next;
         }
@@ -869,68 +674,51 @@ internal sealed partial class PacketHandlers
         container.Items = remove_unequipped ? new_first : null;
     }
 
-    private static Gump CreateGump(
-        World world,
-        uint sender,
-        uint gumpID,
-        int x,
-        int y,
-        string layout,
-        string[] lines
-    )
+    private static Gump? CreateGump(World world, uint sender, uint gumpId, int x, int y, string layout, string[] lines)
     {
         List<string> cmdlist = _parser.GetTokens(layout);
         int cmdlen = cmdlist.Count;
 
         if (cmdlen <= 0)
-        {
             return null;
-        }
 
-        Gump gump = null;
+        Gump? gump = null;
         bool mustBeAdded = true;
 
-        if (UIManager.GetGumpCachePosition(gumpID, out Point pos))
+        if (UIManager.GetGumpCachePosition(gumpId, out Point pos))
         {
             x = pos.X;
             y = pos.Y;
 
-            for (
-                LinkedListNode<Gump> last = UIManager.Gumps.Last;
-                last != null;
-                last = last.Previous
-            )
+            for (LinkedListNode<Gump>? last = UIManager.Gumps.Last; last is not null; last = last.Previous)
             {
                 Control g = last.Value;
 
-                if (!g.IsDisposed && g.LocalSerial == sender && g.ServerSerial == gumpID)
-                {
-                    g.Clear();
-                    gump = g as Gump;
-                    mustBeAdded = false;
+                if (g.IsDisposed || g.LocalSerial != sender || g.ServerSerial != gumpId)
+                    continue;
 
-                    break;
-                }
+                g.Clear();
+                gump = g as Gump;
+                mustBeAdded = false;
+
+                break;
             }
         }
         else
         {
-            UIManager.SavePosition(gumpID, new Point(x, y));
+            UIManager.SavePosition(gumpId, new Point(x, y));
         }
 
-        if (gump == null)
+        gump ??= new Gump(world, sender, gumpId)
         {
-            gump = new Gump(world, sender, gumpID)
-            {
-                X = x,
-                Y = y,
-                CanMove = true,
-                CanCloseWithRightClick = true,
-                CanCloseWithEsc = true,
-                InvalidateContents = false,
-                IsFromServer = true
-            };
-        }
+            X = x,
+            Y = y,
+            CanMove = true,
+            CanCloseWithRightClick = true,
+            CanCloseWithEsc = true,
+            InvalidateContents = false,
+            IsFromServer = true
+        };
 
         int group = 0;
         int page = 0;
@@ -942,9 +730,7 @@ internal sealed partial class PacketHandlers
             List<string> gparams = _cmdparser.GetTokens(cmdlist[cnt], false);
 
             if (gparams.Count == 0)
-            {
                 continue;
-            }
 
             string entry = gparams[0];
 
@@ -952,78 +738,43 @@ internal sealed partial class PacketHandlers
             {
                 gump.Add(new Button(gparams), page);
             }
-            else if (
-                string.Equals(
-                    entry,
-                    "buttontileart",
-                    StringComparison.InvariantCultureIgnoreCase
-                )
-            )
+            else if (string.Equals(entry, "buttontileart", StringComparison.InvariantCultureIgnoreCase))
             {
                 gump.Add(new ButtonTileArt(gparams), page);
             }
-            else if (
-                string.Equals(
-                    entry,
-                    "checkertrans",
-                    StringComparison.InvariantCultureIgnoreCase
-                )
-            )
+            else if (string.Equals(entry, "checkertrans", StringComparison.InvariantCultureIgnoreCase))
             {
-                var checkerTrans = new CheckerTrans(gparams);
+                CheckerTrans checkerTrans = new(gparams);
                 gump.Add(checkerTrans, page);
-                ApplyTrans(
-                    gump,
-                    page,
-                    checkerTrans.X,
-                    checkerTrans.Y,
-                    checkerTrans.Width,
-                    checkerTrans.Height
-                );
+                ApplyTrans(gump, page, checkerTrans.X, checkerTrans.Y, checkerTrans.Width, checkerTrans.Height);
             }
-            else if (
-                string.Equals(entry, "croppedtext", StringComparison.InvariantCultureIgnoreCase)
-            )
+            else if (string.Equals(entry, "croppedtext", StringComparison.InvariantCultureIgnoreCase))
             {
                 gump.Add(new CroppedText(gparams, lines), page);
             }
-            else if (
-                string.Equals(entry, "gumppic", StringComparison.InvariantCultureIgnoreCase)
-            )
+            else if (string.Equals(entry, "gumppic", StringComparison.InvariantCultureIgnoreCase))
             {
                 GumpPic pic;
-                var isVirtue = gparams.Count >= 6
-                    && gparams[5].IndexOf(
-                        "virtuegumpitem",
-                        StringComparison.InvariantCultureIgnoreCase
-                    ) >= 0;
+                bool isVirtue = gparams.Count >= 6 && gparams[5].IndexOf("virtuegumpitem", StringComparison.InvariantCultureIgnoreCase) >= 0;
 
                 if (isVirtue)
                 {
-                    pic = new VirtueGumpPic(world, gparams);
-                    pic.ContainsByBounds = true;
-
-                    string s,
-                        lvl;
+                    pic = new VirtueGumpPic(world, gparams)
+                    {
+                        ContainsByBounds = true
+                    };
+                    string lvl;
 
                     switch (pic.Hue)
                     {
-                        case 2403:
-                            lvl = "";
-
-                            break;
-
+                        case 2403: lvl = ""; break;
                         case 1154:
                         case 1547:
                         case 2213:
                         case 235:
                         case 18:
                         case 2210:
-                        case 1348:
-                            lvl = "Seeker of ";
-
-                            break;
-
+                        case 1348: lvl = "Seeker of "; break;
                         case 2404:
                         case 1552:
                         case 2216:
@@ -1031,88 +782,39 @@ internal sealed partial class PacketHandlers
                         case 2118:
                         case 618:
                         case 2212:
-                        case 1352:
-                            lvl = "Follower of ";
-
-                            break;
-
+                        case 1352: lvl = "Follower of "; break;
                         case 43:
                         case 53:
                         case 1153:
                         case 33:
                         case 318:
                         case 67:
-                        case 98:
-                            lvl = "Knight of ";
-
-                            break;
-
+                        case 98: lvl = "Knight of "; break;
                         case 2406:
                             if (pic.Graphic == 0x6F)
-                            {
                                 lvl = "Seeker of ";
-                            }
                             else
-                            {
                                 lvl = "Knight of ";
-                            }
 
                             break;
 
-                        default:
-                            lvl = "";
-
-                            break;
+                        default: lvl = ""; break;
                     }
 
-                    switch (pic.Graphic)
+                    string? s = pic.Graphic switch
                     {
-                        case 0x69:
-                            s = Client.Game.UO.FileManager.Clilocs.GetString(1051000 + 2);
-
-                            break;
-
-                        case 0x6A:
-                            s = Client.Game.UO.FileManager.Clilocs.GetString(1051000 + 7);
-
-                            break;
-
-                        case 0x6B:
-                            s = Client.Game.UO.FileManager.Clilocs.GetString(1051000 + 5);
-
-                            break;
-
-                        case 0x6D:
-                            s = Client.Game.UO.FileManager.Clilocs.GetString(1051000 + 6);
-
-                            break;
-
-                        case 0x6E:
-                            s = Client.Game.UO.FileManager.Clilocs.GetString(1051000 + 1);
-
-                            break;
-
-                        case 0x6F:
-                            s = Client.Game.UO.FileManager.Clilocs.GetString(1051000 + 3);
-
-                            break;
-
-                        case 0x70:
-                            s = Client.Game.UO.FileManager.Clilocs.GetString(1051000 + 4);
-
-                            break;
-
-                        case 0x6C:
-                        default:
-                            s = Client.Game.UO.FileManager.Clilocs.GetString(1051000);
-
-                            break;
-                    }
+                        0x69 => Client.Game.UO.FileManager.Clilocs.GetString(1051000 + 2),
+                        0x6A => Client.Game.UO.FileManager.Clilocs.GetString(1051000 + 7),
+                        0x6B => Client.Game.UO.FileManager.Clilocs.GetString(1051000 + 5),
+                        0x6D => Client.Game.UO.FileManager.Clilocs.GetString(1051000 + 6),
+                        0x6E => Client.Game.UO.FileManager.Clilocs.GetString(1051000 + 1),
+                        0x6F => Client.Game.UO.FileManager.Clilocs.GetString(1051000 + 3),
+                        0x70 => Client.Game.UO.FileManager.Clilocs.GetString(1051000 + 4),
+                        _ => Client.Game.UO.FileManager.Clilocs.GetString(1051000),
+                    };
 
                     if (string.IsNullOrEmpty(s))
-                    {
                         s = "Unknown virtue";
-                    }
 
                     pic.SetTooltip(lvl + s, 100);
                 }
@@ -1123,28 +825,17 @@ internal sealed partial class PacketHandlers
 
                 gump.Add(pic, page);
             }
-            else if (
-                string.Equals(
-                    entry,
-                    "gumppictiled",
-                    StringComparison.InvariantCultureIgnoreCase
-                )
-            )
+            else if (string.Equals(entry, "gumppictiled", StringComparison.InvariantCultureIgnoreCase))
             {
                 gump.Add(new GumpPicTiled(gparams), page);
             }
-            else if (
-                string.Equals(entry, "htmlgump", StringComparison.InvariantCultureIgnoreCase)
-            )
+            else if (string.Equals(entry, "htmlgump", StringComparison.InvariantCultureIgnoreCase))
             {
                 gump.Add(new HtmlControl(gparams, lines), page);
             }
-            else if (
-                string.Equals(entry, "xmfhtmlgump", StringComparison.InvariantCultureIgnoreCase)
-            )
+            else if (string.Equals(entry, "xmfhtmlgump", StringComparison.InvariantCultureIgnoreCase))
             {
-                gump.Add(
-                    new HtmlControl(
+                gump.Add(new HtmlControl(
                         int.Parse(gparams[1]),
                         int.Parse(gparams[2]),
                         int.Parse(gparams[3]),
@@ -1156,29 +847,20 @@ internal sealed partial class PacketHandlers
                         0,
                         true
                     )
-                    {
-                        IsFromServer = true
-                    },
+                {
+                    IsFromServer = true
+                },
                     page
                 );
             }
-            else if (
-                string.Equals(
-                    entry,
-                    "xmfhtmlgumpcolor",
-                    StringComparison.InvariantCultureIgnoreCase
-                )
-            )
+            else if (string.Equals(entry, "xmfhtmlgumpcolor", StringComparison.InvariantCultureIgnoreCase))
             {
                 int color = int.Parse(gparams[8]);
 
                 if (color == 0x7FFF)
-                {
                     color = 0x00FFFFFF;
-                }
 
-                gump.Add(
-                    new HtmlControl(
+                gump.Add(new HtmlControl(
                         int.Parse(gparams[1]),
                         int.Parse(gparams[2]),
                         int.Parse(gparams[3]),
@@ -1190,24 +872,19 @@ internal sealed partial class PacketHandlers
                         color,
                         true
                     )
-                    {
-                        IsFromServer = true
-                    },
+                {
+                    IsFromServer = true
+                },
                     page
                 );
             }
-            else if (
-                string.Equals(entry, "xmfhtmltok", StringComparison.InvariantCultureIgnoreCase)
-            )
+            else if (string.Equals(entry, "xmfhtmltok", StringComparison.InvariantCultureIgnoreCase))
             {
                 int color = int.Parse(gparams[7]);
-
                 if (color == 0x7FFF)
-                {
                     color = 0x00FFFFFF;
-                }
 
-                StringBuilder sb = null;
+                StringBuilder? sb = null;
 
                 if (gparams.Count >= 9)
                 {
@@ -1220,8 +897,7 @@ internal sealed partial class PacketHandlers
                     }
                 }
 
-                gump.Add(
-                    new HtmlControl(
+                gump.Add(new HtmlControl(
                         int.Parse(gparams[1]),
                         int.Parse(gparams[2]),
                         int.Parse(gparams[3]),
@@ -1240,46 +916,30 @@ internal sealed partial class PacketHandlers
                         color,
                         true
                     )
-                    {
-                        IsFromServer = true
-                    },
+                {
+                    IsFromServer = true
+                },
                     page
                 );
             }
             else if (string.Equals(entry, "page", StringComparison.InvariantCultureIgnoreCase))
             {
                 if (gparams.Count >= 2)
-                {
                     page = int.Parse(gparams[1]);
-                }
             }
-            else if (
-                string.Equals(entry, "resizepic", StringComparison.InvariantCultureIgnoreCase)
-            )
+            else if (string.Equals(entry, "resizepic", StringComparison.InvariantCultureIgnoreCase))
             {
                 gump.Add(new ResizePic(gparams), page);
             }
             else if (string.Equals(entry, "text", StringComparison.InvariantCultureIgnoreCase))
             {
                 if (gparams.Count >= 5)
-                {
                     gump.Add(new Label(gparams, lines), page);
-                }
             }
-            else if (
-                string.Equals(
-                    entry,
-                    "textentrylimited",
-                    StringComparison.InvariantCultureIgnoreCase
-                )
-                || string.Equals(
-                    entry,
-                    "textentry",
-                    StringComparison.InvariantCultureIgnoreCase
-                )
-            )
+            else if (string.Equals(entry, "textentrylimited", StringComparison.InvariantCultureIgnoreCase)
+                || string.Equals(entry, "textentry", StringComparison.InvariantCultureIgnoreCase))
             {
-                StbTextBox textBox = new StbTextBox(gparams, lines);
+                StbTextBox textBox = new(gparams, lines);
 
                 if (!textBoxFocused)
                 {
@@ -1289,35 +949,25 @@ internal sealed partial class PacketHandlers
 
                 gump.Add(textBox, page);
             }
-            else if (
-                string.Equals(entry, "tilepichue", StringComparison.InvariantCultureIgnoreCase)
-                || string.Equals(entry, "tilepic", StringComparison.InvariantCultureIgnoreCase)
-            )
+            else if (string.Equals(entry, "tilepichue", StringComparison.InvariantCultureIgnoreCase)
+                || string.Equals(entry, "tilepic", StringComparison.InvariantCultureIgnoreCase))
             {
                 gump.Add(new StaticPic(gparams), page);
             }
-            else if (
-                string.Equals(entry, "noclose", StringComparison.InvariantCultureIgnoreCase)
-            )
+            else if (string.Equals(entry, "noclose", StringComparison.InvariantCultureIgnoreCase))
             {
                 gump.CanCloseWithRightClick = false;
             }
-            else if (
-                string.Equals(entry, "nodispose", StringComparison.InvariantCultureIgnoreCase)
-            )
+            else if (string.Equals(entry, "nodispose", StringComparison.InvariantCultureIgnoreCase))
             {
                 gump.CanCloseWithEsc = false;
             }
-            else if (
-                string.Equals(entry, "nomove", StringComparison.InvariantCultureIgnoreCase)
-            )
+            else if (string.Equals(entry, "nomove", StringComparison.InvariantCultureIgnoreCase))
             {
                 gump.CanMove = false;
             }
-            else if (
-                string.Equals(entry, "group", StringComparison.InvariantCultureIgnoreCase)
-                || string.Equals(entry, "endgroup", StringComparison.InvariantCultureIgnoreCase)
-            )
+            else if (string.Equals(entry, "group", StringComparison.InvariantCultureIgnoreCase)
+                || string.Equals(entry, "endgroup", StringComparison.InvariantCultureIgnoreCase))
             {
                 group++;
             }
@@ -1325,17 +975,13 @@ internal sealed partial class PacketHandlers
             {
                 gump.Add(new RadioButton(group, gparams, lines), page);
             }
-            else if (
-                string.Equals(entry, "checkbox", StringComparison.InvariantCultureIgnoreCase)
-            )
+            else if (string.Equals(entry, "checkbox", StringComparison.InvariantCultureIgnoreCase))
             {
                 gump.Add(new Checkbox(gparams, lines), page);
             }
-            else if (
-                string.Equals(entry, "tooltip", StringComparison.InvariantCultureIgnoreCase)
-            )
+            else if (string.Equals(entry, "tooltip", StringComparison.InvariantCultureIgnoreCase))
             {
-                string text = null;
+                string? text = null;
 
                 if (gparams.Count > 2 && gparams[2].Length != 0)
                 {
@@ -1349,17 +995,11 @@ internal sealed partial class PacketHandlers
                     if (args.Length == 0)
                     {
                         text = Client.Game.UO.FileManager.Clilocs.GetString(int.Parse(gparams[1]));
-                        Log.Error(
-                            $"String '{args}' too short, something wrong with gump tooltip: {text}"
-                        );
+                        Log.Error($"String '{args}' too short, something wrong with gump tooltip: {text}");
                     }
                     else
                     {
-                        text = Client.Game.UO.FileManager.Clilocs.Translate(
-                            int.Parse(gparams[1]),
-                            args,
-                            false
-                        );
+                        text = Client.Game.UO.FileManager.Clilocs.Translate(int.Parse(gparams[1]), args, false);
                     }
                 }
                 else
@@ -1367,10 +1007,9 @@ internal sealed partial class PacketHandlers
                     text = Client.Game.UO.FileManager.Clilocs.GetString(int.Parse(gparams[1]));
                 }
 
-                Control last =
-                    gump.Children.Count != 0 ? gump.Children[gump.Children.Count - 1] : null;
+                Control? last = gump.Children.Count != 0 ? gump.Children[gump.Children.Count - 1] : null;
 
-                if (last != null)
+                if (last is not null)
                 {
                     if (last.HasTooltip)
                     {
@@ -1389,54 +1028,34 @@ internal sealed partial class PacketHandlers
                     last.AcceptMouseInput = true;
                 }
             }
-            else if (
-                string.Equals(
-                    entry,
-                    "itemproperty",
-                    StringComparison.InvariantCultureIgnoreCase
-                )
-            )
+            else if (string.Equals(entry, "itemproperty", StringComparison.InvariantCultureIgnoreCase))
             {
                 if (world.ClientFeatures.TooltipsEnabled && gump.Children.Count != 0)
                 {
-                    gump.Children[gump.Children.Count - 1].SetTooltip(
-                        SerialHelper.Parse(gparams[1])
-                    );
+                    gump.Children[gump.Children.Count - 1].SetTooltip(SerialHelper.Parse(gparams[1]));
 
-                    if (
-                        uint.TryParse(gparams[1], out uint s)
-                        && (!world.OPL.TryGetRevision(s, out uint rev) || rev == 0)
-                    )
-                    {
+                    if (uint.TryParse(gparams[1], out uint s) && (!world.OPL.TryGetRevision(s, out uint rev) || rev == 0))
                         AddMegaClilocRequest(s);
-                    }
                 }
             }
-            else if (
-                string.Equals(entry, "noresize", StringComparison.InvariantCultureIgnoreCase)
-            ) { }
-            else if (
-                string.Equals(entry, "mastergump", StringComparison.InvariantCultureIgnoreCase)
-            )
+            else if (string.Equals(entry, "noresize", StringComparison.InvariantCultureIgnoreCase))
+            { }
+            else if (string.Equals(entry, "mastergump", StringComparison.InvariantCultureIgnoreCase))
             {
                 gump.MasterGumpSerial = gparams.Count > 0 ? SerialHelper.Parse(gparams[1]) : 0;
             }
-            else if (
-                string.Equals(entry, "picinpic", StringComparison.InvariantCultureIgnoreCase)
-            )
+            else if (string.Equals(entry, "picinpic", StringComparison.InvariantCultureIgnoreCase))
             {
                 if (gparams.Count > 7)
-                {
                     gump.Add(new GumpPicInPic(gparams), page);
-                }
             }
             else if (string.Equals(entry, "\0", StringComparison.InvariantCultureIgnoreCase))
             {
                 //This gump is null terminated: Breaking
                 break;
             }
-            else if (string.Equals(entry, "gumppichued", StringComparison.InvariantCultureIgnoreCase) ||
-                     string.Equals(entry, "gumppicphued", StringComparison.InvariantCultureIgnoreCase))
+            else if (string.Equals(entry, "gumppichued", StringComparison.InvariantCultureIgnoreCase)
+                || string.Equals(entry, "gumppicphued", StringComparison.InvariantCultureIgnoreCase))
             {
                 if (gparams.Count >= 3)
                     gump.Add(new GumpPic(gparams));
@@ -1452,9 +1071,7 @@ internal sealed partial class PacketHandlers
         }
 
         if (mustBeAdded)
-        {
             UIManager.Add(gump);
-        }
 
         gump.Update();
         gump.SetInScreen();
@@ -1462,17 +1079,11 @@ internal sealed partial class PacketHandlers
         return gump;
     }
 
-    private static void ApplyTrans(
-        Gump gump,
-        int current_page,
-        int x,
-        int y,
-        int width,
-        int height
-    )
+    private static void ApplyTrans(Gump gump, int current_page, int x, int y, int width, int height)
     {
         int x2 = x + width;
         int y2 = y + height;
+
         for (int i = 0; i < gump.Children.Count; i++)
         {
             Control child = gump.Children[i];
@@ -1485,9 +1096,7 @@ internal sealed partial class PacketHandlers
                 && (child.Y < y2);
 
             if (canDraw && child.IsVisible && overlap)
-            {
                 child.Alpha = 0.5f;
-            }
         }
     }
 

@@ -493,7 +493,7 @@ internal sealed partial class PacketHandlers
         if (graphic >= 0x4000)
             type = 2;
 
-        UpdateGameObject(world, serial, graphic, graphicInc, count, x, y, z, (Direction)direction, hue, (Flags)flags, count, type, 1);
+        UpdateGameObject(world, serial, graphic, graphicInc, count, x, y, z, (Direction)direction, hue, (Flags)flags, type);
     }
 
     // 0x1B
@@ -703,11 +703,11 @@ internal sealed partial class PacketHandlers
         Flags flags = (Flags)p.ReadUInt8();
         ushort x = p.ReadUInt16BE();
         ushort y = p.ReadUInt16BE();
-        ushort serverID = p.ReadUInt16BE();
+        _ = p.ReadUInt16BE();
         Direction direction = (Direction)p.ReadUInt8();
         sbyte z = p.ReadInt8();
 
-        UpdatePlayer(world, serial, graphic, graphic_inc, hue, flags, x, y, z, serverID, direction);
+        UpdatePlayer(world, serial, graphic, graphic_inc, hue, flags, x, y, z, direction);
     }
 
     // 0x21
@@ -2014,7 +2014,7 @@ internal sealed partial class PacketHandlers
         }
         else
         {
-            UpdateGameObject(world, serial, graphic, 0, 0, x, y, z, direction, hue, flags, 0, 1, 1);
+            UpdateGameObject(world, serial, graphic, 0, 0, x, y, z, direction, hue, flags, 1);
         }
     }
 
@@ -2045,7 +2045,7 @@ internal sealed partial class PacketHandlers
         }
         else
         {
-            UpdateGameObject(world, serial, graphic, 0, 0, x, y, z, direction, hue, flags, 0, 0, 1);
+            UpdateGameObject(world, serial, graphic, 0, 0, x, y, z, direction, hue, flags, 0);
         }
 
         Entity? obj = world.Get(serial);
@@ -4292,25 +4292,25 @@ internal sealed partial class PacketHandlers
         ushort graphic = p.ReadUInt16BE();
         byte graphicInc = p.ReadUInt8();
         ushort amount = p.ReadUInt16BE();
-        ushort unk = p.ReadUInt16BE();
+        _ = p.ReadUInt16BE();
         ushort x = p.ReadUInt16BE();
         ushort y = p.ReadUInt16BE();
         sbyte z = p.ReadInt8();
         Direction dir = (Direction)p.ReadUInt8();
         ushort hue = p.ReadUInt16BE();
         Flags flags = (Flags)p.ReadUInt8();
-        ushort unk2 = p.ReadUInt16BE();
+        _ = p.ReadUInt16BE();
 
         if (serial != world.Player)
         {
-            UpdateGameObject(world, serial, graphic, graphicInc, amount, x, y, z, dir, hue, flags, unk, type, unk2);
+            UpdateGameObject(world, serial, graphic, graphicInc, amount, x, y, z, dir, hue, flags, type);
 
             if (graphic == 0x2006 && ProfileManager.CurrentProfile.AutoOpenCorpses)
                 world.Player.TryOpenCorpses();
         }
         else if (p[0] == 0xF7)
         {
-            UpdatePlayer(world, serial, graphic, graphicInc, hue, flags, x, y, z, 0, dir);
+            UpdatePlayer(world, serial, graphic, graphicInc, hue, flags, x, y, z, dir);
         }
     }
 
@@ -4402,12 +4402,12 @@ internal sealed partial class PacketHandlers
 
             if (cSerial == world.Player)
             {
-                UpdatePlayer(world, cSerial, ent.Graphic, 0, ent.Hue, ent.Flags, cx, cy, (sbyte)cz, 0, world.Player.Direction);
+                UpdatePlayer(world, cSerial, ent.Graphic, 0, ent.Hue, ent.Flags, cx, cy, (sbyte)cz, world.Player.Direction);
                 return;
             }
 
             UpdateGameObject(world, cSerial, ent.Graphic, 0, (ushort)(ent.Graphic == 0x2006 ? ((Item)ent).Amount : 0),
-                cx, cy, (sbyte)cz, SerialHelper.IsMobile(ent) ? ent.Direction : 0, ent.Hue, ent.Flags, 0, 0, 1);
+                cx, cy, (sbyte)cz, SerialHelper.IsMobile(ent) ? ent.Direction : 0, ent.Hue, ent.Flags, 0);
         }
     }
 

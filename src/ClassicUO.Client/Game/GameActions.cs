@@ -55,13 +55,10 @@ internal static class GameActions
         if (!player.IsDead)
         {
             if (war && ProfileManager.CurrentProfile != null && ProfileManager.CurrentProfile.EnableMusic)
-            {
                 Client.Game.Audio.PlayMusic((RandomHelper.GetValue(0, 3) % 3) + 38, true);
-            }
+
             else if (!war)
-            {
                 Client.Game.Audio.StopWarMusic();
-            }
         }
 
         Socket.SendChangeWarMode(war);
@@ -69,7 +66,7 @@ internal static class GameActions
 
     public static void OpenMacroGump(World world, string name)
     {
-        MacroGump macroGump = UIManager.GetGump<MacroGump>();
+        MacroGump? macroGump = UIManager.GetGump<MacroGump>();
 
         macroGump?.Dispose();
         UIManager.Add(new MacroGump(world, name));
@@ -77,18 +74,16 @@ internal static class GameActions
 
     public static void OpenPaperdoll(World world, uint serial)
     {
-        PaperDollGump paperDollGump = UIManager.GetGump<PaperDollGump>(serial);
+        PaperDollGump? paperDollGump = UIManager.GetGump<PaperDollGump>(serial);
 
-        if (paperDollGump == null)
+        if (paperDollGump is null)
         {
             DoubleClick(world, serial | 0x80000000);
         }
         else
         {
             if (paperDollGump.IsMinimized)
-            {
                 paperDollGump.IsMinimized = false;
-            }
 
             paperDollGump.SetInScreen();
             paperDollGump.BringOnTop();
@@ -97,11 +92,11 @@ internal static class GameActions
 
     public static void OpenSettings(World world, int page = 0)
     {
-        OptionsGump opt = UIManager.GetGump<OptionsGump>();
+        OptionsGump? opt = UIManager.GetGump<OptionsGump>();
 
-        if (opt == null)
+        if (opt is null)
         {
-            OptionsGump optionsGump = new OptionsGump(world)
+            OptionsGump optionsGump = new(world)
             {
                 X = (Client.Game.Window.ClientBounds.Width >> 1) - 300,
                 Y = (Client.Game.Window.ClientBounds.Height >> 1) - 250
@@ -122,17 +117,15 @@ internal static class GameActions
     {
         Client.Game.Audio.StopWarMusic();
 
-        if (StatusGumpBase.GetStatusGump() == null)
-        {
+        if (StatusGumpBase.GetStatusGump() is null)
             UIManager.Add(StatusGumpBase.AddStatusGump(world, 100, 100));
-        }
     }
 
     public static void OpenJournal(World world)
     {
-        JournalGump journalGump = UIManager.GetGump<JournalGump>();
+        JournalGump? journalGump = UIManager.GetGump<JournalGump>();
 
-        if (journalGump == null)
+        if (journalGump is null)
         {
             UIManager.Add(new JournalGump(world) { X = 64, Y = 64 });
         }
@@ -142,17 +135,15 @@ internal static class GameActions
             journalGump.BringOnTop();
 
             if (journalGump.IsMinimized)
-            {
                 journalGump.IsMinimized = false;
-            }
         }
     }
 
     public static void OpenSkills(World world)
     {
-        StandardSkillsGump skillsGump = UIManager.GetGump<StandardSkillsGump>();
+        StandardSkillsGump? skillsGump = UIManager.GetGump<StandardSkillsGump>();
 
-        if (skillsGump != null && skillsGump.IsMinimized)
+        if (skillsGump is not null && skillsGump.IsMinimized)
         {
             skillsGump.IsMinimized = false;
         }
@@ -165,9 +156,9 @@ internal static class GameActions
 
     public static void OpenMiniMap(World world)
     {
-        MiniMapGump miniMapGump = UIManager.GetGump<MiniMapGump>();
+        MiniMapGump? miniMapGump = UIManager.GetGump<MiniMapGump>();
 
-        if (miniMapGump == null)
+        if (miniMapGump is null)
         {
             UIManager.Add(new MiniMapGump(world));
         }
@@ -181,9 +172,9 @@ internal static class GameActions
 
     public static void OpenWorldMap(World world)
     {
-        WorldMapGump worldMap = UIManager.GetGump<WorldMapGump>();
+        WorldMapGump? worldMap = UIManager.GetGump<WorldMapGump>();
 
-        if (worldMap == null || worldMap.IsDisposed)
+        if (worldMap is not { IsDisposed: false })
         {
             worldMap = new WorldMapGump(world);
             UIManager.Add(worldMap);
@@ -199,9 +190,9 @@ internal static class GameActions
     {
         if (world.ChatManager.ChatIsEnabled == ChatStatus.Enabled)
         {
-            ChatGump chatGump = UIManager.GetGump<ChatGump>();
+            ChatGump? chatGump = UIManager.GetGump<ChatGump>();
 
-            if (chatGump == null)
+            if (chatGump is null)
             {
                 UIManager.Add(new ChatGump(world));
             }
@@ -213,9 +204,9 @@ internal static class GameActions
         }
         else if (world.ChatManager.ChatIsEnabled == ChatStatus.EnabledUserRequest)
         {
-            ChatGumpChooseName chatGump = UIManager.GetGump<ChatGumpChooseName>();
+            ChatGumpChooseName? chatGump = UIManager.GetGump<ChatGumpChooseName>();
 
-            if (chatGump == null)
+            if (chatGump is null)
             {
                 UIManager.Add(new ChatGumpChooseName(world));
             }
@@ -230,16 +221,12 @@ internal static class GameActions
     public static bool OpenCorpse(World world, uint serial)
     {
         if (!SerialHelper.IsItem(serial))
-        {
             return false;
-        }
 
-        Item item = world.Items.Get(serial);
+        Item? item = world.Items.Get(serial);
 
-        if (item == null || !item.IsCorpse || item.IsDestroyed)
-        {
+        if (item is null || !item.IsCorpse || item.IsDestroyed)
             return false;
-        }
 
         world.Player.ManualOpenedCorpses.Add(serial);
         DoubleClick(world, serial);
@@ -249,25 +236,21 @@ internal static class GameActions
 
     public static bool OpenBackpack(World world)
     {
-        Item backpack = world.Player.FindItemByLayer(Layer.Backpack);
+        Item? backpack = world.Player.FindItemByLayer(Layer.Backpack);
 
-        if (backpack == null)
-        {
+        if (backpack is null)
             return false;
-        }
 
-        ContainerGump backpackGump = UIManager.GetGump<ContainerGump>(backpack);
+        ContainerGump? backpackGump = UIManager.GetGump<ContainerGump>(backpack);
 
-        if (backpackGump == null)
+        if (backpackGump is null)
         {
             DoubleClick(world, backpack);
         }
         else
         {
             if (backpackGump.IsMinimized)
-            {
                 backpackGump.IsMinimized = false;
-            }
 
             backpackGump.SetInScreen();
             backpackGump.BringOnTop();
@@ -280,22 +263,16 @@ internal static class GameActions
     {
         if (ProfileManager.CurrentProfile.EnabledCriminalActionQuery)
         {
-            Mobile m = world.Mobiles.Get(serial);
+            Mobile? m = world.Mobiles.Get(serial);
 
-            if (m != null && (world.Player.NotorietyFlag == NotorietyFlag.Innocent || world.Player.NotorietyFlag == NotorietyFlag.Ally) && m.NotorietyFlag == NotorietyFlag.Innocent && m != world.Player)
+            if (m is not null && (world.Player.NotorietyFlag is NotorietyFlag.Innocent or NotorietyFlag.Ally)
+                && m.NotorietyFlag == NotorietyFlag.Innocent && m != world.Player)
             {
-                QuestionGump messageBox = new QuestionGump
-                (
-                    world,
-                    ResGeneral.ThisMayFlagYouCriminal,
-                    s =>
-                    {
-                        if (s)
-                        {
-                            Socket.SendAttackRequest(serial);
-                        }
-                    }
-                );
+                QuestionGump messageBox = new QuestionGump(world, ResGeneral.ThisMayFlagYouCriminal, s =>
+                {
+                    if (s)
+                        Socket.SendAttackRequest(serial);
+                });
 
                 UIManager.Add(messageBox);
 
@@ -326,13 +303,9 @@ internal static class GameActions
         }
 
         if (SerialHelper.IsItem(serial) || (SerialHelper.IsMobile(serial) && (world.Mobiles.Get(serial)?.IsHuman ?? false)))
-        {
             world.LastObject = serial;
-        }
         else
-        {
             world.LastObject = 0;
-        }
     }
 
     public static void SingleClick(World world, uint serial)
@@ -340,38 +313,25 @@ internal static class GameActions
         // add  request context menu
         Socket.SendClickRequest(serial);
 
-        Entity entity = world.Get(serial);
+        Entity? entity = world.Get(serial);
 
-        if (entity != null)
-        {
+        if (entity is not null)
             entity.IsClicked = true;
-        }
     }
 
     public static void Say(string message, ushort hue = 0xFFFF, MessageType type = MessageType.Regular, byte font = 3)
     {
         if (hue == 0xFFFF)
-        {
             hue = ProfileManager.CurrentProfile.SpeechHue;
-        }
 
         // TODO: identify what means 'older client' that uses ASCIISpeechRquest [0x03]
         //
         // Fix -> #1267
         if (Client.Game.UO.Version >= ClientVersion.CV_200)
-        {
-            Socket.SendUnicodeSpeechRequest(message,
-                                             type,
-                                             font,
-                                             hue,
-                                             Settings.GlobalSettings.Language);
-        }
+            Socket.SendUnicodeSpeechRequest(message, type, font, hue, Settings.GlobalSettings.Language);
         else
-        {
             Socket.SendASCIISpeechRequest(message, type, font, hue);
-        }
     }
-
 
     public static void Print(World world, string message, ushort hue = 946, MessageType type = MessageType.Regular,
         byte font = 3, bool unicode = true)
@@ -379,29 +339,11 @@ internal static class GameActions
         Print(world, null, message, hue, type, font, unicode);
     }
 
-    public static void Print
-    (
-        World world,
-        Entity entity,
-        string message,
-        ushort hue = 946,
-        MessageType type = MessageType.Regular,
-        byte font = 3,
-        bool unicode = true
-    )
+    public static void Print(World world, Entity entity, string message, ushort hue = 946,
+        MessageType type = MessageType.Regular, byte font = 3, bool unicode = true)
     {
-        world.MessageManager.HandleMessage
-        (
-            entity,
-            message,
-            entity != null ? entity.Name : "System",
-            hue,
-            type,
-            font,
-            entity == null ? TextType.SYSTEM : TextType.OBJECT,
-            unicode,
-            Settings.GlobalSettings.Language
-        );
+        world.MessageManager.HandleMessage(entity, message, entity is not null ? entity.Name : "System",
+            hue, type, font, entity is null ? TextType.SYSTEM : TextType.OBJECT, unicode);
     }
 
     public static void SayParty(string message, uint serial = 0)
@@ -489,9 +431,7 @@ internal static class GameActions
         }
 
         if (amount <= 0)
-        {
             amount = item.Amount;
-        }
 
         Client.Game.UO.GameCursor.ItemHold.Clear();
         Client.Game.UO.GameCursor.ItemHold.Set(item, (ushort)amount, offset);
@@ -499,9 +439,7 @@ internal static class GameActions
         Socket.SendPickUpRequest(item, (ushort)amount);
 
         if (item.OnGround)
-        {
             item.RemoveFromTile();
-        }
 
         item.TextContainer?.Clear();
 
