@@ -595,7 +595,7 @@ internal partial class Mobile : Entity
                     {
                         frameIndex = 0;
 
-                        if (Serial.IsEntity)
+                        if (Serial.IsVirtual)
                         {
                             World.CorpseManager.Remove(Serial.Zero, Serial);
                             World.RemoveMobile(Serial);
@@ -992,9 +992,7 @@ internal partial class Mobile : Entity
 
         if (!(this is PlayerMobile))
         {
-            UIManager.GetGump<PaperDollGump>(Serial)?.Dispose();
-
-            //_pool.ReturnOne(this);
+            UIManager.GetGump<PaperDollGump>(new(Serial.Value & Serial.MAX_MOBILE_SERIAL))?.Dispose();
         }
     }
 
