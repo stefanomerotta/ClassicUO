@@ -120,7 +120,7 @@ internal static class UIManager
         HandleMouseInput();
 
         if (_mouseDownControls[(int)MouseButtonType.Left] is { } ctrl
-            && (ProfileManager.CurrentProfile is not { HoldAltToMoveGumps: false } || Keyboard.Alt))
+            && (ProfileManager.CurrentProfile is not { HoldAltToMoveGumps: true } || Keyboard.Alt))
         {
             AttemptDragControl(ctrl, true);
         }

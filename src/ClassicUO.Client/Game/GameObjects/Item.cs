@@ -158,7 +158,7 @@ namespace ClassicUO.Game.GameObjects
         public bool IsCorpse => /*MathHelper.InRange(Graphic, 0x0ECA, 0x0ED2) ||*/
             Graphic == 0x2006;
 
-        public bool OnGround => Container.IsEntity;
+        public bool OnGround => !Container.IsEntity;
 
         public Serial RootContainer
         {
