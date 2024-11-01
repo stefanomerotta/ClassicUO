@@ -35,6 +35,7 @@ using ClassicUO.Game.UI.Controls;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.IO.Buffers;
 using ClassicUO.IO.Encoders;
+using ClassicUO.Network.Packets;
 using ClassicUO.Renderer;
 using ClassicUO.Resources;
 using ClassicUO.Utility;
@@ -49,7 +50,7 @@ namespace ClassicUO.Network;
 
 #nullable enable
 
-internal sealed partial class PacketHandlers
+internal sealed partial class IncomingPackets
 {
     private static readonly ushort[] _gumpTranscodes =
     [
@@ -68,7 +69,7 @@ internal sealed partial class PacketHandlers
         0x06E7, // 0x0051 - 19
     ];
 
-    static PacketHandlers()
+    static IncomingPackets()
     {
         Handler.Add(0x1B, EnterWorld);
         Handler.Add(0x55, LoginComplete);
@@ -1670,7 +1671,7 @@ internal sealed partial class PacketHandlers
             Serial id2 = p.ReadSerial();
 
             // standard client doesn't allow the trading system if one of the traders is invisible (=not sent by server)
-            if (world.Get(id1) is null || world.Get(id2) is null)
+            if (!world.Has(id1) || !world.Has(id2))
                 return;
 
             bool hasName = p.ReadBool();

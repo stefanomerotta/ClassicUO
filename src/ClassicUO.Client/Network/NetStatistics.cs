@@ -30,6 +30,7 @@
 
 #endregion
 
+using ClassicUO.Network.Packets;
 using System;
 
 namespace ClassicUO.Network

@@ -26,7 +26,7 @@ using ClassicUO.Core;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Gumps;
-using ClassicUO.Network;
+using ClassicUO.Network.Packets;
 using ClassicUO.Utility;
 using System;
 using System.Runtime.CompilerServices;

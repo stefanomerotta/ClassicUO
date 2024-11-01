@@ -33,6 +33,7 @@
 using System.Collections.Generic;
 using ClassicUO.Input;
 using ClassicUO.Network;
+using ClassicUO.Network.Packets;
 using ClassicUO.Renderer;
 using ClassicUO.Utility;
 using Microsoft.Xna.Framework;

@@ -44,6 +44,7 @@ using ClassicUO.Game.Scenes;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Input;
 using ClassicUO.Network;
+using ClassicUO.Network.Packets;
 using ClassicUO.Resources;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Logging;
@@ -1012,7 +1013,7 @@ namespace ClassicUO.Game.Managers
 
                 case MacroType.LastObject:
 
-                    if (_world.Get(_world.LastObject) != null)
+                    if (_world.Has(_world.LastObject))
                     {
                         GameActions.DoubleClick(_world, _world.LastObject);
                     }

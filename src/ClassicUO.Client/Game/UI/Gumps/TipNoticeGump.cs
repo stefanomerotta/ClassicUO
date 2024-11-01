@@ -35,6 +35,7 @@ using ClassicUO.Game.Data;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
 using ClassicUO.Network;
+using ClassicUO.Network.Packets;
 using ClassicUO.Utility.Collections;
 
 namespace ClassicUO.Game.UI.Gumps

@@ -38,6 +38,7 @@ using ClassicUO.Utility.Platforms;
 using Microsoft.Xna.Framework;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using MathHelper = ClassicUO.Utility.MathHelper;
 
 namespace ClassicUO.Game;
@@ -358,6 +359,12 @@ internal sealed class World
             return Items.Contains(serial);
 
         return serial.IsMobile && Mobiles.Contains(serial);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool Has(Serial serial)
+    {
+        return Get(serial) is not null;
     }
 
     public Entity? Get(Serial serial)

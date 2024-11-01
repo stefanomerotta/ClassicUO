@@ -47,6 +47,7 @@ using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using ClassicUO.IO.Buffers;
 using ClassicUO.IO.Encoders;
+using ClassicUO.Network.Packets;
 
 namespace ClassicUO.Game
 {
@@ -80,8 +81,8 @@ namespace ClassicUO.Game
         public static void Enable()
         {
             Log.Trace("Setup packet for UltimaLive");
-            PacketHandlers.Handler.Add(0x3F, OnUltimaLivePacket);
-            PacketHandlers.Handler.Add(0x40, OnUpdateTerrainPacket);
+            IncomingPackets.Handler.Add(0x3F, OnUltimaLivePacket);
+            IncomingPackets.Handler.Add(0x40, OnUpdateTerrainPacket);
         }
 
         //The UltimaLive packets could be also used for other things than maps and statics

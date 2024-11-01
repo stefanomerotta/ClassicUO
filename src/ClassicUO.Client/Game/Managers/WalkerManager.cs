@@ -32,6 +32,7 @@
 
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Network;
+using ClassicUO.Network.Packets;
 
 namespace ClassicUO.Game.Managers
 {

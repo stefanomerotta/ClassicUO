@@ -36,6 +36,7 @@ using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Network;
+using ClassicUO.Network.Packets;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;

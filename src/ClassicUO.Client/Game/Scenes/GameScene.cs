@@ -52,6 +52,7 @@ using Microsoft.Xna.Framework.Graphics;
 using SDL2;
 using ClassicUO.Core;
 using ClassicUO.Extensions;
+using ClassicUO.Network.Packets;
 
 namespace ClassicUO.Game.Scenes
 {
@@ -744,7 +745,7 @@ namespace ClassicUO.Game.Scenes
                 _time_cleanup = Time.Ticks + 500;
             }
 
-            PacketHandlers.SendMegaClilocRequests(_world);
+            IncomingPackets.SendMegaClilocRequests(_world);
 
             if (_forceStopScene)
             {

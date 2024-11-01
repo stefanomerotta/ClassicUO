@@ -33,6 +33,7 @@ using ClassicUO.Game.Scenes;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.IO.Buffers;
+using ClassicUO.Network.Packets;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Logging;
 using Microsoft.Xna.Framework;
@@ -45,7 +46,7 @@ namespace ClassicUO.Network;
 
 #nullable enable
 
-internal sealed partial class PacketHandlers
+internal sealed partial class IncomingPackets
 {
     public delegate void OnPacketBufferReader(World world, ref SpanReader p);
 
@@ -62,7 +63,7 @@ internal sealed partial class PacketHandlers
     private readonly CircularBuffer _pluginsBuffer = new();
     private byte[] _readingBuffer = new byte[4096];
 
-    public static PacketHandlers Handler { get; } = new PacketHandlers();
+    public static IncomingPackets Handler { get; } = new IncomingPackets();
 
     public void Add(byte id, OnPacketBufferReader handler)
     {
@@ -541,7 +542,7 @@ internal sealed partial class PacketHandlers
                 Direction cleaned_dir = direction & Direction.Up;
                 bool isrun = (direction & Direction.Running) != 0;
 
-                if (world.Get(mobile.Serial) is null || mobile.X == 0xFFFF && mobile.Y == 0xFFFF)
+                if (!world.Has(mobile.Serial) || mobile.X == 0xFFFF && mobile.Y == 0xFFFF)
                 {
                     mobile.X = x;
                     mobile.Y = y;

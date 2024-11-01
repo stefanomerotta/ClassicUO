@@ -40,6 +40,7 @@ using ClassicUO.Game.UI.Gumps.Login;
 using ClassicUO.IO.Buffers;
 using ClassicUO.IO.Encoders;
 using ClassicUO.Network;
+using ClassicUO.Network.Packets;
 using ClassicUO.Resources;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Logging;

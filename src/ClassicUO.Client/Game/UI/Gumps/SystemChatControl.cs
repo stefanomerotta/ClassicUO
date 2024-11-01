@@ -40,6 +40,7 @@ using ClassicUO.Game.Scenes;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
 using ClassicUO.Network;
+using ClassicUO.Network.Packets;
 using ClassicUO.Renderer;
 using ClassicUO.Resources;
 using ClassicUO.Utility.Collections;

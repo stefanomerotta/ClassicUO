@@ -40,6 +40,7 @@ using ClassicUO.Network;
 using ClassicUO.Resources;
 using ClassicUO.Utility;
 using ClassicUO.Core;
+using ClassicUO.Network.Packets;
 
 namespace ClassicUO.Game.Managers
 {

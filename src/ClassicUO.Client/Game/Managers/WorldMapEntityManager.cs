@@ -31,6 +31,7 @@ using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Network;
 using ClassicUO.Network.Encryptions;
+using ClassicUO.Network.Packets;
 using ClassicUO.Utility.Logging;
 
 namespace ClassicUO.Game.Managers;

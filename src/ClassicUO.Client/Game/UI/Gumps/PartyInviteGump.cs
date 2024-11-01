@@ -28,6 +28,7 @@ using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Network;
+using ClassicUO.Network.Packets;
 using ClassicUO.Resources;
 
 namespace ClassicUO.Game.UI.Gumps;

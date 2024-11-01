@@ -29,6 +29,7 @@ using ClassicUO.Game.Data;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Network;
+using ClassicUO.Network.Packets;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Logging;
 using System.Collections.Generic;
@@ -67,7 +68,7 @@ internal class PlayerMobile : Mobile
     public ref Ability PrimaryAbility => ref Abilities[0];
     public ref Ability SecondaryAbility => ref Abilities[1];
     protected override bool IsWalking => LastStepTime > Time.Ticks - Constants.PLAYER_WALKING_DELAY;
-    
+
 
     public readonly HashSet<Serial> AutoOpenedCorpses = [];
     public readonly HashSet<Serial> ManualOpenedCorpses = [];
@@ -124,116 +125,97 @@ internal class PlayerMobile : Mobile
     public ushort Weight;
     public ushort WeightMax;
 
-    public Item FindBandage()
+    public Item? FindBandage()
     {
-        Item backpack = FindItemByLayer(Layer.Backpack);
-        Item item = null;
+        Item? backpack = FindItemByLayer(Layer.Backpack);
+        Item? item = null;
 
-        if (backpack != null)
-        {
+        if (backpack is not null)
             item = backpack.FindItem(0x0E21);
-        }
 
         return item;
     }
 
-    public Item FindItemByGraphic(ushort graphic)
+    public Item? FindItemByGraphic(ushort graphic)
     {
-        Item backpack = FindItemByLayer(Layer.Backpack);
-
-        if (backpack != null)
-        {
+        Item? backpack = FindItemByLayer(Layer.Backpack);
+        if (backpack is not null)
             return FindItemInContainerRecursive(backpack, graphic);
-        }
 
         return null;
     }
 
-    public Item FindItemByCliloc(int cliloc)
+    public Item? FindItemByCliloc(int cliloc)
     {
-        Item backpack = FindItemByLayer(Layer.Backpack);
-
-        if (backpack != null)
-        {
+        Item? backpack = FindItemByLayer(Layer.Backpack);
+        if (backpack is not null)
             return FindItemByClilocInContainerRecursive(backpack, cliloc);
-        }
 
         return null;
     }
 
-    private Item FindItemInContainerRecursive(Item container, ushort graphic)
+    private static Item? FindItemInContainerRecursive(Item container, ushort graphic)
     {
-        Item found = null;
+        Item? found = null;
 
-        if (container != null)
+        if (container is null)
+            return found;
+
+        for (LinkedObject? i = container.Items; i is not null; i = i.Next)
         {
-            for (LinkedObject i = container.Items; i != null; i = i.Next)
-            {
-                Item item = (Item)i;
+            Item item = (Item)i;
 
-                if (item.Graphic == graphic)
-                {
-                    return item;
-                }
+            if (item.Graphic == graphic)
+                return item;
 
-                if (!item.IsEmpty)
-                {
-                    found = FindItemInContainerRecursive(item, graphic);
+            if (item.IsEmpty)
+                continue;
 
-                    if (found != null && found.Graphic == graphic)
-                    {
-                        return found;
-                    }
-                }
-            }
+            found = FindItemInContainerRecursive(item, graphic);
+
+            if (found is not null && found.Graphic == graphic)
+                return found;
         }
 
         return found;
     }
 
-    private Item FindItemByClilocInContainerRecursive(Item container, int cliloc)
+    private Item? FindItemByClilocInContainerRecursive(Item container, int cliloc)
     {
-        Item found = null;
+        Item? found = null;
 
-        if (container != null)
+        if (container is null)
+            return found;
+
+        for (LinkedObject? i = container.Items; i is not null; i = i.Next)
         {
-            for (LinkedObject i = container.Items; i != null; i = i.Next)
-            {
-                Item item = (Item)i;
+            Item item = (Item)i;
 
+            if (cliloc == World.OPL.GetNameCliloc(item.Serial))
+                return item;
 
-                if (cliloc == World.OPL.GetNameCliloc(item.Serial))
-                {
-                    return item;
-                }
+            if (item.IsEmpty)
+                continue;
 
-                if (!item.IsEmpty)
-                {
-                    found = FindItemByClilocInContainerRecursive(item, cliloc);
+            found = FindItemByClilocInContainerRecursive(item, cliloc);
 
-                    if (found != null && cliloc == World.OPL.GetNameCliloc(found.Serial))
-                    {
-                        return found;
-                    }
-                }
-            }
+            if (found is not null && cliloc == World.OPL.GetNameCliloc(found.Serial))
+                return found;
         }
 
         return found;
     }
 
-    public Item FindPreferredItemByCliloc(System.Span<int> clilocs)
+    public Item? FindPreferredItemByCliloc(System.Span<int> clilocs)
     {
-        Item item = null;
+        Item? item = null;
 
         for (int i = 0; i < clilocs.Length; i++)
         {
             item = World.Player.FindItemByCliloc(clilocs[i]);
 
-            if (item != null)
-            {
+            if (item is not null)
                 break;
-            }
         }
 
         return item;
@@ -243,7 +225,6 @@ internal class PlayerMobile : Mobile
     {
         _buffIcons[type] = new BuffIcon(type, graphic, time, text);
     }
-
 
     public bool IsBuffIconExists(BuffIconType graphic)
     {
@@ -259,9 +240,9 @@ internal class PlayerMobile : Mobile
     {
         ushort equippedGraphic = 0;
 
-        Item layerObject = FindItemByLayer(Layer.OneHanded);
+        Item? layerObject = FindItemByLayer(Layer.OneHanded);
 
-        if (layerObject != null)
+        if (layerObject is not null)
         {
             equippedGraphic = layerObject.Graphic;
         }
@@ -269,10 +250,8 @@ internal class PlayerMobile : Mobile
         {
             layerObject = FindItemByLayer(Layer.TwoHanded);
 
-            if (layerObject != null)
-            {
+            if (layerObject is not null)
                 equippedGraphic = layerObject.Graphic;
-            }
         }
 
         Abilities[0] = Ability.Invalid;
@@ -283,15 +262,14 @@ internal class PlayerMobile : Mobile
             ushort graphic0 = equippedGraphic;
             ushort graphic1 = 0;
 
-            if (layerObject != null)
+            if (layerObject is not null)
             {
-                ushort imageID = layerObject.ItemData.AnimID;
-
+                ushort imageId = layerObject.ItemData.AnimID;
                 int count = 1;
-
                 ushort testGraphic = (ushort)(equippedGraphic - 1);
+                StaticTiles staticData = Client.Game.UO.FileManager.TileData.StaticData[testGraphic];
 
-                if (Client.Game.UO.FileManager.TileData.StaticData[testGraphic].AnimID == imageID)
+                if (staticData.AnimID == imageId)
                 {
                     graphic1 = testGraphic;
                     count = 2;
@@ -300,7 +278,7 @@ internal class PlayerMobile : Mobile
                 {
                     testGraphic = (ushort)(equippedGraphic + 1);
 
-                    if (Client.Game.UO.FileManager.TileData.StaticData[testGraphic].AnimID == imageID)
+                    if (staticData.AnimID == imageId)
                     {
                         graphic1 = testGraphic;
                         count = 2;
@@ -1310,9 +1288,7 @@ internal class PlayerMobile : Mobile
             }
 
             if (max >= 2)
-            {
                 break;
-            }
         }
     }
 
@@ -1328,25 +1304,21 @@ internal class PlayerMobile : Mobile
 
     public void TryOpenCorpses()
     {
-        if (ProfileManager.CurrentProfile.AutoOpenCorpses)
+        if (ProfileManager.CurrentProfile is not { AutoOpenCorpses: true } profile)
+            return;
+
+        if (profile.CorpseOpenOptions is 1 or 3 && World.TargetManager.IsTargeting)
+            return;
+
+        if (profile.CorpseOpenOptions is 2 or 3 && IsHidden)
+            return;
+
+        foreach (Item item in World.Items.Values)
         {
-            if ((ProfileManager.CurrentProfile.CorpseOpenOptions == 1 || ProfileManager.CurrentProfile.CorpseOpenOptions == 3) && World.TargetManager.IsTargeting)
+            if (!item.IsDestroyed && item.IsCorpse && item.Distance <= profile.AutoOpenCorpseRange && !AutoOpenedCorpses.Contains(item.Serial))
             {
-                return;
-            }
-
-            if ((ProfileManager.CurrentProfile.CorpseOpenOptions == 2 || ProfileManager.CurrentProfile.CorpseOpenOptions == 3) && IsHidden)
-            {
-                return;
-            }
-
-            foreach (Item item in World.Items.Values)
-            {
-                if (!item.IsDestroyed && item.IsCorpse && item.Distance <= ProfileManager.CurrentProfile.AutoOpenCorpseRange && !AutoOpenedCorpses.Contains(item.Serial))
-                {
-                    AutoOpenedCorpses.Add(item.Serial);
-                    GameActions.DoubleClickQueued(item.Serial);
-                }
+                AutoOpenedCorpses.Add(item.Serial);
+                GameActions.DoubleClickQueued(item.Serial);
             }
         }
     }
@@ -1360,24 +1332,20 @@ internal class PlayerMobile : Mobile
 
     private void TryOpenDoors()
     {
-        if (!World.Player.IsDead && ProfileManager.CurrentProfile.AutoOpenDoors)
-        {
-            int x = X, y = Y, z = Z;
-            Pathfinder.GetNewXY((byte)Direction, ref x, ref y);
+        if (World.Player.IsDead || !ProfileManager.CurrentProfile.AutoOpenDoors)
+            return;
 
-            if (World.Items.Values.Any(s => s.ItemData.IsDoor && s.X == x && s.Y == y && s.Z - 15 <= z && s.Z + 15 >= z))
-            {
-                GameActions.OpenDoor();
-            }
-        }
+        int x = X, y = Y, z = Z;
+        Pathfinder.GetNewXY((byte)Direction, ref x, ref y);
+
+        if (World.Items.Values.Any(s => s.ItemData.IsDoor && s.X == x && s.Y == y && s.Z - 15 <= z && s.Z + 15 >= z))
+            GameActions.OpenDoor();
     }
 
     public override void Destroy()
     {
         if (IsDestroyed)
-        {
             return;
-        }
 
         DeathScreenTimer = 0;
 
@@ -1387,30 +1355,27 @@ internal class PlayerMobile : Mobile
 
     public void CloseBank()
     {
-        Item bank = FindItemByLayer(Layer.Bank);
+        Item? bank = FindItemByLayer(Layer.Bank);
+        if (bank is not { Opened: true })
+            return;
 
-        if (bank != null && bank.Opened)
+        if (!bank.IsEmpty)
         {
-            if (!bank.IsEmpty)
+            Item? first = (Item?)bank.Items;
+
+            while (first is not null)
             {
-                Item first = (Item)bank.Items;
-
-                while (first != null)
-                {
-                    Item next = (Item)first.Next;
-
-                    World.RemoveItem(first, true);
-
-                    first = next;
-                }
-
-                bank.Items = null;
+                Item? next = (Item?)first.Next;
+                World.RemoveItem(first, true);
+                first = next;
             }
 
-            UIManager.GetGump<ContainerGump>(bank.Serial)?.Dispose();
-
-            bank.Opened = false;
+            bank.Items = null;
         }
+
+        UIManager.GetGump<ContainerGump>(bank.Serial)?.Dispose();
+
+        bank.Opened = false;
     }
 
     public void CloseRangedGumps()
@@ -1423,29 +1388,25 @@ internal class PlayerMobile : Mobile
                 case MapGump _:
                 case SpellbookGump _:
 
-                    if (World.Get(gump.LocalSerial) == null)
-                    {
+                    if (!World.Has(gump.LocalSerial))
                         gump.Dispose();
-                    }
 
                     break;
 
                 case TradingGump _:
                 case ShopGump _:
 
-                    Entity ent = World.Get(gump.LocalSerial);
+                    Entity? ent = World.Get(gump.LocalSerial);
                     int distance = int.MaxValue;
 
-                    if (ent != null)
+                    if (ent is not null)
                     {
                         if (ent.Serial.IsItem)
                         {
-                            Entity top = World.Get(((Item)ent).RootContainer);
+                            Entity? top = World.Get(((Item)ent).RootContainer);
 
-                            if (top != null)
-                            {
+                            if (top is not null)
                                 distance = top.Distance;
-                            }
                         }
                         else
                         {
@@ -1454,9 +1415,7 @@ internal class PlayerMobile : Mobile
                     }
 
                     if (distance > Constants.MIN_VIEW_RANGE)
-                    {
                         gump.Dispose();
-                    }
 
                     break;
 
@@ -1465,16 +1424,13 @@ internal class PlayerMobile : Mobile
 
                     ent = World.Get(gump.LocalSerial);
 
-                    if (ent != null)
+                    if (ent is not null)
                     {
                         if (ent.Serial.IsItem)
                         {
-                            Entity top = World.Get(((Item)ent).RootContainer);
-
-                            if (top != null)
-                            {
+                            Entity? top = World.Get(((Item)ent).RootContainer);
+                            if (top is not null)
                                 distance = top.Distance;
-                            }
                         }
                         else
                         {
@@ -1492,42 +1448,11 @@ internal class PlayerMobile : Mobile
         }
     }
 
-
-    //public override void Update()
-    //{
-    //    base.Update();
-
-    //    //const int TIME_TURN_TO_LASTTARGET = 2000;
-
-    //    //if (TargetManager.LastAttack != 0 &&
-    //    //    InWarMode &&
-    //    //    Walker.LastStepRequestTime + TIME_TURN_TO_LASTTARGET < Time.Ticks)
-    //    //{
-    //    //    Mobile enemy = World.Mobiles.Get(TargetManager.LastAttack);
-
-    //    //    if (enemy != null && enemy.Distance <= 1)
-    //    //    {
-    //    //        Direction pdir = DirectionHelper.GetDirectionAB(World.Player.X,
-    //    //                                                        World.Player.Y,
-    //    //                                                        enemy.X,
-    //    //                                                        enemy.Y);
-
-    //    //        if (Direction != pdir)
-    //    //            Walk(pdir, false);
-    //    //    }
-    //    //}
-    //}
-
-    // ############# DO NOT DELETE IT! #############
-    //protected override bool NoIterateAnimIndex()
-    //{
-    //    return false;
-    //}
-    // #############################################
-
     public bool Walk(Direction direction, bool run)
     {
-        if (Walker.WalkingFailed || Walker.LastStepRequestTime > Time.Ticks || Walker.StepsCount >= Constants.MAX_STEP_COUNT || Client.Game.UO.Version >= ClientVersion.CV_60142 && IsParalyzed)
+        if (Walker.WalkingFailed || Walker.LastStepRequestTime > Time.Ticks
+            || Walker.StepsCount >= Constants.MAX_STEP_COUNT
+            || Client.Game.UO.Version >= ClientVersion.CV_60142 && IsParalyzed)
         {
             return false;
         }
@@ -1535,9 +1460,7 @@ internal class PlayerMobile : Mobile
         run |= ProfileManager.CurrentProfile.AlwaysRun;
 
         if (SpeedMode >= CharacterSpeedType.CantRun || Stamina <= 1 && !IsDead || IsHidden && ProfileManager.CurrentProfile.AlwaysRunUnlessHidden)
-        {
             run = false;
-        }
 
         int x = X;
         int y = Y;
@@ -1566,9 +1489,7 @@ internal class PlayerMobile : Mobile
             sbyte newZ = z;
 
             if (!Pathfinder.CanWalk(ref newDir, ref newX, ref newY, ref newZ))
-            {
                 return false;
-            }
 
             if ((direction & Direction.Mask) != newDir)
             {
@@ -1591,13 +1512,8 @@ internal class PlayerMobile : Mobile
             int newY = y;
             sbyte newZ = z;
 
-            if (!Pathfinder.CanWalk(ref newDir, ref newX, ref newY, ref newZ))
-            {
-                if ((oldDirection & Direction.Mask) == newDir)
-                {
-                    return false;
-                }
-            }
+            if (!Pathfinder.CanWalk(ref newDir, ref newX, ref newY, ref newZ) && (oldDirection & Direction.Mask) == newDir)
+                return false;
 
             if ((oldDirection & Direction.Mask) == newDir)
             {
@@ -1616,9 +1532,7 @@ internal class PlayerMobile : Mobile
         if (emptyStack)
         {
             if (!IsWalking)
-            {
                 SetAnimation(0xFF);
-            }
 
             LastStepTime = Time.Ticks;
         }
@@ -1637,53 +1551,27 @@ internal class PlayerMobile : Mobile
 
         Walker.StepsCount++;
 
-        Steps.AddToBack
-        (
-            new Step
-            {
-                X = x,
-                Y = y,
-                Z = z,
-                Direction = (byte)direction,
-                Run = run
-            }
-        );
-
+        Steps.AddToBack(new Step
+        {
+            X = x,
+            Y = y,
+            Z = z,
+            Direction = (byte)direction,
+            Run = run
+        });
 
         NetClient.Socket.SendWalkRequest(direction, Walker.WalkSequence, run, Walker.FastWalkStack.GetValue());
 
-
         if (Walker.WalkSequence == 0xFF)
-        {
             Walker.WalkSequence = 1;
-        }
         else
-        {
             Walker.WalkSequence++;
-        }
 
         Walker.UnacceptedPacketsCount++;
 
         AddToTile();
 
         int nowDelta = 0;
-
-        //if (_lastDir == (int) direction && _lastMount == IsMounted && _lastRun == run)
-        //{
-        //    nowDelta = (int) (Time.Ticks - _lastStepTime - walkTime + _lastDelta);
-
-        //    if (Math.Abs(nowDelta) > 70)
-        //        nowDelta = 0;
-        //    _lastDelta = nowDelta;
-        //}
-        //else
-        //    _lastDelta = 0;
-
-        //_lastStepTime = (int) Time.Ticks;
-        //_lastRun = run;
-        //_lastMount = IsMounted;
-        //_lastDir = (int) direction;
-
 
         Walker.LastStepRequestTime = Time.Ticks + walkTime - nowDelta;
         GetGroupForAnimation(this, 0, true);

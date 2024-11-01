@@ -155,7 +155,7 @@ namespace ClassicUO.Game.UI.Gumps
                 return;
             }
 
-            if (World.Get(LocalSerial) == null)
+            if (!World.Has(LocalSerial))
             {
                 return;
             }

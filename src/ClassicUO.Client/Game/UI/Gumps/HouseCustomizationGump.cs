@@ -37,6 +37,7 @@ using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Network;
+using ClassicUO.Network.Packets;
 using ClassicUO.Resources;
 using System;
 using System.Collections.Generic;

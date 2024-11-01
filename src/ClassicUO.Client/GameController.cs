@@ -372,7 +372,7 @@ internal unsafe class GameController : Microsoft.Xna.Framework.Game
 
         Mouse.Update();
 
-        int packetsCount = PacketHandlers.Handler.ParsePackets(NetClient.Socket, UO.World);
+        int packetsCount = IncomingPackets.Handler.ParsePackets(NetClient.Socket, UO.World);
         NetClient.Socket.UpdateStatistics(packetsCount);
         NetClient.Socket.Flush();
 

@@ -25,7 +25,6 @@
 using ClassicUO.Assets;
 using ClassicUO.Configuration;
 using ClassicUO.Core;
-using ClassicUO.Extensions;
 using ClassicUO.Game;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
@@ -33,13 +32,12 @@ using ClassicUO.Game.Managers;
 using ClassicUO.IO.Buffers;
 using ClassicUO.IO.Encoders;
 using ClassicUO.Utility;
-using SixLabors.ImageSharp.ColorSpaces.Companding;
 using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ClassicUO.Network;
+namespace ClassicUO.Network.Packets;
 
 #nullable enable
 
@@ -61,7 +59,7 @@ internal static class OutgoingPackets
         byte id = 0x00;
         ushort length = 104;
         int skillcount = 3;
-        ClientVersion version = Client.Game.UO.Version;
+        ClientVersion version = socket.ClientVersion;
 
         if (version >= ClientVersion.CV_70160)
         {
@@ -86,9 +84,7 @@ internal static class OutgoingPackets
         byte val;
 
         if (version < ClientVersion.CV_4011D)
-        {
             val = (byte)(character.Flags.HasFlag(Flags.Female) ? 0x01 : 0x00);
-        }
         else
         {
             val = (byte)character.Race;
@@ -106,7 +102,7 @@ internal static class OutgoingPackets
 
         IEnumerable<Skill?> skills = character.Skills.OrderByDescending(o => o.Value).Take(skillcount);
 
-        foreach (Skill skill in skills)
+        foreach (Skill? skill in skills)
         {
             writer.WriteUInt8((byte)skill.Index);
             writer.WriteUInt8((byte)skill.ValueFixed);
@@ -122,9 +118,7 @@ internal static class OutgoingPackets
             writer.WriteUInt16BE(hair.Hue);
         }
         else
-        {
             writer.WriteZero(2 * 2);
-        }
 
         Item? beard = character.FindItemByLayer(Layer.Beard);
 
@@ -134,9 +128,7 @@ internal static class OutgoingPackets
             writer.WriteUInt16BE(beard.Hue);
         }
         else
-        {
             writer.WriteZero(2 * 2);
-        }
 
         writer.WriteUInt16BE((ushort)cityIndex);
         writer.WriteZero(2);
@@ -420,9 +412,7 @@ internal static class OutgoingPackets
             }
         }
         else
-        {
             writer.WriteUInt8(0x00);
-        }
 
         writer.WritePacketLength();
 
@@ -439,9 +429,7 @@ internal static class OutgoingPackets
         writer.WriteUInt8(mapIndex);
 
         for (int i = 0; i < checksums.Length; i++)
-        {
             writer.WriteUInt16BE(checksums[i]);
-        }
 
         writer.WritePacketLength();
 
@@ -482,9 +470,7 @@ internal static class OutgoingPackets
         int textsLength = 0;
 
         for (int i = 0; i < texts.Length; i++)
-        {
             textsLength += texts[i].Length * 2 + 1; // include null termination
-        }
 
         using FixedSpanWriter writer = new(0x66, 3 + 11 + textsLength, true);
         writer.WriteSerial(serial);
@@ -503,9 +489,7 @@ internal static class OutgoingPackets
             }
 
             foreach (Range range in text.Split('\n'))
-            {
                 writer.WriteString<UTF8>(text[range]);
-            }
 
             writer.WriteUInt8(0x00);
         }
@@ -667,9 +651,7 @@ internal static class OutgoingPackets
         writer.WriteUInt32BE(msgSerial);
 
         if (subject == "")
-        {
             writer.WriteUInt8(1);
-        }
         else
         {
             subject = subject.Replace("\r\n", "\n");
@@ -949,7 +931,7 @@ internal static class OutgoingPackets
                 }
                 else
                 {
-                    codeBytes[codeBytesLength++] = (byte)((num3 << 4) | ((keywordId >> 8) & 15));
+                    codeBytes[codeBytesLength++] = (byte)(num3 << 4 | keywordId >> 8 & 15);
                     codeBytes[codeBytesLength++] = (byte)keywordId;
                 }
 
@@ -985,9 +967,7 @@ internal static class OutgoingPackets
         writer.WriteUInt32BE((uint)switches.Length);
 
         for (int i = 0; i < switches.Length; i++)
-        {
             writer.WriteUInt32BE(switches[i]);
-        }
 
         writer.WriteUInt32BE((uint)entries.Length);
 
@@ -1264,9 +1244,7 @@ internal static class OutgoingPackets
             writer.WriteSerial(serial);
         }
         else
-        {
             writer.WriteUInt8(0x04);
-        }
 
         writer.WriteString<UnicodeBE>(text);
 
@@ -1506,9 +1484,7 @@ internal static class OutgoingPackets
         using FixedSpanWriter writer = new(0xD6, 3 + count * 4, true);
 
         for (int i = 0; i < count; i++)
-        {
             writer.WriteSerial(serials[i]);
-        }
 
         serials.RemoveRange(0, count);
 
@@ -1883,9 +1859,7 @@ internal static class OutgoingPackets
                 writer.WriteUInt16BE((ushort)def.Regs.Length); // reagents
 
                 for (int i = 0; i < def.Regs.Length; i++)
-                {
                     writer.WriteUInt8((byte)def.Regs[i]);
-                }
             }
         }
     }
@@ -1919,19 +1893,15 @@ internal static class OutgoingPackets
     public static void SendMegaClilocRequest(this NetClient client, List<Serial> clilocRequests)
     {
         if (Client.Game.UO.Version >= ClientVersion.CV_5090)
-        {
             if (clilocRequests.Count != 0)
                 client.SendMegaClilocRequestNew(clilocRequests);
-        }
-        else
-        {
-            foreach (Serial serial in clilocRequests)
+            else
             {
-                client.SendMegaClilocRequest(serial);
-            }
+                foreach (Serial serial in clilocRequests)
+                    client.SendMegaClilocRequest(serial);
 
-            clilocRequests.Clear();
-        }
+                clilocRequests.Clear();
+            }
     }
 
     public static void SendDropRequest(this NetClient client, Serial serial, int x, int y, int z, Serial container)

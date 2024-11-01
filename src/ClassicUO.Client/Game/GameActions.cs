@@ -31,7 +31,7 @@ using ClassicUO.Game.Managers;
 using ClassicUO.Game.Scenes;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Input;
-using ClassicUO.Network;
+using ClassicUO.Network.Packets;
 using ClassicUO.Resources;
 using ClassicUO.Utility;
 using Microsoft.Xna.Framework;

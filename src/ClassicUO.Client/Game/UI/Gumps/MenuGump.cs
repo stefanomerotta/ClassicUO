@@ -34,6 +34,7 @@ using ClassicUO.Core;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Network;
+using ClassicUO.Network.Packets;
 using ClassicUO.Renderer;
 using Microsoft.Xna.Framework;
 using System.Linq;

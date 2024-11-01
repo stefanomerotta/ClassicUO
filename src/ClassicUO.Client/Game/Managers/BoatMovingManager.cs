@@ -37,6 +37,7 @@ using ClassicUO.Extensions;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Network;
+using ClassicUO.Network.Packets;
 using ClassicUO.Utility.Collections;
 
 namespace ClassicUO.Game.Managers

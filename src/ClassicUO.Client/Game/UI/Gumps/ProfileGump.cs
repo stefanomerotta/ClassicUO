@@ -37,6 +37,7 @@ using ClassicUO.Assets;
 using ClassicUO.Network;
 using ClassicUO.Game.Data;
 using ClassicUO.Core;
+using ClassicUO.Network.Packets;
 
 namespace ClassicUO.Game.UI.Gumps
 {

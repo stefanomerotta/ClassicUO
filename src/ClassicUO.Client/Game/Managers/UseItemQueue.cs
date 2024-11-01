@@ -63,7 +63,7 @@ namespace ClassicUO.Game.Managers
 
                 Serial serial = _actions.RemoveFromFront();
 
-                if (_world.Get(serial) != null)
+                if (_world.Has(serial))
                 {
                     if (serial.IsMobile)
                         serial = serial.ToVirtual();
