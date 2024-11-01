@@ -45,6 +45,7 @@ using ClassicUO.Utility;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ClassicUO.Renderer.Animations;
+using ClassicUO.Game.Data;
 
 namespace ClassicUO.Game.UI.Gumps
 {
@@ -64,13 +65,13 @@ namespace ClassicUO.Game.UI.Gumps
         private uint _lastMouseEventTime = Time.Ticks;
 
         private ButtonScroll _buttonScroll = ButtonScroll.None;
-        private readonly Dictionary<uint, ShopItem> _shopItems;
+        private readonly Dictionary<Serial, ShopItem> _shopItems;
         private readonly ScrollArea _shopScrollArea,
             _transactionScrollArea;
         private readonly Label _totalLabel,
             _playerGoldLabel;
         private readonly DataBox _transactionDataBox;
-        private readonly Dictionary<uint, TransactionItem> _transactionItems;
+        private readonly Dictionary<Serial, TransactionItem> _transactionItems;
         private bool _updateTotal;
         private bool _isPressing = false;
         private GumpPicTexture _leftMiddle;
@@ -93,7 +94,8 @@ namespace ClassicUO.Game.UI.Gumps
         private const int RIGHT_OFFSET = 32;
         private const int RIGHT_BOTTOM_HEIGHT = 93;
 
-        public ShopGump(World world, uint serial, bool isBuyGump, int x, int y) : base(world, serial, 0) //60 is the base height, original size
+        public ShopGump(World world, Serial serial, bool isBuyGump, int x, int y) 
+            : base(world, serial, Serial.Zero) //60 is the base height, original size
         {
             int height = ProfileManager.CurrentProfile.VendorGumpHeight;
 
@@ -105,8 +107,8 @@ namespace ClassicUO.Game.UI.Gumps
             CanCloseWithRightClick = true;
             IsBuyGump = isBuyGump;
 
-            _transactionItems = new Dictionary<uint, TransactionItem>();
-            _shopItems = new Dictionary<uint, ShopItem>();
+            _transactionItems = [];
+            _shopItems = [];
             _updateTotal = false;
 
             WantUpdateSize = true;
@@ -361,15 +363,7 @@ namespace ClassicUO.Game.UI.Gumps
             _buttonScroll = ButtonScroll.None;
         }
 
-        public void AddItem(
-            uint serial,
-            ushort graphic,
-            ushort hue,
-            ushort amount,
-            uint price,
-            string name,
-            bool fromcliloc
-        )
+        public void AddItem(Serial serial, ushort graphic, ushort hue, ushort amount, uint price, string name, bool fromcliloc)
         {
             int count = _shopScrollArea.Children.Count - 1;
 
@@ -392,7 +386,7 @@ namespace ClassicUO.Game.UI.Gumps
 
         public void SetNameTo(Item item, string name)
         {
-            if (!string.IsNullOrEmpty(name) && _shopItems.TryGetValue(item, out ShopItem shopItem))
+            if (!string.IsNullOrEmpty(name) && _shopItems.TryGetValue(item.Serial, out ShopItem shopItem))
             {
                 shopItem.SetName(name, false);
             }
@@ -622,7 +616,7 @@ namespace ClassicUO.Game.UI.Gumps
             switch ((Buttons)buttonID)
             {
                 case Buttons.Accept:
-                    (uint, ushort)[] items = _transactionItems.Select(t => (t.Key, (ushort)t.Value.Amount)).ToArray();
+                    (Serial, ushort)[] items = _transactionItems.Select(t => (t.Key, (ushort)t.Value.Amount)).ToArray();
 
                     if (IsBuyGump)
                         NetClient.Socket.SendBuyRequest(LocalSerial, items);
@@ -656,15 +650,7 @@ namespace ClassicUO.Game.UI.Gumps
             private readonly Label _amountLabel,
                 _name;
 
-            public ShopItem(
-                ShopGump gump,
-                uint serial,
-                ushort graphic,
-                ushort hue,
-                int count,
-                uint price,
-                string name
-            )
+            public ShopItem(ShopGump gump, Serial serial, ushort graphic, ushort hue, int count, uint price, string name)
             {
                 _gump = gump;
                 LocalSerial = serial;
@@ -680,10 +666,8 @@ namespace ClassicUO.Game.UI.Gumps
 
                 string itemName = StringHelper.CapitalizeAllWords(Name);
 
-                if (!SerialHelper.IsValid(serial))
-                {
+                if (!serial.IsEntity)
                     return;
-                }
 
                 string subname = string.Format(ResGumps.Item0Price1, itemName, Price);
 
@@ -706,7 +690,7 @@ namespace ClassicUO.Game.UI.Gumps
 
                 int height = Math.Max(_name.Height, 35) + 10;
 
-                if (SerialHelper.IsItem(serial))
+                if (serial.IsItem)
                 {
                     height = Math.Max(Client.Game.UO.FileManager.TileData.StaticData[graphic].Height, height);
                 }
@@ -803,7 +787,7 @@ namespace ClassicUO.Game.UI.Gumps
             {
                 Vector3 hueVector;
 
-                if (InBuyGump && SerialHelper.IsMobile(LocalSerial))
+                if (InBuyGump && LocalSerial.IsMobile)
                 {
                     var animations = Client.Game.UO.Animations;
                     ushort graphic = Graphic;
@@ -905,7 +889,7 @@ namespace ClassicUO.Game.UI.Gumps
             private readonly Label _amountLabel;
 
             public TransactionItem(
-                uint serial,
+                Serial serial,
                 ushort graphic,
                 ushort hue,
                 int amount,

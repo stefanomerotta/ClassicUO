@@ -41,6 +41,7 @@ using ClassicUO.Renderer;
 using ClassicUO.Utility;
 using Microsoft.Xna.Framework;
 using ClassicUO.Game.Scenes;
+using ClassicUO.Game.Data;
 
 namespace ClassicUO.Game.UI.Gumps
 {
@@ -63,7 +64,8 @@ namespace ClassicUO.Game.UI.Gumps
         private readonly StbTextBox[] _myCoinsEntries = new StbTextBox[2];
         private readonly string _name;
 
-        public TradingGump(World world, uint local, string name, uint id1, uint id2) : base(world, local, 0)
+        public TradingGump(World world, Serial local, string name, Serial id1, Serial id2) 
+            : base(world, local, Serial.Zero)
         {
             CanMove = true;
             CanCloseWithRightClick = true;
@@ -77,8 +79,8 @@ namespace ClassicUO.Game.UI.Gumps
             BuildGump();
         }
 
-        public uint ID1 { get; }
-        public uint ID2 { get; }
+        public Serial ID1 { get; }
+        public Serial ID2 { get; }
 
         public uint Gold
         {

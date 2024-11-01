@@ -51,7 +51,7 @@ namespace ClassicUO.Game.UI.Gumps.CharCreation
         private readonly LoginScene _loginScene;
         private ProfessionInfo _selectedProfession;
 
-        public CharCreationGump(World world, LoginScene scene) : base(world, 0, 0)
+        public CharCreationGump(World world, LoginScene scene) : base(world)
         {
             _loginScene = scene;
             Add(new CreateCharAppearanceGump(world), 1);

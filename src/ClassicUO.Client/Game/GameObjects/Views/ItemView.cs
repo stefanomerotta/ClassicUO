@@ -170,7 +170,7 @@ namespace ClassicUO.Game.GameObjects
             }
 
             if (
-                !SerialHelper.IsValid(Serial)
+                !Serial.IsEntity
                 && IsMulti
                 && World.TargetManager.TargetingState == CursorTarget.MultiPlacement
             )
@@ -191,7 +191,7 @@ namespace ClassicUO.Game.GameObjects
             float depth
         )
         {
-            if (IsDestroyed || World.CorpseManager.Exists(Serial, 0))
+            if (IsDestroyed || World.CorpseManager.Exists(Serial, Serial.Zero))
             {
                 return false;
             }
@@ -546,7 +546,7 @@ namespace ClassicUO.Game.GameObjects
             }
             else
             {
-                if (!SerialHelper.IsValid(Serial))
+                if (!Serial.IsEntity)
                 {
                     return false;
                 }

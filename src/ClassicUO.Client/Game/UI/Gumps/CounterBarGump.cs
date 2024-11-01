@@ -58,7 +58,7 @@ namespace ClassicUO.Game.UI.Gumps
 
         //private bool _isVertical;
 
-        public CounterBarGump(World world) : base(world, 0, 0) { }
+        public CounterBarGump(World world) : base(world) { }
 
         public CounterBarGump(
             World world,
@@ -67,7 +67,7 @@ namespace ClassicUO.Game.UI.Gumps
             int rectSize = 30,
             int rows = 1,
             int columns = 1 /*, bool vertical = false*/
-        ) : base(world, 0, 0)
+        ) : base(world)
         {
             X = x;
             Y = y;

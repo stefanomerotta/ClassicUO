@@ -32,6 +32,7 @@
 
 using System;
 using System.Collections.Generic;
+using ClassicUO.Game.Data;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
@@ -53,7 +54,8 @@ namespace ClassicUO.Game.UI.Gumps
 
         private uint _pinTimer;
 
-        public MapGump(World world, uint serial, ushort gumpid, int width, int height) : base(world, serial, 0)
+        public MapGump(World world, Serial serial, ushort gumpid, int width, int height) 
+            : base(world, serial, Serial.Zero)
         {
             AcceptMouseInput = false;
             CanMove = true;

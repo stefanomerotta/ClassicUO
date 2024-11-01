@@ -61,14 +61,16 @@ namespace ClassicUO.Game.UI.Gumps
         private readonly bool[] _spells = new bool[64];
         private int _enqueuePage = -1;
 
-        public SpellbookGump(World world, uint item) : this(world)
+        public SpellbookGump(World world, Serial item) 
+            : this(world)
         {
             LocalSerial = item;
 
             BuildGump();
         }
 
-        public SpellbookGump(World world) : base(world, 0, 0)
+        public SpellbookGump(World world) 
+            : base(world)
         {
             CanMove = true;
             AcceptMouseInput = false;
@@ -163,12 +165,12 @@ namespace ClassicUO.Game.UI.Gumps
             _hitBox.MouseUp += _hitBox_MouseUp;
 
             Add(_pageCornerLeft = new GumpPic(50, 8, 0x08BB, 0));
-            _pageCornerLeft.LocalSerial = 0;
+            _pageCornerLeft.LocalSerial = Serial.Zero;
             _pageCornerLeft.Page = int.MaxValue;
             _pageCornerLeft.MouseUp += PageCornerOnMouseClick;
             _pageCornerLeft.MouseDoubleClick += PageCornerOnMouseDoubleClick;
             Add(_pageCornerRight = new GumpPic(321, 8, 0x08BC, 0));
-            _pageCornerRight.LocalSerial = 1;
+            _pageCornerRight.LocalSerial = new(1);
             _pageCornerRight.Page = 1;
             _pageCornerRight.MouseUp += PageCornerOnMouseClick;
             _pageCornerRight.MouseDoubleClick += PageCornerOnMouseDoubleClick;
@@ -437,7 +439,7 @@ namespace ClassicUO.Game.UI.Gumps
                                                     0
                                                 )
                                                 {
-                                                    LocalSerial = (uint)(id - 1)
+                                                    LocalSerial = new((uint)(id - 1))
                                                 };
 
                                                 _dataBox.Add(icon, page);
@@ -543,7 +545,7 @@ namespace ClassicUO.Game.UI.Gumps
                                 {
                                     X = dataX,
                                     Y = 52 + y,
-                                    LocalSerial = (uint)(pagesToFill + currentSpellIndex / 2 + 1),
+                                    LocalSerial = new((uint)(pagesToFill + currentSpellIndex / 2 + 1)),
                                     AcceptMouseInput = true,
                                     Tag = currentSpellIndex + 1,
                                     CanMove = true
@@ -590,7 +592,7 @@ namespace ClassicUO.Game.UI.Gumps
                                 {
                                     X = dataX,
                                     Y = 52 + y,
-                                    LocalSerial = (uint)topage,
+                                    LocalSerial = new((uint)topage),
                                     AcceptMouseInput = true,
                                     Tag = currentSpellIndex + 1,
                                     CanMove = true
@@ -776,7 +778,7 @@ namespace ClassicUO.Game.UI.Gumps
                 {
                     X = iconX,
                     Y = 40,
-                    LocalSerial = iconSerial
+                    LocalSerial = new(iconSerial)
                 };
 
                 if (toolTipCliloc > 0)
@@ -847,7 +849,7 @@ namespace ClassicUO.Game.UI.Gumps
         {
             if (e.Button == MouseButtonType.Left)
             {
-                SpellDefinition def = GetSpellDefinition((sender as Control).LocalSerial);
+                SpellDefinition def = GetSpellDefinition((sender as Control).LocalSerial.Value);
 
                 if (def != null)
                 {
@@ -863,7 +865,7 @@ namespace ClassicUO.Game.UI.Gumps
                 return;
             }
 
-            SpellDefinition def = GetSpellDefinition((sender as Control).LocalSerial);
+            SpellDefinition def = GetSpellDefinition((sender as Control).LocalSerial.Value);
 
             if (def == null)
             {
@@ -1300,7 +1302,7 @@ namespace ClassicUO.Game.UI.Gumps
                 && sender is HoveredLabel l
             )
             {
-                _enqueuePage = (int)l.LocalSerial;
+                _enqueuePage = (int)l.LocalSerial.Value;
             }
         }
 

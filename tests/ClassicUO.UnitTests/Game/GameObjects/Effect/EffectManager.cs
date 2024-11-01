@@ -1,4 +1,5 @@
 ﻿using ClassicUO.Game;
+using ClassicUO.Game.Data;
 using Xunit;
 
 namespace ClassicUO.UnitTests.Game.GameObjects.Effect
@@ -11,7 +12,8 @@ namespace ClassicUO.UnitTests.Game.GameObjects.Effect
             var world = new World();
             var em = new ClassicUO.Game.Managers.EffectManager(world);
 
-            em.CreateEffect(ClassicUO.Game.Data.GraphicEffectType.FixedFrom, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, false, false, false, ClassicUO.Game.Data.GraphicEffectBlendMode.Normal);
+            em.CreateEffect(ClassicUO.Game.Data.GraphicEffectType.FixedFrom, Serial.Zero, Serial.Zero, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+                false, false, false, ClassicUO.Game.Data.GraphicEffectBlendMode.Normal);
 
             Assert.NotNull(em.Items);
 
@@ -29,9 +31,9 @@ namespace ClassicUO.UnitTests.Game.GameObjects.Effect
             var world = new World();
             var em = new ClassicUO.Game.Managers.EffectManager(world);
 
-            em.CreateEffect(ClassicUO.Game.Data.GraphicEffectType.FixedFrom, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, false, false, false, ClassicUO.Game.Data.GraphicEffectBlendMode.Normal);
-            em.CreateEffect(ClassicUO.Game.Data.GraphicEffectType.FixedFrom, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, false, false, false, ClassicUO.Game.Data.GraphicEffectBlendMode.Normal);
-            em.CreateEffect(ClassicUO.Game.Data.GraphicEffectType.FixedFrom, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, false, false, false, ClassicUO.Game.Data.GraphicEffectBlendMode.Normal);
+            em.CreateEffect(ClassicUO.Game.Data.GraphicEffectType.FixedFrom, Serial.Zero, Serial.Zero, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, false, false, false, ClassicUO.Game.Data.GraphicEffectBlendMode.Normal);
+            em.CreateEffect(ClassicUO.Game.Data.GraphicEffectType.FixedFrom, Serial.Zero, Serial.Zero, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, false, false, false, ClassicUO.Game.Data.GraphicEffectBlendMode.Normal);
+            em.CreateEffect(ClassicUO.Game.Data.GraphicEffectType.FixedFrom, Serial.Zero, Serial.Zero, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, false, false, false, ClassicUO.Game.Data.GraphicEffectBlendMode.Normal);
 
             Assert.NotNull(em.Items);
 

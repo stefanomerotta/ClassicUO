@@ -30,15 +30,15 @@
 
 #endregion
 
-using System;
 using ClassicUO.Configuration;
+using ClassicUO.Extensions;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.IO.Buffers;
 using ClassicUO.IO.Encoders;
-using ClassicUO.Network;
 using ClassicUO.Resources;
+using System;
 
 namespace ClassicUO.Game.Managers
 {
@@ -47,18 +47,13 @@ namespace ClassicUO.Game.Managers
         private const int PARTY_SIZE = 10;
 
         private readonly World _world;
-
         public PartyManager(World world) { _world = world; }
-
-        public uint Leader { get; set; }
-        public uint Inviter { get; set; }
+        public Serial Leader { get; set; }
+        public Serial Inviter { get; set; }
         public bool CanLoot { get; set; }
-
         public PartyMember[] Members { get; } = new PartyMember[PARTY_SIZE];
-
-
         public long PartyHealTimer { get; set; }
-        public uint PartyHealTarget { get; set; }
+        public Serial PartyHealTarget { get; set; }
 
         public void ParsePacket(ref SpanReader p)
         {
@@ -77,8 +72,8 @@ namespace ClassicUO.Game.Managers
 
                     if (count <= 1)
                     {
-                        Leader = 0;
-                        Inviter = 0;
+                        Leader = Serial.Zero;
+                        Inviter = Serial.Zero;
 
                         for (int i = 0; i < PARTY_SIZE; i++)
                         {
@@ -94,7 +89,7 @@ namespace ClassicUO.Game.Managers
                             {
                                 if (code == 2)
                                 {
-                                    Members[i].Serial = 0;
+                                    Members[i].Serial = Serial.Zero;
                                 }
 
                                 gump.RequestUpdateContents();
@@ -110,11 +105,11 @@ namespace ClassicUO.Game.Managers
 
                     Clear();
 
-                    uint to_remove = 0xFFFF_FFFF;
+                    Serial to_remove = Serial.MinusOne;
 
                     if (!add)
                     {
-                        to_remove = p.ReadUInt32BE();
+                        to_remove = p.ReadSerial();
 
                         UIManager.GetGump<BaseHealthBarGump>(to_remove)?.RequestUpdateContents();
                     }
@@ -124,7 +119,7 @@ namespace ClassicUO.Game.Managers
 
                     for (int i = 0; i < count; i++)
                     {
-                        uint serial = p.ReadUInt32BE();
+                        Serial serial = p.ReadSerial();
                         bool remove = !add && serial == to_remove;
 
                         if (remove && serial == to_remove && i == 0)
@@ -165,9 +160,9 @@ namespace ClassicUO.Game.Managers
                     {
                         for (int i = 0; i < PARTY_SIZE; i++)
                         {
-                            if (Members[i] != null && SerialHelper.IsValid(Members[i].Serial))
+                            if (Members[i] != null && Members[i].Serial.IsEntity)
                             {
-                                uint serial = Members[i].Serial;
+                                Serial serial = Members[i].Serial;
 
                                 Members[i] = null;
 
@@ -210,7 +205,7 @@ namespace ClassicUO.Game.Managers
                     break;
 
                 case 7:
-                    Inviter = p.ReadUInt32BE();
+                    Inviter = p.ReadSerial();
 
                     if (ProfileManager.CurrentProfile.PartyInviteGump)
                     {
@@ -221,7 +216,7 @@ namespace ClassicUO.Game.Managers
             }
         }
 
-        public bool Contains(uint serial)
+        public bool Contains(Serial serial)
         {
             for (int i = 0; i < PARTY_SIZE; i++)
             {
@@ -238,8 +233,8 @@ namespace ClassicUO.Game.Managers
 
         public void Clear()
         {
-            Leader = 0;
-            Inviter = 0;
+            Leader = Serial.Zero;
+            Inviter = Serial.Zero;
 
             for (int i = 0; i < PARTY_SIZE; i++)
             {
@@ -253,7 +248,7 @@ namespace ClassicUO.Game.Managers
         private readonly World _world;
         private string _name;
 
-        public PartyMember(World world, uint serial)
+        public PartyMember(World world, Serial serial)
         {
             _world = world;
             Serial = serial;
@@ -290,6 +285,6 @@ namespace ClassicUO.Game.Managers
             return other.Serial == Serial;
         }
 
-        public uint Serial;
+        public Serial Serial;
     }
 }

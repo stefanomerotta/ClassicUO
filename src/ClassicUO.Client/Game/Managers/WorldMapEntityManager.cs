@@ -37,7 +37,7 @@ namespace ClassicUO.Game.Managers;
 
 internal class WMapEntity
 {
-    public WMapEntity(uint serial)
+    public WMapEntity(Serial serial)
     {
         Serial = serial;
 
@@ -50,7 +50,7 @@ internal class WMapEntity
     public bool IsGuild;
     public uint LastUpdate;
     public string Name;
-    public readonly uint Serial;
+    public readonly Serial Serial;
     public int X, Y, HP, Map;
 }
 
@@ -74,7 +74,7 @@ internal sealed class WorldMapEntityManager
         }
     }
 
-    public readonly Dictionary<uint, WMapEntity> Entities = new Dictionary<uint, WMapEntity>();
+    public readonly Dictionary<Serial, WMapEntity> Entities = [];
 
     public void SetACKReceived()
     {
@@ -102,7 +102,7 @@ internal sealed class WorldMapEntityManager
 
     public void AddOrUpdate
     (
-        uint serial,
+        Serial serial,
         int x,
         int y,
         int hp,
@@ -164,7 +164,7 @@ internal sealed class WorldMapEntityManager
         }
     }
 
-    public void Remove(uint serial)
+    public void Remove(Serial serial)
     {
         if (Entities.ContainsKey(serial))
         {
@@ -202,7 +202,7 @@ internal sealed class WorldMapEntityManager
         }
     }
 
-    public WMapEntity? GetEntity(uint serial)
+    public WMapEntity? GetEntity(Serial serial)
     {
         Entities.TryGetValue(serial, out WMapEntity? entity);
         return entity;
@@ -232,7 +232,7 @@ internal sealed class WorldMapEntityManager
             {
                 foreach (PartyMember e in _world.Party.Members)
                 {
-                    if (e != null && SerialHelper.IsValid(e.Serial))
+                    if (e != null && e.Serial.IsEntity)
                     {
                         Mobile mob = _world.Mobiles.Get(e.Serial);
 

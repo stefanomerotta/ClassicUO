@@ -47,14 +47,14 @@ internal sealed partial class PacketHandlers
 {
     public delegate void OnPacketBufferReader(World world, ref SpanReader p);
 
-    private static uint _requestedGridLoot;
+    private static Serial _requestedGridLoot;
 
     private static readonly TextFileParser _parser = new(string.Empty, [' '], [], ['{', '}']);
     private static readonly TextFileParser _cmdparser = new(string.Empty, [' ', ','], [], ['@', '@']);
 
     private readonly OnPacketBufferReader?[] _handlers = new OnPacketBufferReader[0x100];
-    private readonly List<uint> _clilocRequests = [];
-    private readonly List<uint> _customHouseRequests = [];
+    private readonly List<Serial> _clilocRequests = [];
+    private readonly List<Serial> _customHouseRequests = [];
     private readonly PacketLogger _packetLogger = new();
     private readonly CircularBuffer _buffer = new();
     private readonly CircularBuffer _pluginsBuffer = new();
@@ -192,9 +192,9 @@ internal sealed partial class PacketHandlers
         }
     }
 
-    public static void AddMegaClilocRequest(uint serial)
+    public static void AddMegaClilocRequest(Serial serial)
     {
-        foreach (uint s in Handler._clilocRequests)
+        foreach (Serial s in Handler._clilocRequests)
         {
             if (s == serial)
                 return;
@@ -326,8 +326,8 @@ internal sealed partial class PacketHandlers
         }
     }
 
-    private static void AddItemToContainer(World world, uint serial, ushort graphic, ushort amount, ushort x, ushort y,
-        ushort hue, uint containerSerial)
+    private static void AddItemToContainer(World world, Serial serial, ushort graphic, ushort amount, ushort x, ushort y,
+        ushort hue, Serial containerSerial)
     {
         if (Client.Game.UO.GameCursor.ItemHold is { Dropped: true } itemHold && itemHold.Serial == serial)
         {
@@ -345,14 +345,14 @@ internal sealed partial class PacketHandlers
 
         Item? item = world.Items.Get(serial);
 
-        if (SerialHelper.IsMobile(serial))
+        if (serial.IsMobile)
         {
             world.RemoveMobile(serial, true);
             Log.Warn("AddItemToContainer function adds mobile as Item");
         }
 
         if (item is not null && (container.Graphic != 0x2006 || item.Layer == Layer.Invalid))
-            world.RemoveItem(item, true);
+            world.RemoveItem(item.Serial, true);
 
         item = world.GetOrCreateItem(serial);
         item.Graphic = graphic;
@@ -367,7 +367,7 @@ internal sealed partial class PacketHandlers
         item.Container = containerSerial;
         container.PushToBack(item);
 
-        if (SerialHelper.IsMobile(containerSerial))
+        if (containerSerial.IsMobile)
         {
             Mobile? m = world.Mobiles.Get(containerSerial);
             Item? secureBox = m?.GetSecureTradeBox();
@@ -377,7 +377,7 @@ internal sealed partial class PacketHandlers
             else
                 UIManager.GetGump<PaperDollGump>(containerSerial)?.RequestUpdateContents();
         }
-        else if (SerialHelper.IsItem(containerSerial))
+        else if (containerSerial.IsItem)
         {
             Gump? gump = UIManager.GetGump<BulletinBoardGump>(containerSerial);
 
@@ -400,11 +400,11 @@ internal sealed partial class PacketHandlers
                     {
                         GridLootGump? grid_gump = UIManager.GetGump<GridLootGump>(containerSerial);
 
-                        if (grid_gump is null && SerialHelper.IsValid(_requestedGridLoot) && _requestedGridLoot == containerSerial)
+                        if (grid_gump is null && _requestedGridLoot.IsEntity && _requestedGridLoot == containerSerial)
                         {
                             grid_gump = new GridLootGump(world, _requestedGridLoot);
                             UIManager.Add(grid_gump);
-                            _requestedGridLoot = 0;
+                            _requestedGridLoot = Serial.Zero;
                         }
 
                         grid_gump?.RequestUpdateContents();
@@ -413,7 +413,7 @@ internal sealed partial class PacketHandlers
 
                 if (gump is not null)
                 {
-                    if (SerialHelper.IsItem(containerSerial))
+                    if (containerSerial.IsItem)
                         ((Item)container).Opened = true;
 
                     gump.RequestUpdateContents();
@@ -424,7 +424,7 @@ internal sealed partial class PacketHandlers
         UIManager.GetTradingGump(containerSerial)?.RequestUpdateContents();
     }
 
-    private static void UpdateGameObject(World world, uint serial, ushort graphic, byte graphic_inc, ushort count,
+    private static void UpdateGameObject(World world, Serial serial, ushort graphic, byte graphic_inc, ushort count,
         ushort x, ushort y, sbyte z, Direction direction, ushort hue, Flags flagss, byte type)
     {
         Mobile? mobile = null;
@@ -433,7 +433,7 @@ internal sealed partial class PacketHandlers
 
         if (Client.Game.UO.GameCursor.ItemHold is { Enabled: true } itemHold && itemHold.Serial == serial)
         {
-            if (SerialHelper.IsValid(itemHold.Container))
+            if (itemHold.Container.IsEntity)
             {
                 if (itemHold.Layer == 0)
                     UIManager.GetGump<ContainerGump>(itemHold.Container)?.RequestUpdateContents();
@@ -450,7 +450,7 @@ internal sealed partial class PacketHandlers
         {
             created = true;
 
-            if (SerialHelper.IsMobile(serial) && type != 3)
+            if (serial.IsMobile && type != 3)
             {
                 mobile = world.GetOrCreateMobile(serial);
                 if (mobile is null)
@@ -481,7 +481,7 @@ internal sealed partial class PacketHandlers
             {
                 item = item1;
 
-                if (SerialHelper.IsValid(item.Container))
+                if (item.Container.IsEntity)
                     world.RemoveItemFromContainer(item);
             }
             else
@@ -539,7 +539,7 @@ internal sealed partial class PacketHandlers
                 Direction cleaned_dir = direction & Direction.Up;
                 bool isrun = (direction & Direction.Running) != 0;
 
-                if (world.Get(mobile) is null || mobile.X == 0xFFFF && mobile.Y == 0xFFFF)
+                if (world.Get(mobile.Serial) is null || mobile.X == 0xFFFF && mobile.Y == 0xFFFF)
                 {
                     mobile.X = x;
                     mobile.Y = y;
@@ -610,7 +610,7 @@ internal sealed partial class PacketHandlers
         }
     }
 
-    private static void UpdatePlayer(World world, uint serial, ushort graphic, byte graph_inc, ushort hue, Flags flags,
+    private static void UpdatePlayer(World world, Serial serial, ushort graphic, byte graph_inc, ushort hue, Flags flags,
         ushort x, ushort y, sbyte z, Direction direction)
     {
         if (serial == world.Player)
@@ -666,7 +666,7 @@ internal sealed partial class PacketHandlers
             if (remove_unequipped && it.Layer != 0)
                 new_first ??= first;
             else
-                world.RemoveItem(it, true);
+                world.RemoveItem(it.Serial, true);
 
             first = next;
         }
@@ -674,7 +674,7 @@ internal sealed partial class PacketHandlers
         container.Items = remove_unequipped ? new_first : null;
     }
 
-    private static Gump? CreateGump(World world, uint sender, uint gumpId, int x, int y, string layout, string[] lines)
+    private static Gump? CreateGump(World world, Serial sender, Serial gumpId, int x, int y, string layout, string[] lines)
     {
         List<string> cmdlist = _parser.GetTokens(layout);
         int cmdlen = cmdlist.Count;
@@ -1032,9 +1032,9 @@ internal sealed partial class PacketHandlers
             {
                 if (world.ClientFeatures.TooltipsEnabled && gump.Children.Count != 0)
                 {
-                    gump.Children[gump.Children.Count - 1].SetTooltip(SerialHelper.Parse(gparams[1]));
+                    gump.Children[gump.Children.Count - 1].SetTooltip(Serial.Parse(gparams[1]));
 
-                    if (uint.TryParse(gparams[1], out uint s) && (!world.OPL.TryGetRevision(s, out uint rev) || rev == 0))
+                    if (Serial.TryParse(gparams[1], out Serial s) && (!world.OPL.TryGetRevision(s, out uint rev) || rev == 0))
                         AddMegaClilocRequest(s);
                 }
             }
@@ -1042,7 +1042,7 @@ internal sealed partial class PacketHandlers
             { }
             else if (string.Equals(entry, "mastergump", StringComparison.InvariantCultureIgnoreCase))
             {
-                gump.MasterGumpSerial = gparams.Count > 0 ? SerialHelper.Parse(gparams[1]) : 0;
+                gump.MasterGumpSerial = gparams.Count > 0 ? Serial.Parse(gparams[1]) : Serial.Zero;
             }
             else if (string.Equals(entry, "picinpic", StringComparison.InvariantCultureIgnoreCase))
             {

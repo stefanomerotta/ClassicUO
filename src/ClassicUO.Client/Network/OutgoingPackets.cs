@@ -24,6 +24,7 @@
 
 using ClassicUO.Assets;
 using ClassicUO.Configuration;
+using ClassicUO.Extensions;
 using ClassicUO.Game;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
@@ -31,6 +32,7 @@ using ClassicUO.Game.Managers;
 using ClassicUO.IO.Buffers;
 using ClassicUO.IO.Encoders;
 using ClassicUO.Utility;
+using SixLabors.ImageSharp.ColorSpaces.Companding;
 using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
@@ -101,7 +103,7 @@ internal static class OutgoingPackets
         writer.WriteUInt8((byte)character.Dexterity);
         writer.WriteUInt8((byte)character.Intelligence);
 
-        IEnumerable<Skill> skills = character.Skills.OrderByDescending(o => o.Value).Take(skillcount);
+        IEnumerable<Skill?> skills = character.Skills.OrderByDescending(o => o.Value).Take(skillcount);
 
         foreach (Skill skill in skills)
         {
@@ -208,71 +210,71 @@ internal static class OutgoingPackets
     }
 
     // 0x05
-    public static void SendAttackRequest(this NetClient socket, uint serial)
+    public static void SendAttackRequest(this NetClient socket, Serial serial)
     {
         using FixedSpanWriter writer = new(0x05, stackalloc byte[5]);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
 
         socket.Send(writer);
     }
 
     // 0x06
-    public static void SendDoubleClick(this NetClient socket, uint serial)
+    public static void SendDoubleClick(this NetClient socket, Serial serial)
     {
         using FixedSpanWriter writer = new(0x06, stackalloc byte[5]);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
 
         socket.Send(writer);
     }
 
     // 0x07
-    public static void SendPickUpRequest(this NetClient socket, uint serial, ushort count)
+    public static void SendPickUpRequest(this NetClient socket, Serial serial, ushort count)
     {
         using FixedSpanWriter writer = new(0x07, stackalloc byte[7]);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
         writer.WriteUInt16BE(count);
 
         socket.Send(writer);
     }
 
     // 0x08
-    private static void SendDropRequestOld(this NetClient socket, uint serial, ushort x, ushort y, sbyte z, uint container)
+    private static void SendDropRequestOld(this NetClient socket, Serial serial, ushort x, ushort y, sbyte z, Serial container)
     {
         using FixedSpanWriter writer = new(0x08, stackalloc byte[14]);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
         writer.WriteUInt16BE(x);
         writer.WriteUInt16BE(y);
         writer.WriteInt8(z);
-        writer.WriteUInt32BE(container);
+        writer.WriteSerial(container);
 
         socket.Send(writer);
     }
 
     // 0x08
-    private static void SendDropRequestNew(this NetClient socket, uint serial, ushort x, ushort y, sbyte z, byte slot, uint container)
+    private static void SendDropRequestNew(this NetClient socket, Serial serial, ushort x, ushort y, sbyte z, byte slot, Serial container)
     {
         using FixedSpanWriter writer = new(0x08, stackalloc byte[15]);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
         writer.WriteUInt16BE(x);
         writer.WriteUInt16BE(y);
         writer.WriteInt8(z);
         writer.WriteUInt8(slot);
-        writer.WriteUInt32BE(container);
+        writer.WriteSerial(container);
 
         socket.Send(writer);
     }
 
     // 0x09
-    public static void SendClickRequest(this NetClient socket, uint serial)
+    public static void SendClickRequest(this NetClient socket, Serial serial)
     {
         using FixedSpanWriter writer = new(0x09, stackalloc byte[5]);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
 
         socket.Send(writer);
     }
 
     // 0x12
-    public static void SendCastSpellFromBook(this NetClient socket, int idx, uint serial)
+    public static void SendCastSpellFromBook(this NetClient socket, int idx, Serial serial)
     {
         using FixedSpanWriter writer = new(0x12, stackalloc byte[21 + MAX_INT_STR_LEN * 2], true);
         writer.WriteUInt8(0x27);
@@ -336,12 +338,12 @@ internal static class OutgoingPackets
     }
 
     // 0x13
-    public static void SendEquipRequest(this NetClient socket, uint serial, Layer layer, uint container)
+    public static void SendEquipRequest(this NetClient socket, Serial serial, Layer layer, Serial container)
     {
         using FixedSpanWriter writer = new(0x13, stackalloc byte[10]);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
         writer.WriteUInt8((byte)layer);
-        writer.WriteUInt32BE(container);
+        writer.WriteSerial(container);
 
         socket.Send(writer);
     }
@@ -353,23 +355,23 @@ internal static class OutgoingPackets
     }
 
     // 0x34
-    public static void SendStatusRequest(this NetClient socket, uint serial)
+    public static void SendStatusRequest(this NetClient socket, Serial serial)
     {
         using FixedSpanWriter writer = new(0x34, stackalloc byte[10]);
         writer.WriteUInt32BE(0xEDEDEDED);
         writer.WriteUInt8(0x04);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
 
         socket.Send(writer);
     }
 
     // 0x34
-    public static void SendSkillsRequest(this NetClient socket, uint serial)
+    public static void SendSkillsRequest(this NetClient socket, Serial serial)
     {
         using FixedSpanWriter writer = new(0x34, stackalloc byte[10]);
         writer.WriteUInt32BE(0xEDEDEDED);
         writer.WriteUInt8(0x05);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
 
         socket.Send(writer);
     }
@@ -400,10 +402,10 @@ internal static class OutgoingPackets
 
 
     // 0x3B
-    public static void SendBuyRequest(this NetClient socket, uint serial, ReadOnlySpan<(uint, ushort)> items)
+    public static void SendBuyRequest(this NetClient socket, Serial serial, ReadOnlySpan<(Serial, ushort)> items)
     {
         using FixedSpanWriter writer = new(0x3B, 3 + 5 + 7 * items.Length, true);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
 
         if (items.Length > 0)
         {
@@ -412,7 +414,7 @@ internal static class OutgoingPackets
             for (int i = 0; i < items.Length; i++)
             {
                 writer.WriteUInt8(0x1A);
-                writer.WriteUInt32BE(items[i].Item1);
+                writer.WriteSerial(items[i].Item1);
                 writer.WriteUInt16BE(items[i].Item2);
             }
         }
@@ -446,10 +448,10 @@ internal static class OutgoingPackets
     }
 
     // 0x56
-    public static void SendMapMessage(this NetClient socket, uint serial, byte action, byte pin, ushort x, ushort y)
+    public static void SendMapMessage(this NetClient socket, Serial serial, byte action, byte pin, ushort x, ushort y)
     {
         using FixedSpanWriter writer = new(0x56, stackalloc byte[11]);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
         writer.WriteUInt8(action);
         writer.WriteUInt8(pin);
         writer.WriteUInt16BE(x);
@@ -474,7 +476,7 @@ internal static class OutgoingPackets
     }
 
     // 0x66
-    public static void SendBookPageData(this NetClient socket, uint serial, string[] texts, int page)
+    public static void SendBookPageData(this NetClient socket, Serial serial, string[] texts, int page)
     {
         int textsLength = 0;
 
@@ -484,7 +486,7 @@ internal static class OutgoingPackets
         }
 
         using FixedSpanWriter writer = new(0x66, 3 + 11 + textsLength, true);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
         writer.WriteUInt16BE(0x01);
         writer.WriteUInt16BE((ushort)page);
         writer.WriteUInt16BE((ushort)texts.Length);
@@ -515,10 +517,10 @@ internal static class OutgoingPackets
     }
 
     // 0x66
-    public static void SendBookPageDataRequest(this NetClient socket, uint serial, ushort page)
+    public static void SendBookPageDataRequest(this NetClient socket, Serial serial, ushort page)
     {
         using FixedSpanWriter writer = new(0x66, stackalloc byte[3 + 10], true);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
         writer.WriteUInt16BE(0x01);
         writer.WriteUInt16BE(page);
         writer.WriteUInt16BE(0xFFFF);
@@ -529,14 +531,14 @@ internal static class OutgoingPackets
     }
 
     // 0x6C
-    public static void SendTargetObject(this NetClient socket, uint entity, ushort graphic,
+    public static void SendTargetObject(this NetClient socket, Serial serial, ushort graphic,
         ushort x, ushort y, sbyte z, uint cursorId, byte cursorType)
     {
         using FixedSpanWriter writer = new(0x6C, stackalloc byte[19]);
         writer.WriteUInt8(0x00);
         writer.WriteUInt32BE(cursorId);
         writer.WriteUInt8(cursorType);
-        writer.WriteUInt32BE(entity);
+        writer.WriteSerial(serial);
         writer.WriteUInt16BE(x);
         writer.WriteUInt16BE(y);
         writer.WriteUInt16BE((ushort)z);
@@ -590,13 +592,13 @@ internal static class OutgoingPackets
     }
 
     // 0x6F
-    public static void SendTradeResponse(this NetClient socket, uint serial, int code, bool state)
+    public static void SendTradeResponse(this NetClient socket, Serial serial, int code, bool state)
     {
         if (code == 1)
         {
             using FixedSpanWriter writer = new(0x6F, stackalloc byte[3 + 5], true);
             writer.WriteUInt8(0x01);
-            writer.WriteUInt32BE(serial);
+            writer.WriteSerial(serial);
 
             writer.WritePacketLength();
 
@@ -606,7 +608,7 @@ internal static class OutgoingPackets
         {
             using FixedSpanWriter writer = new(0x6F, stackalloc byte[3 + 9], true);
             writer.WriteUInt8(0x02);
-            writer.WriteUInt32BE(serial);
+            writer.WriteSerial(serial);
             writer.WriteUInt32BE((uint)(state ? 1 : 0));
 
             writer.WritePacketLength();
@@ -616,11 +618,11 @@ internal static class OutgoingPackets
     }
 
     // 0x6F
-    public static void SendTradeUpdateGold(this NetClient socket, uint serial, uint gold, uint platinum)
+    public static void SendTradeUpdateGold(this NetClient socket, Serial serial, uint gold, uint platinum)
     {
         using FixedSpanWriter writer = new(0x6F, stackalloc byte[3 + 13], true);
         writer.WriteUInt8(0x03);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
         writer.WriteUInt32BE(gold);
         writer.WriteUInt32BE(platinum);
 
@@ -630,12 +632,12 @@ internal static class OutgoingPackets
     }
 
     // 0x71
-    public static void SendBulletinBoardRequestMessage(this NetClient socket, uint serial, uint msgSerial)
+    public static void SendBulletinBoardRequestMessage(this NetClient socket, Serial serial, Serial msgSerial)
     {
         using FixedSpanWriter writer = new(0x71, stackalloc byte[3 + 9], true);
         writer.WriteUInt8(0x03);
-        writer.WriteUInt32BE(serial);
-        writer.WriteUInt32BE(msgSerial);
+        writer.WriteSerial(serial);
+        writer.WriteSerial(msgSerial);
 
         writer.WritePacketLength();
 
@@ -643,12 +645,12 @@ internal static class OutgoingPackets
     }
 
     // 0x71
-    public static void SendBulletinBoardRequestMessageSummary(this NetClient socket, uint serial, uint msgSerial)
+    public static void SendBulletinBoardRequestMessageSummary(this NetClient socket, Serial serial, Serial msgSerial)
     {
         using FixedSpanWriter writer = new(0x71, stackalloc byte[3 + 9], true);
         writer.WriteUInt8(0x04);
-        writer.WriteUInt32BE(serial);
-        writer.WriteUInt32BE(msgSerial);
+        writer.WriteSerial(serial);
+        writer.WriteSerial(msgSerial);
 
         writer.WritePacketLength();
 
@@ -656,11 +658,11 @@ internal static class OutgoingPackets
     }
 
     // 0x71
-    public static void SendBulletinBoardPostMessage(this NetClient socket, uint serial, uint msgSerial, string subject, string text)
+    public static void SendBulletinBoardPostMessage(this NetClient socket, Serial serial, uint msgSerial, string subject, string text)
     {
         using FixedSpanWriter writer = new(0x71, 3 + 14 + subject.Length * 2 + text.Length * 2, true);
         writer.WriteUInt8(0x05);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
         writer.WriteUInt32BE(msgSerial);
 
         if (subject == "")
@@ -708,11 +710,11 @@ internal static class OutgoingPackets
     }
 
     // 0x71
-    public static void SendBulletinBoardRemoveMessage(this NetClient socket, uint serial, uint msgSerial)
+    public static void SendBulletinBoardRemoveMessage(this NetClient socket, Serial serial, uint msgSerial)
     {
         using FixedSpanWriter writer = new(0x71, stackalloc byte[3 + 9], true);
         writer.WriteUInt8(0x06);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
         writer.WriteUInt32BE(msgSerial);
 
         writer.WritePacketLength();
@@ -739,20 +741,20 @@ internal static class OutgoingPackets
     }
 
     // 0x75
-    public static void SendRenameRequest(this NetClient socket, uint serial, string name)
+    public static void SendRenameRequest(this NetClient socket, Serial serial, string name)
     {
         using FixedSpanWriter writer = new(0x75, stackalloc byte[35]);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
         writer.WriteFixedString<ASCIICP1215>(name, 30);
 
         socket.Send(writer);
     }
 
     // 0x7D
-    public static void SendMenuResponse(this NetClient socket, uint serial, ushort graphic, int code, ushort itemGraphic, ushort itemHue)
+    public static void SendMenuResponse(this NetClient socket, Serial serial, ushort graphic, int code, ushort itemGraphic, ushort itemHue)
     {
         using FixedSpanWriter writer = new(0x7D, stackalloc byte[3 + 15], true);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
         writer.WriteUInt16BE(graphic);
 
         if (code != 0)
@@ -768,10 +770,10 @@ internal static class OutgoingPackets
     }
 
     // 0x7D
-    public static void SendGrayMenuResponse(this NetClient socket, uint serial, ushort graphic, ushort code)
+    public static void SendGrayMenuResponse(this NetClient socket, Serial serial, ushort graphic, ushort code)
     {
         using FixedSpanWriter writer = new(0x7D, stackalloc byte[3 + 8], true);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
         writer.WriteUInt16BE(graphic);
         writer.WriteUInt16BE(code);
 
@@ -814,10 +816,10 @@ internal static class OutgoingPackets
     }
 
     // 0x93
-    public static void SendBookHeaderChangedOld(this NetClient socket, uint serial, string title, string author)
+    public static void SendBookHeaderChangedOld(this NetClient socket, Serial serial, string title, string author)
     {
         using FixedSpanWriter writer = new(0x93, 99);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
         writer.WriteUInt8(0x00);
         writer.WriteUInt8(0x01);
         writer.WriteUInt16BE(0);
@@ -828,10 +830,10 @@ internal static class OutgoingPackets
     }
 
     // 0x95
-    public static void SendDyeDataResponse(this NetClient socket, uint serial, ushort graphic, ushort hue)
+    public static void SendDyeDataResponse(this NetClient socket, Serial serial, ushort graphic, ushort hue)
     {
         using FixedSpanWriter writer = new(0x95, stackalloc byte[9]);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
         writer.WriteUInt16BE(0);
         writer.WriteUInt16BE(hue);
 
@@ -839,10 +841,10 @@ internal static class OutgoingPackets
     }
 
     // 0x98
-    public static void SendNameRequest(this NetClient socket, uint serial)
+    public static void SendNameRequest(this NetClient socket, Serial serial)
     {
         using FixedSpanWriter writer = new(0x98, stackalloc byte[3 + 5], true);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
 
         writer.WritePacketLength();
 
@@ -859,15 +861,15 @@ internal static class OutgoingPackets
     }
 
     // 0x9F
-    public static void SendSellRequest(this NetClient socket, uint serial, ReadOnlySpan<(uint, ushort)> items)
+    public static void SendSellRequest(this NetClient socket, Serial serial, ReadOnlySpan<(Serial, ushort)> items)
     {
         using FixedSpanWriter writer = new(0x9F, 3 + 6 + 6 * items.Length, true);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
         writer.WriteUInt16BE((ushort)items.Length);
 
         for (int i = 0; i < items.Length; i++)
         {
-            writer.WriteUInt32BE(items[i].Item1);
+            writer.WriteSerial(items[i].Item1);
             writer.WriteUInt16BE(items[i].Item2);
         }
 
@@ -893,10 +895,10 @@ internal static class OutgoingPackets
     }
 
     // 0xAC
-    public static void SendTextEntryDialogResponse(this NetClient socket, uint serial, byte parentId, byte button, string text, bool code)
+    public static void SendTextEntryDialogResponse(this NetClient socket, Serial serial, byte parentId, byte button, string text, bool code)
     {
         using FixedSpanWriter writer = new(0xAC, 3 + 9 + text.Length + 1, true);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
         writer.WriteUInt8(parentId);
         writer.WriteUInt8(button);
         writer.WriteBool(code);
@@ -972,12 +974,12 @@ internal static class OutgoingPackets
     }
 
     // 0xB1
-    public static void SendGumpResponse(this NetClient socket, uint local, uint server, int button,
+    public static void SendGumpResponse(this NetClient socket, Serial local, Serial server, int button,
         ReadOnlySpan<uint> switches, ReadOnlySpan<(ushort, string)> entries)
     {
         using VariableSpanWriter writer = new(0xB1, stackalloc byte[3 + 20 + switches.Length * 4], true);
-        writer.WriteUInt32BE(local);
-        writer.WriteUInt32BE(server);
+        writer.WriteSerial(local);
+        writer.WriteSerial(server);
         writer.WriteUInt32BE((uint)button);
         writer.WriteUInt32BE((uint)switches.Length);
 
@@ -1008,10 +1010,10 @@ internal static class OutgoingPackets
     }
 
     // 0xB1
-    public static void SendVirtueGumpResponse(this NetClient socket, uint serial, uint code)
+    public static void SendVirtueGumpResponse(this NetClient socket, Serial serial, uint code)
     {
         using FixedSpanWriter writer = new(0xB1, stackalloc byte[3 + 12], true);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
         writer.WriteUInt32BE(0x000001CD);
         writer.WriteUInt32BE(code);
 
@@ -1095,11 +1097,11 @@ internal static class OutgoingPackets
     }
 
     // 0xB8
-    public static void SendProfileRequest(this NetClient socket, uint serial)
+    public static void SendProfileRequest(this NetClient socket, Serial serial)
     {
         using FixedSpanWriter writer = new(0xB8, stackalloc byte[3 + 5], true);
         writer.WriteUInt8(0x00);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
 
         writer.WritePacketLength();
 
@@ -1107,11 +1109,11 @@ internal static class OutgoingPackets
     }
 
     // 0xB8
-    public static void SendProfileUpdate(this NetClient socket, uint serial, string text)
+    public static void SendProfileUpdate(this NetClient socket, Serial serial, string text)
     {
         using FixedSpanWriter writer = new(0xB8, 3 + 9 + text.Length * 2, true);
         writer.WriteUInt8(0x01);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
         writer.WriteUInt16BE(0x01);
         writer.WriteUInt16BE((ushort)text.Length);
         writer.WriteString<UnicodeBE>(text);
@@ -1173,11 +1175,11 @@ internal static class OutgoingPackets
     }
 
     // 0xBF
-    public static void SendCloseStatusBarGump(this NetClient socket, uint serial)
+    public static void SendCloseStatusBarGump(this NetClient socket, Serial serial)
     {
         using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 6], true);
         writer.WriteUInt16BE(0x0C);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
 
         writer.WritePacketLength();
 
@@ -1198,12 +1200,12 @@ internal static class OutgoingPackets
     }
 
     // 0xBF
-    public static void SendPartyRemoveRequest(this NetClient socket, uint serial)
+    public static void SendPartyRemoveRequest(this NetClient socket, Serial serial)
     {
         using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 7], true);
         writer.WriteUInt16BE(0x06);
         writer.WriteUInt8(2);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
 
         writer.WritePacketLength();
 
@@ -1224,12 +1226,12 @@ internal static class OutgoingPackets
     }
 
     // 0xBF
-    public static void SendPartyAccept(this NetClient socket, uint serial)
+    public static void SendPartyAccept(this NetClient socket, Serial serial)
     {
         using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 7], true);
         writer.WriteUInt16BE(0x06);
         writer.WriteUInt8(0x08);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
 
         writer.WritePacketLength();
 
@@ -1237,12 +1239,12 @@ internal static class OutgoingPackets
     }
 
     // 0xBF
-    public static void Send_PartyDecline(this NetClient socket, uint serial)
+    public static void Send_PartyDecline(this NetClient socket, Serial serial)
     {
         using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 7], true);
         writer.WriteUInt16BE(0x06);
         writer.WriteUInt8(0x09);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
 
         writer.WritePacketLength();
 
@@ -1250,15 +1252,15 @@ internal static class OutgoingPackets
     }
 
     // 0xBF
-    public static void SendPartyMessage(this NetClient socket, string text, uint serial)
+    public static void SendPartyMessage(this NetClient socket, string text, Serial serial)
     {
         using FixedSpanWriter writer = new(0xBF, 3 + 7 + text.Length * 2, true);
         writer.WriteUInt16BE(0x06);
 
-        if (SerialHelper.IsValid(serial))
+        if (serial.IsEntity)
         {
             writer.WriteUInt8(0x03);
-            writer.WriteUInt32BE(serial);
+            writer.WriteSerial(serial);
         }
         else
         {
@@ -1312,11 +1314,11 @@ internal static class OutgoingPackets
     }
 
     // 0xBF
-    public static void SendRequestPopupMenu(this NetClient socket, uint serial)
+    public static void SendRequestPopupMenu(this NetClient socket, Serial serial)
     {
         using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 6], true);
         writer.WriteUInt16BE(0x13);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
 
         writer.WritePacketLength();
 
@@ -1324,11 +1326,11 @@ internal static class OutgoingPackets
     }
 
     // 0xBF
-    public static void SendPopupMenuSelection(this NetClient socket, uint serial, ushort menuid)
+    public static void SendPopupMenuSelection(this NetClient socket, Serial serial, ushort menuid)
     {
         using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 8], true);
         writer.WriteUInt16BE(0x15);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
         writer.WriteUInt16BE(menuid);
 
         writer.WritePacketLength();
@@ -1337,11 +1339,11 @@ internal static class OutgoingPackets
     }
 
     // 0xBF
-    public static void SendMegaClilocRequest(this NetClient socket, uint serial)
+    public static void SendMegaClilocRequest(this NetClient socket, Serial serial)
     {
         using VariableSpanWriter writer = new(0xBF, stackalloc byte[3 + 6], true);
         writer.WriteUInt16BE(0x10);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
 
         writer.WritePacketLength();
 
@@ -1363,12 +1365,12 @@ internal static class OutgoingPackets
 
 
     // 0xBF
-    public static void SendTargetSelectedObject(this NetClient socket, uint serial, uint targetSerial)
+    public static void SendTargetSelectedObject(this NetClient socket, Serial serial, Serial targetSerial)
     {
         using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 10], true);
         writer.WriteUInt16BE(0x2C);
-        writer.WriteUInt32BE(serial);
-        writer.WriteUInt32BE(targetSerial);
+        writer.WriteSerial(serial);
+        writer.WriteSerial(targetSerial);
 
         writer.WritePacketLength();
 
@@ -1389,11 +1391,11 @@ internal static class OutgoingPackets
     }
 
     // 0xBF
-    public static void SendCustomHouseDataRequest(this NetClient socket, uint serial)
+    public static void SendCustomHouseDataRequest(this NetClient socket, Serial serial)
     {
         using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 6], true);
         writer.WriteUInt16BE(0x1E);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
 
         writer.WritePacketLength();
 
@@ -1430,11 +1432,11 @@ internal static class OutgoingPackets
     }
 
     // 0xBF
-    public static void SendMultiBoatMoveRequest(this NetClient socket, uint serial, Direction dir, byte speed)
+    public static void SendMultiBoatMoveRequest(this NetClient socket, Serial serial, Direction dir, byte speed)
     {
         using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 9], true);
         writer.WriteUInt16BE(0x33);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
         writer.WriteUInt8((byte)dir);
         writer.WriteUInt8((byte)dir);
         writer.WriteUInt8(speed);
@@ -1472,10 +1474,10 @@ internal static class OutgoingPackets
     }
 
     // 0xD4
-    public static void SendBookHeaderChanged(this NetClient socket, uint serial, string title, string author)
+    public static void SendBookHeaderChanged(this NetClient socket, Serial serial, string title, string author)
     {
         using FixedSpanWriter writer = new(0xD4, 3 + 14 + title.Length * 2 + author.Length * 2, true);
-        writer.WriteUInt32BE(serial);
+        writer.WriteSerial(serial);
         writer.WriteUInt8(0x00);
         writer.WriteUInt8(0x00);
         writer.WriteUInt16BE(0);
@@ -1496,7 +1498,7 @@ internal static class OutgoingPackets
     }
 
     // 0xD6
-    private static void SendMegaClilocRequestNew(this NetClient socket, List<uint> serials)
+    private static void SendMegaClilocRequestNew(this NetClient socket, List<Serial> serials)
     {
         int count = Math.Min(15, serials.Count);
 
@@ -1504,7 +1506,7 @@ internal static class OutgoingPackets
 
         for (int i = 0; i < count; i++)
         {
-            writer.WriteUInt32BE(serials[i]);
+            writer.WriteSerial(serials[i]);
         }
 
         serials.RemoveRange(0, count);
@@ -1518,7 +1520,7 @@ internal static class OutgoingPackets
     public static void SendGuildMenuRequest(this NetClient socket, World world)
     {
         using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 11], true);
-        writer.WriteUInt32BE(world.Player.Serial);
+        writer.WriteSerial(world.Player.Serial);
         writer.WriteUInt16BE(0x28);
         writer.WriteUInt8(0x0A);
 
@@ -1531,7 +1533,7 @@ internal static class OutgoingPackets
     public static void SendQuestMenuRequest(this NetClient socket, World world)
     {
         using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 7], true);
-        writer.WriteUInt32BE(world.Player.Serial);
+        writer.WriteSerial(world.Player.Serial);
         writer.WriteUInt16BE(0x32);
         writer.WriteUInt8(0x00);
 
@@ -1544,7 +1546,7 @@ internal static class OutgoingPackets
     public static void SendEquipLastWeapon(this NetClient socket, World world)
     {
         using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 7], true);
-        writer.WriteUInt32BE(world.Player.Serial);
+        writer.WriteSerial(world.Player.Serial);
         writer.WriteUInt16BE(0x1E);
         writer.WriteUInt8(0x0A);
 
@@ -1557,7 +1559,7 @@ internal static class OutgoingPackets
     public static void SendUseCombatAbility(this NetClient socket, World world, byte idx)
     {
         using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 12], true);
-        writer.WriteUInt32BE(world.Player.Serial);
+        writer.WriteSerial(world.Player.Serial);
         writer.WriteUInt16BE(0x19);
         writer.WriteUInt32BE(0);
         writer.WriteUInt8(idx);
@@ -1574,7 +1576,7 @@ internal static class OutgoingPackets
     public static void SendCustomHouseBackup(this NetClient socket, World world)
     {
         using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 7], true);
-        writer.WriteUInt32BE(world.Player.Serial);
+        writer.WriteSerial(world.Player.Serial);
         writer.WriteUInt16BE(0x02);
         writer.WriteUInt8(0x0A);
 
@@ -1587,7 +1589,7 @@ internal static class OutgoingPackets
     public static void SendCustomHouseRestore(this NetClient socket, World world)
     {
         using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 7], true);
-        writer.WriteUInt32BE(world.Player.Serial);
+        writer.WriteSerial(world.Player.Serial);
         writer.WriteUInt16BE(0x03);
         writer.WriteUInt8(0x0A);
 
@@ -1600,7 +1602,7 @@ internal static class OutgoingPackets
     public static void SendCustomHouseCommit(this NetClient socket, World world)
     {
         using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 7], true);
-        writer.WriteUInt32BE(world.Player.Serial);
+        writer.WriteSerial(world.Player.Serial);
         writer.WriteUInt16BE(0x04);
         writer.WriteUInt8(0x0A);
 
@@ -1613,7 +1615,7 @@ internal static class OutgoingPackets
     public static void SendCustomHouseBuildingExit(this NetClient socket, World world)
     {
         using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 7], true);
-        writer.WriteUInt32BE(world.Player.Serial);
+        writer.WriteSerial(world.Player.Serial);
         writer.WriteUInt16BE(0x0C);
         writer.WriteUInt8(0x0A);
 
@@ -1626,7 +1628,7 @@ internal static class OutgoingPackets
     public static void SendCustomHouseGoToFloor(this NetClient socket, World world, byte floor)
     {
         using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 12], true);
-        writer.WriteUInt32BE(world.Player.Serial);
+        writer.WriteSerial(world.Player.Serial);
         writer.WriteUInt16BE(0x12);
         writer.WriteUInt32BE(0);
         writer.WriteUInt8(floor);
@@ -1641,7 +1643,7 @@ internal static class OutgoingPackets
     public static void SendCustomHouseSync(this NetClient socket, World world)
     {
         using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 7], true);
-        writer.WriteUInt32BE(world.Player.Serial);
+        writer.WriteSerial(world.Player.Serial);
         writer.WriteUInt16BE(0x0E);
         writer.WriteUInt8(0x0A);
 
@@ -1654,7 +1656,7 @@ internal static class OutgoingPackets
     public static void SendCustomHouseClear(this NetClient socket, World world)
     {
         using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 7], true);
-        writer.WriteUInt32BE(world.Player.Serial);
+        writer.WriteSerial(world.Player.Serial);
         writer.WriteUInt16BE(0x10);
         writer.WriteUInt8(0x0A);
 
@@ -1667,7 +1669,7 @@ internal static class OutgoingPackets
     public static void SendCustomHouseRevert(this NetClient socket, World world)
     {
         using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 7], true);
-        writer.WriteUInt32BE(world.Player.Serial);
+        writer.WriteSerial(world.Player.Serial);
         writer.WriteUInt16BE(0x1A);
         writer.WriteUInt8(0x0A);
 
@@ -1680,7 +1682,7 @@ internal static class OutgoingPackets
     public static void SendCustomHouseResponse(this NetClient socket, World world)
     {
         using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 7], true);
-        writer.WriteUInt32BE(world.Player.Serial);
+        writer.WriteSerial(world.Player.Serial);
         writer.WriteUInt16BE(0x0A);
         writer.WriteUInt8(0x0A);
 
@@ -1693,7 +1695,7 @@ internal static class OutgoingPackets
     public static void SendCustomHouseAddItem(this NetClient socket, World world, ushort graphic, int x, int y)
     {
         using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 22], true);
-        writer.WriteUInt32BE(world.Player.Serial);
+        writer.WriteSerial(world.Player.Serial);
         writer.WriteUInt16BE(0x06);
         writer.WriteUInt8(0x00);
         writer.WriteUInt32BE(graphic);
@@ -1712,7 +1714,7 @@ internal static class OutgoingPackets
     public static void SendCustomHouseDeleteItem(this NetClient socket, World world, ushort graphic, int x, int y, int z)
     {
         using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 27], true);
-        writer.WriteUInt32BE(world.Player.Serial);
+        writer.WriteSerial(world.Player.Serial);
         writer.WriteUInt16BE(0x05);
         writer.WriteUInt8(0x00);
         writer.WriteUInt32BE(graphic);
@@ -1733,7 +1735,7 @@ internal static class OutgoingPackets
     public static void SendCustomHouseAddRoof(this NetClient socket, World world, ushort graphic, int x, int y, int z)
     {
         using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 27], true);
-        writer.WriteUInt32BE(world.Player.Serial);
+        writer.WriteSerial(world.Player.Serial);
         writer.WriteUInt16BE(0x13);
         writer.WriteUInt8(0x00);
         writer.WriteUInt32BE(graphic);
@@ -1754,7 +1756,7 @@ internal static class OutgoingPackets
     public static void SendCustomHouseDeleteRoof(this NetClient socket, World world, ushort graphic, int x, int y, int z)
     {
         using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 27], true);
-        writer.WriteUInt32BE(world.Player.Serial);
+        writer.WriteSerial(world.Player.Serial);
         writer.WriteUInt16BE(0x14);
         writer.WriteUInt8(0x00);
         writer.WriteUInt32BE(graphic);
@@ -1775,7 +1777,7 @@ internal static class OutgoingPackets
     public static void SendCustomHouseAddStair(this NetClient socket, World world, ushort graphic, int x, int y)
     {
         using FixedSpanWriter writer = new(0xD7, stackalloc byte[3 + 22], true);
-        writer.WriteUInt32BE(world.Player.Serial);
+        writer.WriteSerial(world.Player.Serial);
         writer.WriteUInt16BE(0x0D);
         writer.WriteUInt8(0x00);
         writer.WriteUInt32BE(graphic);
@@ -1913,7 +1915,7 @@ internal static class OutgoingPackets
         Plugin.ProcessRecvPacket(temp, ref len);
     }
 
-    public static void SendMegaClilocRequest(this NetClient client, List<uint> clilocRequests)
+    public static void SendMegaClilocRequest(this NetClient client, List<Serial> clilocRequests)
     {
         if (Client.Game.UO.Version >= ClientVersion.CV_5090)
         {
@@ -1922,7 +1924,7 @@ internal static class OutgoingPackets
         }
         else
         {
-            foreach (uint serial in clilocRequests)
+            foreach (Serial serial in clilocRequests)
             {
                 client.SendMegaClilocRequest(serial);
             }
@@ -1931,7 +1933,7 @@ internal static class OutgoingPackets
         }
     }
 
-    public static void SendDropRequest(this NetClient client, uint serial, int x, int y, int z, uint container)
+    public static void SendDropRequest(this NetClient client, Serial serial, int x, int y, int z, Serial container)
     {
         if (Client.Game.UO.Version >= ClientVersion.CV_6017)
             client.SendDropRequestNew(serial, (ushort)x, (ushort)y, (sbyte)z, 0, container);

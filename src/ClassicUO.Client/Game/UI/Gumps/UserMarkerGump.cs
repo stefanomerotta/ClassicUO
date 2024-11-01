@@ -48,7 +48,9 @@ namespace ClassicUO.Game.UI.Gumps
             CANCEL_BTN,
         }
 
-        internal UserMarkersGump(World world, int x, int y, List<WMapMarker> markers, string color = "none", string icon = "exit", bool isEdit = false, int markerIdx = -1) : base(world, 0, 0)
+        internal UserMarkersGump(World world, int x, int y, List<WMapMarker> markers, string color = "none", 
+            string icon = "exit", bool isEdit = false, int markerIdx = -1) 
+            : base(world)
         {
             CanMove = true;
 

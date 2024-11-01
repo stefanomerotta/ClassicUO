@@ -53,7 +53,7 @@ namespace ClassicUO.Game.UI.Gumps
         private ushort _graphic;
         private DataBox _box;
 
-        public BuffGump(World world) : base(world, 0, 0)
+        public BuffGump(World world) : base(world)
         {
             CanMove = true;
             CanCloseWithRightClick = true;
@@ -84,7 +84,7 @@ namespace ClassicUO.Game.UI.Gumps
 
             Clear();
 
-            Add(_background = new GumpPic(0, 0, _graphic, 0) { LocalSerial = 1 });
+            Add(_background = new GumpPic(0, 0, _graphic, 0) { LocalSerial = new(1) });
 
             Add(
                 _button = new Button(0, 0x7585, 0x7589, 0x7589)

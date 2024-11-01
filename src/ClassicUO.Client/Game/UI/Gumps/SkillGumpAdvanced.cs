@@ -70,7 +70,7 @@ namespace ClassicUO.Game.UI.Gumps
             _totalValue;
         private bool _updateSkillsNeeded;
 
-        public SkillGumpAdvanced(World world) : base(world, 0, 0)
+        public SkillGumpAdvanced(World world) : base(world)
         {
             _totalReal = 0;
             _totalValue = 0;

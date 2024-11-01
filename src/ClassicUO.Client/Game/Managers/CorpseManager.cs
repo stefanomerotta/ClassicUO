@@ -46,7 +46,7 @@ namespace ClassicUO.Game.Managers
             _world = world;
         }
 
-        public void Add(uint corpse, uint obj, Direction dir, bool run)
+        public void Add(Serial corpse, Serial obj, Direction dir, bool run)
         {
             for (int i = 0; i < _corpses.Count; i++)
             {
@@ -61,7 +61,7 @@ namespace ClassicUO.Game.Managers
             _corpses.AddToBack(new CorpseInfo(corpse, obj, dir, run));
         }
 
-        public void Remove(uint corpse, uint obj)
+        public void Remove(Serial corpse, Serial obj)
         {
             for (int i = 0; i < _corpses.Count;)
             {
@@ -88,7 +88,7 @@ namespace ClassicUO.Game.Managers
             }
         }
 
-        public bool Exists(uint corpse, uint obj)
+        public bool Exists(Serial corpse, Serial obj)
         {
             for (int i = 0; i < _corpses.Count; i++)
             {
@@ -103,7 +103,7 @@ namespace ClassicUO.Game.Managers
             return false;
         }
 
-        public Item GetCorpseObject(uint serial)
+        public Item GetCorpseObject(Serial serial)
         {
             for (int i = 0; i < _corpses.Count; i++)
             {
@@ -126,7 +126,7 @@ namespace ClassicUO.Game.Managers
 
     internal struct CorpseInfo
     {
-        public CorpseInfo(uint corpseSerial, uint objectSerial, Direction direction, bool isRunning)
+        public CorpseInfo(Serial corpseSerial, Serial objectSerial, Direction direction, bool isRunning)
         {
             CorpseSerial = corpseSerial;
             ObjectSerial = objectSerial;
@@ -134,7 +134,7 @@ namespace ClassicUO.Game.Managers
             IsRunning = isRunning;
         }
 
-        public uint CorpseSerial, ObjectSerial;
+        public Serial CorpseSerial, ObjectSerial;
         public Direction Direction;
         public bool IsRunning;
     }

@@ -104,7 +104,7 @@ namespace ClassicUO.Game.UI.Controls
 
         private bool _updateUI;
 
-        public PaperDollInteractable(int x, int y, uint serial, PaperDollGump paperDollGump)
+        public PaperDollInteractable(int x, int y, Serial serial, PaperDollGump paperDollGump)
         {
             X = x;
             Y = y;
@@ -322,7 +322,7 @@ namespace ClassicUO.Game.UI.Controls
                     Add(
                         new GumpPicEquipment(
                             _paperDollGump,
-                            0,
+                            Serial.Zero,
                             0,
                             0,
                             id,
@@ -476,41 +476,28 @@ namespace ClassicUO.Game.UI.Controls
             private readonly Layer _layer;
             private readonly Gump _gump;
 
-            public GumpPicEquipment(
-                Gump gump,
-                uint serial,
-                int x,
-                int y,
-                ushort graphic,
-                ushort hue,
-                Layer layer
-            ) : base(x, y, graphic, hue)
+            public bool CanLift { get; set; }
+            
+            public GumpPicEquipment(Gump gump, Serial serial, int x, int y, ushort graphic, ushort hue, Layer layer) 
+                : base(x, y, graphic, hue)
             {
                 _gump = gump;
                 LocalSerial = serial;
                 CanMove = false;
                 _layer = layer;
 
-                if (SerialHelper.IsValid(serial) && _gump.World.InGame)
-                {
+                if (serial.IsValid && _gump.World.InGame)
                     SetTooltip(serial);
-                }
             }
-
-            public bool CanLift { get; set; }
 
             protected override bool OnMouseDoubleClick(int x, int y, MouseButtonType button)
             {
                 if (button != MouseButtonType.Left)
-                {
                     return false;
-                }
 
                 // this check is necessary to avoid crashes during character creation
                 if (_gump.World.InGame)
-                {
                     GameActions.DoubleClick(_gump.World, LocalSerial);
-                }
 
                 return true;
             }
@@ -544,9 +531,7 @@ namespace ClassicUO.Game.UI.Controls
                         GameActions.PickUp(_gump.World, LocalSerial, 0, 0);
 
                         if (_layer == Layer.OneHanded || _layer == Layer.TwoHanded)
-                        {
                             _gump.World.Player.UpdateAbilities();
-                        }
                     }
                     else if (MouseIsOver)
                     {

@@ -51,7 +51,7 @@ namespace ClassicUO.Game.UI.Gumps
         private GumpPic _pageCornerLeft, _pageCornerRight, _primAbility, _secAbility;
         private int _enqueuePage = -1;
 
-        public CombatBookGump(World world, int x, int y) : base(world, 0, 0)
+        public CombatBookGump(World world, int x, int y) : base(world)
         {
             X = x;
             Y = y;
@@ -82,12 +82,12 @@ namespace ClassicUO.Game.UI.Gumps
 
 
             Add(_pageCornerLeft = new GumpPic(50, 8, 0x08BB, 0));
-            _pageCornerLeft.LocalSerial = 0;
+            _pageCornerLeft.LocalSerial = new(0);
             _pageCornerLeft.Page = int.MaxValue;
             _pageCornerLeft.MouseUp += PageCornerOnMouseClick;
             _pageCornerLeft.MouseDoubleClick += PageCornerOnMouseDoubleClick;
             Add(_pageCornerRight = new GumpPic(321, 8, 0x08BC, 0));
-            _pageCornerRight.LocalSerial = 1;
+            _pageCornerRight.LocalSerial = new(1);
             _pageCornerRight.Page = 1;
             _pageCornerRight.MouseUp += PageCornerOnMouseClick;
             _pageCornerRight.MouseDoubleClick += PageCornerOnMouseDoubleClick;
@@ -133,7 +133,7 @@ namespace ClassicUO.Game.UI.Gumps
                         )
                         {
                             X = dataX, Y = 42 + y, AcceptMouseInput = true,
-                            LocalSerial = (uint) maxPages++,
+                            LocalSerial = new((uint) maxPages++),
                             Tag = offs
                         };
 
@@ -141,7 +141,7 @@ namespace ClassicUO.Game.UI.Gumps
                         {
                             if (s is HoveredLabel l && e.Button == MouseButtonType.Left)
                             {
-                                _enqueuePage = (int)l.LocalSerial;
+                                _enqueuePage = (int)l.LocalSerial.Value;
                             }
                         };
 

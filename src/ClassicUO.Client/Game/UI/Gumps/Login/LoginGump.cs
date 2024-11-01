@@ -56,7 +56,7 @@ namespace ClassicUO.Game.UI.Gumps.Login
 
         private float _time;
 
-        public LoginGump(World world, LoginScene scene) : base(world, 0, 0)
+        public LoginGump(World world, LoginScene scene) : base(world)
         {
             CanCloseWithRightClick = false;
 

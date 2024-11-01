@@ -46,9 +46,9 @@ namespace ClassicUO.Game.Managers
         private const int FAST_INTERVAL = 250;
 
 
-        private readonly Dictionary<uint, Deque<BoatStep>> _steps = new Dictionary<uint, Deque<BoatStep>>();
-        private readonly List<uint> _toRemove = new List<uint>();
-        private readonly Dictionary<uint, FastList<ItemInside>> _items = new Dictionary<uint, FastList<ItemInside>>();
+        private readonly Dictionary<Serial, Deque<BoatStep>> _steps = [];
+        private readonly Dictionary<Serial, FastList<ItemInside>> _items = [];
+        private readonly List<Serial> _toRemove = [];
 
         private uint _timePacket;
         private readonly World _world;
@@ -74,16 +74,16 @@ namespace ClassicUO.Game.Managers
             }
         }
 
-        public void MoveRequest(Direction direciton, byte speed)
+        public void MoveRequest(Direction direction, byte speed)
         {
-            NetClient.Socket.SendMultiBoatMoveRequest(_world.Player, direciton, speed);
+            NetClient.Socket.SendMultiBoatMoveRequest(_world.Player, direction, speed);
             _timePacket = Time.Ticks;
         }
 
 
         public void AddStep
         (
-            uint serial,
+            Serial serial,
             byte speed,
             Direction movingDir,
             Direction facingDir,
@@ -151,7 +151,7 @@ namespace ClassicUO.Game.Managers
             Console.WriteLine("CURRENT PACKET TIME: {0}", _timePacket);
         }
 
-        public void ClearSteps(uint serial)
+        public void ClearSteps(Serial serial)
         {
             if (_steps.TryGetValue(serial, out Deque<BoatStep> deque) && deque.Count != 0)
             {
@@ -164,7 +164,7 @@ namespace ClassicUO.Game.Managers
                     multiItem.Offset.Z = 0;
                 }
 
-                if (_items.TryGetValue(serial, out var list))
+                if (_items.TryGetValue(serial, out FastList<ItemInside> list))
                 {
                     for (int i = 0; i < list.Length; i++)
                     {
@@ -189,7 +189,7 @@ namespace ClassicUO.Game.Managers
             }
         }
 
-        public void ClearEntities(uint serial)
+        public void ClearEntities(Serial serial)
         {
             _items.Remove(serial);
 
@@ -200,7 +200,7 @@ namespace ClassicUO.Game.Managers
         }
 
 
-        public void PushItemToList(uint serial, uint objSerial, int x, int y, int z)
+        public void PushItemToList(Serial serial, Serial objSerial, int x, int y, int z)
         {
             if (!_items.TryGetValue(serial, out var list))
             {
@@ -213,7 +213,7 @@ namespace ClassicUO.Game.Managers
             {
                 ref var item = ref list.Buffer[i];
 
-                if (!SerialHelper.IsValid(item.Serial))
+                if (!item.Serial.IsEntity)
                 {
                     break;
                 }
@@ -287,7 +287,7 @@ namespace ClassicUO.Game.Managers
 
                     //item.BoatDirection = step.MovingDir;
 
-                    _world.HouseManager.TryGetHouse(item, out House house);
+                    _world.HouseManager.TryGetHouse(item.Serial, out House house);
 
                     if (removeStep)
                     {
@@ -312,7 +312,7 @@ namespace ClassicUO.Game.Managers
 
                         UpdateEntitiesInside
                         (
-                            item,
+                            item.Serial,
                             removeStep,
                             step.X,
                             step.Y,
@@ -334,7 +334,7 @@ namespace ClassicUO.Game.Managers
 
                         UpdateEntitiesInside
                         (
-                            item,
+                            item.Serial,
                             removeStep,
                             item.X,
                             item.Y,
@@ -365,7 +365,7 @@ namespace ClassicUO.Game.Managers
 
         private void UpdateEntitiesInside
         (
-            uint serial,
+            Serial serial,
             bool removeStep,
             int x,
             int y,
@@ -450,7 +450,7 @@ namespace ClassicUO.Game.Managers
 
         private struct BoatStep
         {
-            public uint Serial;
+            public Serial Serial;
             public int TimeDiff;
             public ushort X, Y;
             public sbyte Z;
@@ -460,7 +460,7 @@ namespace ClassicUO.Game.Managers
 
         private struct ItemInside
         {
-            public uint Serial;
+            public Serial Serial;
             public int X, Y, Z;
         }
     }

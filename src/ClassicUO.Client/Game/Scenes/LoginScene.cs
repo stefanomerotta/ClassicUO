@@ -206,7 +206,7 @@ namespace ClassicUO.Game.Scenes
         {
             foreach (Item item in _world.Items.Values)
             {
-                _world.RemoveItem(item);
+                _world.RemoveItem(item.Serial);
             }
 
             foreach (Mobile mobile in _world.Mobiles.Values)

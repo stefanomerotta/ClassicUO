@@ -30,9 +30,7 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using ClassicUO.Game.Data;
 using ClassicUO.Game.Managers;
 using ClassicUO.Input;
 using ClassicUO.Renderer;
@@ -40,8 +38,10 @@ using ClassicUO.Utility;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using SDL2;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Keyboard = ClassicUO.Input.Keyboard;
-using Mouse = ClassicUO.Input.Mouse;
 
 namespace ClassicUO.Game.UI.Controls
 {
@@ -70,13 +70,9 @@ namespace ClassicUO.Game.UI.Controls
         }
 
         public virtual ClickPriority Priority { get; set; } = ClickPriority.Default;
-
-        public uint ServerSerial { get; set; }
-
-        public uint LocalSerial { get; set; }
-
+        public Serial ServerSerial { get; set; }
+        public Serial LocalSerial { get; set; }
         public bool IsFromServer { get; set; }
-
         public int Page { get; set; }
 
         public Point Location
@@ -389,7 +385,7 @@ namespace ClassicUO.Game.UI.Controls
             }
         }
 
-        public void SetTooltip(uint entity)
+        public void SetTooltip(Serial entity)
         {
             ClearTooltip();
             Tooltip = entity;

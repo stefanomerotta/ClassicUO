@@ -57,11 +57,11 @@ namespace ClassicUO.Game.UI
 
         public bool IsEmpty => Text == null;
 
-        public uint Serial { get; private set; }
+        public Serial Serial { get; private set; }
 
         public bool Draw(UltimaBatcher2D batcher, int x, int y)
         {
-            if (SerialHelper.IsValid(Serial) && _world.OPL.TryGetRevision(Serial, out uint revision) && _hash != revision)
+            if (Serial.IsEntity && _world.OPL.TryGetRevision(Serial, out uint revision) && _hash != revision)
             {
                 _hash = revision;
                 Text = ReadProperties(Serial, out _textHTML);
@@ -228,13 +228,13 @@ namespace ClassicUO.Game.UI
 
         public void Clear()
         {
-            Serial = 0;
+            Serial = Serial.Zero;
             _hash = 0;
             _textHTML = Text = null;
             _maxWidth = 0;
         }
 
-        public void SetGameObject(uint serial)
+        public void SetGameObject(Serial serial)
         {
             if (Serial == 0 || serial != Serial)
             {
@@ -253,14 +253,14 @@ namespace ClassicUO.Game.UI
         }
 
 
-        private string ReadProperties(uint serial, out string htmltext)
+        private string ReadProperties(Serial serial, out string htmltext)
         {
             bool hasStartColor = false;
 
             string result = null;
             htmltext = string.Empty;
 
-            if (SerialHelper.IsValid(serial) && _world.OPL.TryGetNameAndData(serial, out string name, out string data))
+            if (serial.IsEntity && _world.OPL.TryGetNameAndData(serial, out string name, out string data))
             {
                 ValueStringBuilder sbHTML = new ValueStringBuilder();
                 {
@@ -268,7 +268,7 @@ namespace ClassicUO.Game.UI
                     {
                         if (!string.IsNullOrEmpty(name))
                         {
-                            if (SerialHelper.IsItem(serial))
+                            if (serial.IsItem)
                             {
                                 sbHTML.Append("<basefont color=\"yellow\">");
                                 hasStartColor = true;
@@ -322,7 +322,7 @@ namespace ClassicUO.Game.UI
             //if (Text != text)
             {
                 _maxWidth = maxWidth;
-                Serial = 0;
+                Serial = Serial.Zero;
                 Text = _textHTML = text;
 
                 _lastHoverTime = (uint) (Time.Ticks + (ProfileManager.CurrentProfile != null ? ProfileManager.CurrentProfile.TooltipDelayBeforeDisplay : 250));

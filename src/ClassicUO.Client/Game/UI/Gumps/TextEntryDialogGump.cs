@@ -30,6 +30,7 @@
 
 #endregion
 
+using ClassicUO.Game.Data;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Network;
@@ -43,7 +44,7 @@ namespace ClassicUO.Game.UI.Gumps
         public TextEntryDialogGump
         (
             World world,
-            uint serial,
+            Serial serial,
             int x,
             int y,
             byte variant,
@@ -52,7 +53,7 @@ namespace ClassicUO.Game.UI.Gumps
             string description,
             byte buttonid,
             byte parentid
-        ) : base(world, serial, 0)
+        ) : base(world, serial, Serial.Zero)
         {
             CanMove = false;
             IsFromServer = true;

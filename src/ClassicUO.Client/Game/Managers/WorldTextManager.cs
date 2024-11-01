@@ -32,6 +32,7 @@
 
 using System;
 using System.Collections.Generic;
+using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Renderer;
 
@@ -39,50 +40,45 @@ namespace ClassicUO.Game.Managers
 {
     internal class WorldTextManager : TextRenderer
     {
-        private readonly Dictionary<uint, OverheadDamage> _damages = new Dictionary<uint, OverheadDamage>();
-        private readonly List<Tuple<uint, uint>> _subst = new List<Tuple<uint, uint>>();
-        private readonly List<uint> _toRemoveDamages = new List<uint>();
+        private readonly Dictionary<Serial, OverheadDamage> _damages = [];
+        private readonly List<Tuple<Serial, Serial>> _subst = [];
+        private readonly List<Serial> _toRemoveDamages = [];
 
-        public WorldTextManager(World world) : base(world) { }
+        public WorldTextManager(World world)
+            : base(world)
+        { }
 
         public override void Update()
         {
             base.Update();
 
-
             UpdateDamageOverhead();
 
-            if (_toRemoveDamages.Count > 0)
-            {
-                foreach (uint s in _toRemoveDamages)
-                {
-                    _damages.Remove(s);
-                }
+            if (_toRemoveDamages.Count <= 0)
+                return;
 
-                _toRemoveDamages.Clear();
+            foreach (Serial s in _toRemoveDamages)
+            {
+                _damages.Remove(s);
             }
+
+            _toRemoveDamages.Clear();
         }
 
 
         public override void Draw(UltimaBatcher2D batcher, int startX, int startY, bool isGump = false)
         {
-            base.Draw
-            (
-                batcher,
-                startX,
-                startY,
-                isGump
-            );
+            base.Draw(batcher, startX, startY, isGump);
 
-            foreach (KeyValuePair<uint, OverheadDamage> overheadDamage in _damages)
+            foreach (KeyValuePair<Serial, OverheadDamage> overheadDamage in _damages)
             {
                 Entity mob = World.Get(overheadDamage.Key);
 
                 if (mob == null || mob.IsDestroyed)
                 {
-                    uint ser = overheadDamage.Key | 0x8000_0000;
+                    Serial ser = overheadDamage.Key.ToVirtual();
 
-                    if (World.CorpseManager.Exists(0, ser))
+                    if (World.CorpseManager.Exists(Serial.Zero, ser))
                     {
                         Item item = World.CorpseManager.GetCorpseObject(ser);
 
@@ -106,7 +102,7 @@ namespace ClassicUO.Game.Managers
         {
             if (_subst.Count != 0)
             {
-                foreach (Tuple<uint, uint> tuple in _subst)
+                foreach (Tuple<Serial, Serial> tuple in _subst)
                 {
                     if (_damages.TryGetValue(tuple.Item1, out OverheadDamage dmg))
                     {
@@ -118,7 +114,7 @@ namespace ClassicUO.Game.Managers
                 _subst.Clear();
             }
 
-            foreach (KeyValuePair<uint, OverheadDamage> overheadDamage in _damages)
+            foreach (KeyValuePair<Serial, OverheadDamage> overheadDamage in _damages)
             {
                 overheadDamage.Value.Update();
 
@@ -130,7 +126,7 @@ namespace ClassicUO.Game.Managers
         }
 
 
-        internal void AddDamage(uint obj, int dmg)
+        internal void AddDamage(Serial obj, int dmg)
         {
             if (!_damages.TryGetValue(obj, out OverheadDamage dm) || dm == null)
             {
@@ -145,7 +141,7 @@ namespace ClassicUO.Game.Managers
         {
             if (_toRemoveDamages.Count > 0)
             {
-                foreach (uint s in _toRemoveDamages)
+                foreach (Serial s in _toRemoveDamages)
                 {
                     _damages.Remove(s);
                 }

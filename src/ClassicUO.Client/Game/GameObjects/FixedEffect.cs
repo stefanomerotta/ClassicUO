@@ -30,6 +30,7 @@
 
 #endregion
 
+using ClassicUO.Game.Data;
 using ClassicUO.Game.Managers;
 using ClassicUO.Utility;
 
@@ -63,7 +64,7 @@ namespace ClassicUO.Game.GameObjects
         (
             World world,
             EffectManager manager,
-            uint sourceSerial,
+            Serial sourceSerial,
             ushort sourceX,
             ushort sourceY,
             sbyte sourceZ,
@@ -75,7 +76,7 @@ namespace ClassicUO.Game.GameObjects
         {
             Entity source = World.Get(sourceSerial);
 
-            if (source != null && SerialHelper.IsValid(sourceSerial))
+            if (source != null && sourceSerial.IsEntity)
             {
                 SetSource(source);
             }

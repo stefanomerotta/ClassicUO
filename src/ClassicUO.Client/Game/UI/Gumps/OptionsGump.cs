@@ -179,7 +179,7 @@ namespace ClassicUO.Game.UI.Gumps
 
         private Profile _currentProfile = ProfileManager.CurrentProfile;
 
-        public OptionsGump(World world) : base(world, 0, 0)
+        public OptionsGump(World world) : base(world)
         {
             Add
             (

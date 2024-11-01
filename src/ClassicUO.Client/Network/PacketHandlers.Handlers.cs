@@ -24,6 +24,7 @@
 
 using ClassicUO.Assets;
 using ClassicUO.Configuration;
+using ClassicUO.Extensions;
 using ClassicUO.Game;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
@@ -204,7 +205,7 @@ internal sealed partial class PacketHandlers
         if (world.Player is null)
             return;
 
-        Entity? entity = world.Get(p.ReadUInt32BE());
+        Entity? entity = world.Get(p.ReadSerial());
         if (entity is null)
             return;
 
@@ -220,7 +221,7 @@ internal sealed partial class PacketHandlers
         if (world.Player is not { } player)
             return;
 
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
 
         Entity? entity = world.Get(serial);
         if (entity is null)
@@ -234,7 +235,7 @@ internal sealed partial class PacketHandlers
         if (entity.HitsRequest == HitsRequestStatus.Pending)
             entity.HitsRequest = HitsRequestStatus.Received;
 
-        if (!SerialHelper.IsMobile(serial))
+        if (!serial.IsMobile)
             return;
 
         if (entity is not Mobile mobile)
@@ -380,10 +381,10 @@ internal sealed partial class PacketHandlers
         if (world.Player is null)
             return;
 
-        if (p[0] == 0x16 && Client.Game.UO.Version < Utility.ClientVersion.CV_500A)
+        if (p[0] == 0x16 && Client.Game.UO.Version < ClientVersion.CV_500A)
             return;
 
-        Mobile? mobile = world.Mobiles.Get(p.ReadUInt32BE());
+        Mobile? mobile = world.Mobiles.Get(p.ReadSerial());
         if (mobile is null)
             return;
 
@@ -431,7 +432,7 @@ internal sealed partial class PacketHandlers
         if (world.Player is null)
             return;
 
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
         ushort count = 0;
         byte graphicInc = 0;
         byte direction = 0;
@@ -439,9 +440,9 @@ internal sealed partial class PacketHandlers
         byte flags = 0;
         byte type = 0;
 
-        if ((serial & 0x80000000) != 0)
+        if (serial.IsVirtual)
         {
-            serial &= 0x7FFFFFFF;
+            serial = serial.ToEntity();
             count = 1;
         }
 
@@ -499,7 +500,7 @@ internal sealed partial class PacketHandlers
     // 0x1B
     private static void EnterWorld(World world, ref SpanReader p)
     {
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
 
         world.CreatePlayer(serial);
 
@@ -558,7 +559,7 @@ internal sealed partial class PacketHandlers
     // 0x1C
     private static void Talk(World world, ref SpanReader p)
     {
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
         Entity? entity = world.Get(serial);
         ushort graphic = p.ReadUInt16BE();
         MessageType type = (MessageType)p.ReadUInt8();
@@ -607,8 +608,8 @@ internal sealed partial class PacketHandlers
         if (world.Player is null)
             return;
 
-        uint serial = p.ReadUInt32BE();
-        if (world.Player == serial)
+        Serial serial = p.ReadSerial();
+        if (world.Player.Serial == serial)
             return;
 
         Entity? entity = world.Get(serial);
@@ -619,9 +620,7 @@ internal sealed partial class PacketHandlers
 
         if (entity is Item item)
         {
-            uint cont = item.Container & 0x7FFFFFFF;
-
-            if (SerialHelper.IsValid(item.Container))
+            if (item.Container.IsEntity)
             {
                 Entity? top = world.Get(item.RootContainer);
 
@@ -633,6 +632,8 @@ internal sealed partial class PacketHandlers
                     if (tradeBoxItem is not null)
                         UIManager.GetTradingGump(tradeBoxItem)?.RequestUpdateContents();
                 }
+
+                Serial cont = new(item.Container.Value & Serial.MAX_MOBILE_SERIAL);
 
                 if (cont == world.Player && item.Layer == Layer.Invalid)
                     Client.Game.UO.GameCursor.ItemHold.Enabled = false;
@@ -655,7 +656,7 @@ internal sealed partial class PacketHandlers
             }
         }
 
-        if (world.CorpseManager.Exists(0, serial))
+        if (world.CorpseManager.Exists(Serial.Zero, serial))
             return;
 
         if (entity is Mobile m)
@@ -676,7 +677,7 @@ internal sealed partial class PacketHandlers
                 cont.Remove(item);
 
                 if (item.Layer != Layer.Invalid)
-                    UIManager.GetGump<PaperDollGump>(cont)?.RequestUpdateContents();
+                    UIManager.GetGump<PaperDollGump>(cont.Serial)?.RequestUpdateContents();
             }
             else if (item.IsMulti)
             {
@@ -696,7 +697,7 @@ internal sealed partial class PacketHandlers
         if (world.Player is null)
             return;
 
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
         ushort graphic = p.ReadUInt16BE();
         byte graphic_inc = p.ReadUInt8();
         ushort hue = p.ReadUInt16BE();
@@ -752,12 +753,12 @@ internal sealed partial class PacketHandlers
         ushort graphic = p.ReadUInt16BE();
         graphic += p.ReadUInt8();
         ushort hue = p.ReadUInt16BE();
-        ushort count = p.ReadUInt16BE();
-        uint source = p.ReadUInt32BE();
+        _ = p.ReadUInt16BE();
+        Serial source = p.ReadSerial();
         ushort sourceX = p.ReadUInt16BE();
         ushort sourceY = p.ReadUInt16BE();
         sbyte sourceZ = p.ReadInt8();
-        uint dest = p.ReadUInt32BE();
+        Serial dest = p.ReadSerial();
         ushort destX = p.ReadUInt16BE();
         ushort destY = p.ReadUInt16BE();
         sbyte destZ = p.ReadInt8();
@@ -773,7 +774,7 @@ internal sealed partial class PacketHandlers
 
         if (entity is null)
         {
-            source = 0;
+            source = Serial.Zero;
         }
         else
         {
@@ -786,7 +787,7 @@ internal sealed partial class PacketHandlers
 
         if (destEntity is null)
         {
-            dest = 0;
+            dest = Serial.Zero;
         }
         else
         {
@@ -795,7 +796,7 @@ internal sealed partial class PacketHandlers
             destZ = destEntity.Z;
         }
 
-        GraphicEffectType effect = !SerialHelper.IsValid(source) || !SerialHelper.IsValid(dest)
+        GraphicEffectType effect = !source.IsEntity || !dest.IsEntity
                 ? GraphicEffectType.Moving
                 : GraphicEffectType.DragEffect;
 
@@ -826,7 +827,7 @@ internal sealed partial class PacketHandlers
         if (world.Player is null)
             return;
 
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
         ushort graphic = p.ReadUInt16BE();
 
         if (graphic == 0xFFFF)
@@ -971,7 +972,7 @@ internal sealed partial class PacketHandlers
         if (!world.InGame)
             return;
 
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
         ushort graphic = (ushort)(p.ReadUInt16BE() + p.ReadUInt8());
         ushort amount = Math.Max((ushort)1, p.ReadUInt16BE());
         ushort x = p.ReadUInt16BE();
@@ -980,7 +981,7 @@ internal sealed partial class PacketHandlers
         if (Client.Game.UO.Version >= ClientVersion.CV_6017)
             p.Skip(1);
 
-        uint containerSerial = p.ReadUInt32BE();
+        Serial containerSerial = p.ReadSerial();
         ushort hue = p.ReadUInt16BE();
 
         AddItemToContainer(world, serial, graphic, amount, x, y, hue, containerSerial);
@@ -1002,9 +1003,9 @@ internal sealed partial class PacketHandlers
         else
         {
             if (world.ObjectToRemove == itemHold.Serial)
-                world.ObjectToRemove = 0;
+                world.ObjectToRemove = Serial.Zero;
 
-            if (!SerialHelper.IsValid(itemHold.Serial) || itemHold.Graphic == 0xFFFF)
+            if (!itemHold.Serial.IsEntity || itemHold.Graphic == 0xFFFF)
             {
                 Log.Error($"Wrong data: serial = {itemHold.Serial:X8}  -  graphic = {itemHold.Graphic:X4}");
             }
@@ -1012,7 +1013,7 @@ internal sealed partial class PacketHandlers
             {
                 if (!itemHold.UpdatedInWorld)
                 {
-                    if (itemHold.Layer == Layer.Invalid && SerialHelper.IsValid(itemHold.Container))
+                    if (itemHold.Layer == Layer.Invalid && itemHold.Container.IsEntity)
                     {
                         // Server should send an UpdateContainedItem after this packet.
                         Console.WriteLine("=== DENY === ADD TO CONTAINER");
@@ -1040,7 +1041,7 @@ internal sealed partial class PacketHandlers
 
                         if (container is not null)
                         {
-                            if (SerialHelper.IsMobile(container.Serial))
+                            if (container.Serial.IsMobile)
                             {
                                 Console.WriteLine("=== DENY === ADD TO PAPERDOLL");
 
@@ -1053,7 +1054,7 @@ internal sealed partial class PacketHandlers
                             else
                             {
                                 Console.WriteLine("=== DENY === SOMETHING WRONG");
-                                world.RemoveItem(item, true);
+                                world.RemoveItem(item.Serial, true);
                             }
                         }
                         else
@@ -1124,7 +1125,7 @@ internal sealed partial class PacketHandlers
     // 0x2D
     private static void MobileAttributes(World world, ref SpanReader p)
     {
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
 
         Entity? entity = world.Get(serial);
         if (entity is null)
@@ -1136,7 +1137,7 @@ internal sealed partial class PacketHandlers
         if (entity.HitsRequest == HitsRequestStatus.Pending)
             entity.HitsRequest = HitsRequestStatus.Received;
 
-        if (!SerialHelper.IsMobile(serial))
+        if (!serial.IsMobile)
             return;
 
         if (entity is not Mobile mobile)
@@ -1161,13 +1162,13 @@ internal sealed partial class PacketHandlers
         if (!world.InGame)
             return;
 
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
         Item item = world.GetOrCreateItem(serial);
 
         if (item.Graphic != 0 && item.Layer != Layer.Backpack)
             world.RemoveItemFromContainer(item);
 
-        if (SerialHelper.IsValid(item.Container))
+        if (item.Container.IsEntity)
         {
             UIManager.GetGump<ContainerGump>(item.Container)?.RequestUpdateContents();
             UIManager.GetGump<PaperDollGump>(item.Container)?.RequestUpdateContents();
@@ -1175,7 +1176,7 @@ internal sealed partial class PacketHandlers
 
         item.Graphic = (ushort)(p.ReadUInt16BE() + p.ReadInt8());
         item.Layer = (Layer)p.ReadUInt8();
-        item.Container = p.ReadUInt32BE();
+        item.Container = p.ReadSerial();
         item.FixHue(p.ReadUInt16BE());
         item.Amount = 1;
 
@@ -1184,7 +1185,7 @@ internal sealed partial class PacketHandlers
 
         if (item.Layer is >= Layer.ShopBuyRestock and <= Layer.ShopSell)
         { }
-        else if (SerialHelper.IsValid(item.Container) && item.Layer < Layer.Mount)
+        else if (item.Container.IsEntity && item.Layer < Layer.Mount)
         {
             UIManager.GetGump<PaperDollGump>(item.Container)?.RequestUpdateContents();
         }
@@ -1201,22 +1202,22 @@ internal sealed partial class PacketHandlers
 
         p.Skip(1);
 
-        uint attackers = p.ReadUInt32BE();
-        if (attackers != world.Player)
+        Serial attacker = p.ReadSerial();
+        if (attacker != world.Player)
             return;
 
-        uint defenders = p.ReadUInt32BE();
+        Serial defender = p.ReadSerial();
 
         const int TIME_TURN_TO_LASTTARGET = 2000;
 
-        if (world.TargetManager.LastAttack != defenders
+        if (world.TargetManager.LastAttack != defender
             || world.Player is not { InWarMode: true, Steps.Count: 0 } player
             || player.Walker.LastStepRequestTime + TIME_TURN_TO_LASTTARGET >= Time.Ticks)
         {
             return;
         }
 
-        Mobile? enemy = world.Mobiles.Get(defenders);
+        Mobile? enemy = world.Mobiles.Get(defender);
 
         if (enemy is null)
             return;
@@ -1371,7 +1372,7 @@ internal sealed partial class PacketHandlers
 
         for (int i = 0; i < count; i++)
         {
-            uint serial = p.ReadUInt32BE();
+            Serial serial = p.ReadSerial();
             ushort graphic = (ushort)(p.ReadUInt16BE() + p.ReadUInt8());
             ushort amount = Math.Max(p.ReadUInt16BE(), (ushort)1);
             ushort x = p.ReadUInt16BE();
@@ -1380,7 +1381,7 @@ internal sealed partial class PacketHandlers
             if (Client.Game.UO.Version >= ClientVersion.CV_6017)
                 p.Skip(1);
 
-            uint containerSerial = p.ReadUInt32BE();
+            Serial containerSerial = p.ReadSerial();
             ushort hue = p.ReadUInt16BE();
 
             if (i == 0)
@@ -1401,7 +1402,7 @@ internal sealed partial class PacketHandlers
         if (!world.InGame)
             return;
 
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
         UIManager.GetGump<ShopGump>(serial)?.Dispose();
     }
 
@@ -1411,7 +1412,7 @@ internal sealed partial class PacketHandlers
         if (!world.InGame)
             return;
 
-        if (world.Player != p.ReadUInt32BE())
+        if (world.Player != p.ReadSerial())
             return;
 
         byte level = p.ReadUInt8();
@@ -1511,7 +1512,7 @@ internal sealed partial class PacketHandlers
         if (!world.InGame)
             return;
 
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
 
         MapGump? gump = UIManager.GetGump<MapGump>(serial);
         if (gump is null)
@@ -1558,7 +1559,7 @@ internal sealed partial class PacketHandlers
         if (!world.InGame)
             return;
 
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
         ushort pageCnt = p.ReadUInt16BE();
 
         ModernBookGump? gump = UIManager.GetGump<ModernBookGump>(serial);
@@ -1618,7 +1619,7 @@ internal sealed partial class PacketHandlers
 
         world.TargetManager.Target(party.PartyHealTarget);
         party.PartyHealTimer = 0;
-        party.PartyHealTarget = 0;
+        party.PartyHealTarget = Serial.Zero;
     }
 
     // 0x6D
@@ -1631,7 +1632,7 @@ internal sealed partial class PacketHandlers
     // 0x6E
     private static void CharacterAnimation(World world, ref SpanReader p)
     {
-        Mobile? mobile = world.Mobiles.Get(p.ReadUInt32BE());
+        Mobile? mobile = world.Mobiles.Get(p.ReadSerial());
         if (mobile is null)
             return;
 
@@ -1660,12 +1661,12 @@ internal sealed partial class PacketHandlers
             return;
 
         byte type = p.ReadUInt8();
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
 
         if (type == 0)
         {
-            uint id1 = p.ReadUInt32BE();
-            uint id2 = p.ReadUInt32BE();
+            Serial id1 = p.ReadSerial();
+            Serial id2 = p.ReadSerial();
 
             // standard client doesn't allow the trading system if one of the traders is invisible (=not sent by server)
             if (world.Get(id1) is null || world.Get(id2) is null)
@@ -1736,8 +1737,8 @@ internal sealed partial class PacketHandlers
             return;
         }
 
-        uint source = p.ReadUInt32BE();
-        uint target = p.ReadUInt32BE();
+        Serial source = p.ReadSerial();
+        Serial target = p.ReadSerial();
         ushort graphic = p.ReadUInt16BE();
         ushort srcX = p.ReadUInt16BE();
         ushort srcY = p.ReadUInt16BE();
@@ -1767,7 +1768,7 @@ internal sealed partial class PacketHandlers
         {
             case 0: // open
                 {
-                    uint serial = p.ReadUInt32BE();
+                    Serial serial = p.ReadSerial();
                     Item? item = world.Items.Get(serial);
                     if (item is null)
                         return;
@@ -1787,12 +1788,12 @@ internal sealed partial class PacketHandlers
                 }
             case 1: // summary msg
                 {
-                    uint boardSerial = p.ReadUInt32BE();
+                    Serial boardSerial = p.ReadSerial();
                     BulletinBoardGump? bulletinBoard = UIManager.GetGump<BulletinBoardGump>(boardSerial);
                     if (bulletinBoard == null)
                         return;
 
-                    uint serial = p.ReadUInt32BE();
+                    Serial serial = p.ReadSerial();
                     uint parendID = p.ReadUInt32BE();
 
                     // poster
@@ -1813,7 +1814,7 @@ internal sealed partial class PacketHandlers
                 }
             case 2: // message
                 {
-                    uint boardSerial = p.ReadUInt32BE();
+                    Serial boardSerial = p.ReadSerial();
                     BulletinBoardGump? bulletinBoard = UIManager.GetGump<BulletinBoardGump>(boardSerial);
                     if (bulletinBoard is null)
                         return;
@@ -1898,7 +1899,7 @@ internal sealed partial class PacketHandlers
         if (!world.InGame)
             return;
 
-        Item? container = world.Items.Get(p.ReadUInt32BE());
+        Item? container = world.Items.Get(p.ReadSerial());
         if (container is null)
             return;
 
@@ -1987,7 +1988,7 @@ internal sealed partial class PacketHandlers
         if (world.Player is null)
             return;
 
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
 
         Mobile? mobile = world.Mobiles.Get(serial);
         if (mobile is null)
@@ -2024,7 +2025,7 @@ internal sealed partial class PacketHandlers
         if (world.Player is null)
             return;
 
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
         ushort graphic = p.ReadUInt16BE();
         ushort x = p.ReadUInt16BE();
         ushort y = p.ReadUInt16BE();
@@ -2068,7 +2069,7 @@ internal sealed partial class PacketHandlers
             }
         }
 
-        if (SerialHelper.IsMobile(serial) && obj is Mobile mob)
+        if (serial.IsMobile && obj is Mobile mob)
         {
             mob.NotorietyFlag = notoriety;
             UIManager.GetGump<PaperDollGump>(serial)?.RequestUpdateContents();
@@ -2077,7 +2078,7 @@ internal sealed partial class PacketHandlers
         if (p[0] != 0x78)
             p.Skip(6);
 
-        uint itemSerial = p.ReadUInt32BE();
+        Serial itemSerial = p.ReadSerial();
 
         while (itemSerial != 0 && p.Position < p.Length)
         {
@@ -2107,7 +2108,7 @@ internal sealed partial class PacketHandlers
 
             obj.PushToBack(item);
 
-            itemSerial = p.ReadUInt32BE();
+            itemSerial = p.ReadSerial();
         }
 
         if (serial != world.Player)
@@ -2140,8 +2141,8 @@ internal sealed partial class PacketHandlers
         if (!world.InGame)
             return;
 
-        uint serial = p.ReadUInt32BE();
-        ushort id = p.ReadUInt16BE();
+        Serial serial = p.ReadSerial();
+        Serial id = p.ReadSerial();
         string name = p.ReadFixedString<ASCIICP1215>(p.ReadUInt8());
         int count = p.ReadUInt8();
 
@@ -2160,7 +2161,7 @@ internal sealed partial class PacketHandlers
                 ushort hue = p.ReadUInt16BE();
                 name = p.ReadFixedString<ASCIICP1215>(p.ReadUInt8());
 
-                ref readonly Renderer.SpriteInfo artInfo = ref Client.Game.UO.Arts.GetArt(graphic);
+                ref readonly SpriteInfo artInfo = ref Client.Game.UO.Arts.GetArt(graphic);
 
                 if (artInfo.UV.Width == 0 || artInfo.UV.Height == 0)
                     continue;
@@ -2181,7 +2182,7 @@ internal sealed partial class PacketHandlers
         }
         else
         {
-            GrayMenuGump gump = new GrayMenuGump(world, serial, id, name)
+            GrayMenuGump gump = new(world, serial, id, name)
             {
                 X = (Client.Game.Window.ClientBounds.Width >> 1) - 200,
                 Y = (Client.Game.Window.ClientBounds.Height >> 1) - ((121 + count * 21) >> 1)
@@ -2239,7 +2240,7 @@ internal sealed partial class PacketHandlers
     // 0x88
     private static void OpenPaperdoll(World world, ref SpanReader p)
     {
-        Mobile? mobile = world.Mobiles.Get(p.ReadUInt32BE());
+        Mobile? mobile = world.Mobiles.Get(p.ReadSerial());
         if (mobile is null)
             return;
 
@@ -2279,7 +2280,7 @@ internal sealed partial class PacketHandlers
         if (!world.InGame)
             return;
 
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
 
         Entity? corpse = world.Get(serial);
         if (corpse is null)
@@ -2293,11 +2294,11 @@ internal sealed partial class PacketHandlers
 
         while (layer != Layer.Invalid && p.Position < p.Length)
         {
-            uint item_serial = p.ReadUInt32BE();
+            Serial itemSerial = p.ReadSerial();
 
             if (layer - 1 != Layer.Backpack)
             {
-                Item item = world.GetOrCreateItem(item_serial);
+                Item item = world.GetOrCreateItem(itemSerial);
 
                 world.RemoveItemFromContainer(item);
                 item.Container = serial;
@@ -2322,7 +2323,7 @@ internal sealed partial class PacketHandlers
     // 0x90
     private static void DisplayMap90(World world, ref SpanReader p)
     {
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
         ushort gumpid = p.ReadUInt16BE();
         ushort startX = p.ReadUInt16BE();
         ushort startY = p.ReadUInt16BE();
@@ -2352,7 +2353,7 @@ internal sealed partial class PacketHandlers
     // 0x93
     private static void OpenBook93(World world, ref SpanReader p)
     {
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
         bool editable = p.ReadBool();
 
         p.Skip(1);
@@ -2386,7 +2387,7 @@ internal sealed partial class PacketHandlers
     // 0x95
     private static void DyeData(World world, ref SpanReader p)
     {
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
         p.Skip(2);
         ushort graphic = p.ReadUInt16BE();
 
@@ -2421,7 +2422,7 @@ internal sealed partial class PacketHandlers
         if (!world.InGame)
             return;
 
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
         string name = p.ReadString<ASCIICP1215>();
 
         if (name != "")
@@ -2481,7 +2482,7 @@ internal sealed partial class PacketHandlers
         if (!world.InGame)
             return;
 
-        Mobile? vendor = world.Mobiles.Get(p.ReadUInt32BE());
+        Mobile? vendor = world.Mobiles.Get(p.ReadSerial());
         if (vendor is null)
             return;
 
@@ -2495,7 +2496,7 @@ internal sealed partial class PacketHandlers
 
         for (int i = 0; i < countItems; i++)
         {
-            uint serial = p.ReadUInt32BE();
+            Serial serial = p.ReadSerial();
             ushort graphic = p.ReadUInt16BE();
             ushort hue = p.ReadUInt16BE();
             ushort amount = p.ReadUInt16BE();
@@ -2525,7 +2526,7 @@ internal sealed partial class PacketHandlers
     // 0xA1
     private static void UpdateHitpoints(World world, ref SpanReader p)
     {
-        Entity? entity = world.Get(p.ReadUInt32BE());
+        Entity? entity = world.Get(p.ReadSerial());
         if (entity is null)
             return;
 
@@ -2542,7 +2543,7 @@ internal sealed partial class PacketHandlers
     // 0xA2
     private static void UpdateMana(World world, ref SpanReader p)
     {
-        Mobile? mobile = world.Mobiles.Get(p.ReadUInt32BE());
+        Mobile? mobile = world.Mobiles.Get(p.ReadSerial());
         if (mobile is null)
             return;
 
@@ -2556,7 +2557,7 @@ internal sealed partial class PacketHandlers
     // 0xA3
     private static void UpdateStamina(World world, ref SpanReader p)
     {
-        Mobile? mobile = world.Mobiles.Get(p.ReadUInt32BE());
+        Mobile? mobile = world.Mobiles.Get(p.ReadSerial());
         if (mobile is null)
             return;
 
@@ -2584,7 +2585,7 @@ internal sealed partial class PacketHandlers
         if (flag == 1)
             return;
 
-        uint tip = p.ReadUInt32BE();
+        Serial tip = p.ReadSerial();
         string str = p.ReadFixedString<ASCIICP1215>(p.ReadUInt16BE()).Replace('\r', '\n');
 
         int x = 20;
@@ -2622,7 +2623,7 @@ internal sealed partial class PacketHandlers
     // 0xAA
     private static void AttackCharacter(World world, ref SpanReader p)
     {
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
 
         GameActions.SendCloseStatus(world, world.TargetManager.LastAttack);
         world.TargetManager.LastAttack = serial;
@@ -2635,7 +2636,7 @@ internal sealed partial class PacketHandlers
         if (!world.InGame)
             return;
 
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
         byte parentId = p.ReadUInt8();
         byte buttonId = p.ReadUInt8();
 
@@ -2680,7 +2681,7 @@ internal sealed partial class PacketHandlers
             return;
         }
 
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
         Entity? entity = world.Get(serial);
         ushort graphic = p.ReadUInt16BE();
         MessageType type = (MessageType)p.ReadUInt8();
@@ -2742,15 +2743,15 @@ internal sealed partial class PacketHandlers
         if (!world.InGame)
             return;
 
-        uint serial = p.ReadUInt32BE();
-        uint corpseSerial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
+        Serial corpseSerial = p.ReadSerial();
         uint running = p.ReadUInt32BE();
 
         Mobile? owner = world.Mobiles.Get(serial);
         if (owner is null || serial == world.Player)
             return;
 
-        serial |= 0x80000000;
+        serial = serial.ToVirtual();
 
         if (world.Mobiles.Remove(owner.Serial))
         {
@@ -2764,7 +2765,7 @@ internal sealed partial class PacketHandlers
             owner.Serial = serial;
         }
 
-        if (SerialHelper.IsValid(corpseSerial))
+        if (corpseSerial.IsEntity)
             world.CorpseManager.Add(corpseSerial, serial, owner.Direction, running != 0);
 
         Renderer.Animations.Animations animations = Client.Game.UO.Animations;
@@ -2786,8 +2787,8 @@ internal sealed partial class PacketHandlers
         if (world.Player is null)
             return;
 
-        uint sender = p.ReadUInt32BE();
-        uint gumpId = p.ReadUInt32BE();
+        Serial sender = p.ReadSerial();
+        Serial gumpId = p.ReadSerial();
         int x = (int)p.ReadUInt32BE();
         int y = (int)p.ReadUInt32BE();
 
@@ -2976,7 +2977,7 @@ internal sealed partial class PacketHandlers
         if (!world.InGame)
             return;
 
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
         string header = p.ReadString<ASCIICP1215>();
         string footer = p.ReadString<UnicodeBE>();
 
@@ -3027,10 +3028,10 @@ internal sealed partial class PacketHandlers
         ushort mx = p.ReadUInt16BE();
         ushort my = p.ReadUInt16BE();
 
-        uint serial = 0;
+        Serial serial = Serial.Zero;
 
         if (Client.Game.UO.Version >= ClientVersion.CV_7090)
-            serial = p.ReadUInt32BE();
+            serial = p.ReadSerial();
 
         QuestArrowGump? arrow = UIManager.GetGump<QuestArrowGump>(serial);
 
@@ -3107,7 +3108,7 @@ internal sealed partial class PacketHandlers
             //===========================================================================================
             //===========================================================================================
             case 4: // close generic gump
-                uint ser = p.ReadUInt32BE();
+                Serial ser = p.ReadSerial();
                 int button = (int)p.ReadUInt32BE();
 
                 LinkedListNode<Gump>? first = UIManager.Gumps.First;
@@ -3153,13 +3154,13 @@ internal sealed partial class PacketHandlers
             //===========================================================================================
             //===========================================================================================
             case 0x0C: // close statusbar gump
-                UIManager.GetGump<HealthBarGump>(p.ReadUInt32BE())?.Dispose();
+                UIManager.GetGump<HealthBarGump>(p.ReadSerial())?.Dispose();
                 break;
 
             //===========================================================================================
             //===========================================================================================
             case 0x10: // display equip info
-                Item? item = world.Items.Get(p.ReadUInt32BE());
+                Item? item = world.Items.Get(p.ReadSerial());
                 if (item is null)
                     return;
 
@@ -3270,7 +3271,7 @@ internal sealed partial class PacketHandlers
             //===========================================================================================
             case 0x16: // close user interface windows
                 uint id = p.ReadUInt32BE();
-                uint serial = p.ReadUInt32BE();
+                Serial serial = p.ReadSerial();
 
                 switch (id)
                 {
@@ -3319,7 +3320,7 @@ internal sealed partial class PacketHandlers
             //===========================================================================================
             case 0x19: //extened stats
                 byte version = p.ReadUInt8();
-                serial = p.ReadUInt32BE();
+                serial = p.ReadSerial();
 
                 switch (version)
                 {
@@ -3392,7 +3393,7 @@ internal sealed partial class PacketHandlers
             //===========================================================================================
             case 0x1B: // new spellbook content
                 p.Skip(2);
-                Item spellbook = world.GetOrCreateItem(p.ReadUInt32BE());
+                Item spellbook = world.GetOrCreateItem(p.ReadSerial());
                 spellbook.Graphic = p.ReadUInt16BE();
                 spellbook.Clear();
                 ushort type = p.ReadUInt16BE();
@@ -3411,25 +3412,26 @@ internal sealed partial class PacketHandlers
                         if ((spells & (1 << i)) != 0)
                         {
                             ushort cc = (ushort)(j * 32 + i + 1);
+                            Serial s = new(cc);
                             // FIXME: should i call Item.Create ?
-                            Item spellItem = Item.Create(world, cc); // new Item()
-                            spellItem.Serial = cc;
+                            Item spellItem = Item.Create(world, s); // new Item()
+                            spellItem.Serial = s;
                             spellItem.Graphic = 0x1F2E;
                             spellItem.Amount = cc;
-                            spellItem.Container = spellbook;
+                            spellItem.Container = spellbook.Serial;
                             spellbook.PushToBack(spellItem);
                         }
                     }
                 }
 
-                UIManager.GetGump<SpellbookGump>(spellbook)?.RequestUpdateContents();
+                UIManager.GetGump<SpellbookGump>(spellbook.Serial)?.RequestUpdateContents();
 
                 break;
 
             //===========================================================================================
             //===========================================================================================
             case 0x1D: // house revision state
-                serial = p.ReadUInt32BE();
+                serial = p.ReadSerial();
                 uint revision = p.ReadUInt32BE();
 
                 Item? multi = world.Items.Get(serial);
@@ -3456,7 +3458,7 @@ internal sealed partial class PacketHandlers
             //===========================================================================================
             //===========================================================================================
             case 0x20:
-                serial = p.ReadUInt32BE();
+                serial = p.ReadSerial();
                 type = p.ReadUInt8();
                 ushort graphic = p.ReadUInt16BE();
                 ushort x = p.ReadUInt16BE();
@@ -3508,14 +3510,14 @@ internal sealed partial class PacketHandlers
             case 0x22:
                 p.Skip(1);
 
-                Entity? en = world.Get(p.ReadUInt32BE());
+                Entity? en = world.Get(p.ReadSerial());
 
                 if (en is not null)
                 {
                     byte damage = p.ReadUInt8();
 
                     if (damage > 0)
-                        world.WorldTextManager.AddDamage(en, damage);
+                        world.WorldTextManager.AddDamage(en.Serial, damage);
                 }
 
                 break;
@@ -3570,15 +3572,15 @@ internal sealed partial class PacketHandlers
                 break;
 
             case 0x2B:
-                serial = p.ReadUInt16BE();
-                byte animID = p.ReadUInt8();
+                serial = p.ReadSerial();
+                byte animId = p.ReadUInt8();
                 byte frameCount = p.ReadUInt8();
 
                 foreach (Mobile m in world.Mobiles.Values)
                 {
-                    if ((m.Serial & 0xFFFF) == serial)
+                    if ((m.Serial.Value & 0xFFFF) == serial.Value)
                     {
-                        m.SetAnimation(animID);
+                        m.SetAnimation(animId);
                         m.AnimIndex = frameCount;
                         m.ExecuteAnimation = false;
 
@@ -3611,8 +3613,8 @@ internal sealed partial class PacketHandlers
         if (type > GraphicEffectType.FixedFrom)
             return;
 
-        uint source = p.ReadUInt32BE();
-        uint target = p.ReadUInt32BE();
+        Serial source = p.ReadSerial();
+        Serial target = p.ReadSerial();
         ushort graphic = p.ReadUInt16BE();
         ushort srcX = p.ReadUInt16BE();
         ushort srcY = p.ReadUInt16BE();
@@ -3638,7 +3640,7 @@ internal sealed partial class PacketHandlers
         if (world.Player is null)
             return;
 
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
         Entity? entity = world.Get(serial);
         _ = p.ReadUInt16BE();
         MessageType type = (MessageType)p.ReadUInt8();
@@ -3690,7 +3692,7 @@ internal sealed partial class PacketHandlers
 
         TextType textType = TextType.SYSTEM;
 
-        if (serial is 0xFFFF_FFFF or 0 || !string.IsNullOrEmpty(name) && string.Equals(name, "system", StringComparison.InvariantCultureIgnoreCase))
+        if (!serial.IsValid || !string.IsNullOrEmpty(name) && string.Equals(name, "system", StringComparison.InvariantCultureIgnoreCase))
         {
             // do nothing
         }
@@ -3733,8 +3735,8 @@ internal sealed partial class PacketHandlers
         if (type > GraphicEffectType.FixedFrom)
             return;
 
-        uint source = p.ReadUInt32BE();
-        uint target = p.ReadUInt32BE();
+        Serial source = p.ReadSerial();
+        Serial target = p.ReadSerial();
         ushort graphic = p.ReadUInt16BE();
         ushort srcX = p.ReadUInt16BE();
         ushort srcY = p.ReadUInt16BE();
@@ -3786,7 +3788,7 @@ internal sealed partial class PacketHandlers
     // 0xD4
     private static void OpenBookD4(World world, ref SpanReader p)
     {
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
         _ = p.ReadBool();
         bool editable = p.ReadBool();
 
@@ -3827,7 +3829,7 @@ internal sealed partial class PacketHandlers
         if (unknown > 1)
             return;
 
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
 
         p.Skip(2);
 
@@ -3837,7 +3839,7 @@ internal sealed partial class PacketHandlers
 
         if (entity is null)
         {
-            if (SerialHelper.IsMobile(serial))
+            if (serial.IsMobile)
                 Log.Warn("Searching a mobile into World.Items from MegaCliloc packet");
 
             entity = world.Items.Get(serial);
@@ -3901,7 +3903,7 @@ internal sealed partial class PacketHandlers
 
         Item? container = null;
 
-        if (entity is Item it && SerialHelper.IsValid(it.Container))
+        if (entity is Item it && it.Container.IsEntity)
             container = world.Items.Get(it.Container);
 
         bool inBuyList = false;
@@ -3928,7 +3930,7 @@ internal sealed partial class PacketHandlers
                 {
                     name = str;
 
-                    if (entity is not null && !SerialHelper.IsMobile(serial))
+                    if (entity is not null && !serial.IsEntity)
                     {
                         entity.Name = str;
                         namecliloc = s.Item3 > 0 ? s.Item3 : s.Item1;
@@ -3950,7 +3952,7 @@ internal sealed partial class PacketHandlers
 
         world.OPL.Add(serial, revision, name, data, namecliloc);
 
-        if (inBuyList && container is not null && SerialHelper.IsValid(container.Serial))
+        if (inBuyList && container is not null && container.Serial.IsEntity)
             UIManager.GetGump<ShopGump>(container.RootContainer)?.SetNameTo((Item)entity, name);
     }
 
@@ -3959,7 +3961,7 @@ internal sealed partial class PacketHandlers
     {
         _ = p.ReadUInt8();
         _ = p.ReadBool();
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
         Item? foundation = world.Items.Get(serial);
         uint revision = p.ReadUInt32BE();
 
@@ -3968,10 +3970,10 @@ internal sealed partial class PacketHandlers
 
         p.Skip(4);
 
-        if (!world.HouseManager.TryGetHouse(foundation, out House house))
+        if (!world.HouseManager.TryGetHouse(foundation.Serial, out House house))
         {
-            house = new House(world, foundation, revision, true);
-            world.HouseManager.Add(foundation, house);
+            house = new House(world, foundation.Serial, revision, true);
+            world.HouseManager.Add(foundation.Serial, house);
         }
         else
         {
@@ -4030,7 +4032,7 @@ internal sealed partial class PacketHandlers
         if (!world.ClientFeatures.TooltipsEnabled)
             return;
 
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
         uint revision = p.ReadUInt32BE();
 
         if (!world.OPL.IsRevisionEquals(serial, revision))
@@ -4040,8 +4042,8 @@ internal sealed partial class PacketHandlers
     // 0xDD
     private static void OpenCompressedGump(World world, ref SpanReader p)
     {
-        uint sender = p.ReadUInt32BE();
-        uint gumpID = p.ReadUInt32BE();
+        Serial sender = p.ReadSerial();
+        Serial gumpId = p.ReadSerial();
         uint x = p.ReadUInt32BE();
         uint y = p.ReadUInt32BE();
         uint clen = p.ReadUInt32BE() - 4;
@@ -4067,7 +4069,7 @@ internal sealed partial class PacketHandlers
 
         if (linesNum == 0)
         {
-            CreateGump(world, sender, gumpID, (int)x, (int)y, layout, lines);
+            CreateGump(world, sender, gumpId, (int)x, (int)y, layout, lines);
             return;
         }
 
@@ -4102,7 +4104,7 @@ internal sealed partial class PacketHandlers
             System.Buffers.ArrayPool<byte>.Shared.Return(decData);
         }
 
-        CreateGump(world, sender, gumpID, (int)x, (int)y, layout, lines);
+        CreateGump(world, sender, gumpId, (int)x, (int)y, layout, lines);
     }
 
     // 0xDE
@@ -4198,7 +4200,7 @@ internal sealed partial class PacketHandlers
         if (world.Player is null)
             return;
 
-        Mobile? mobile = world.Mobiles.Get(p.ReadUInt32BE());
+        Mobile? mobile = world.Mobiles.Get(p.ReadSerial());
         if (mobile is null)
             return;
 
@@ -4219,7 +4221,7 @@ internal sealed partial class PacketHandlers
     // 0xE5
     private static void DisplayWaypoint(World world, ref SpanReader p)
     {
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
         ushort x = p.ReadUInt16BE();
         ushort y = p.ReadUInt16BE();
         sbyte z = p.ReadInt8();
@@ -4254,9 +4256,9 @@ internal sealed partial class PacketHandlers
             case 0x02: // guild track info
                 bool locations = type == 0x01 || p.ReadBool();
 
-                uint serial;
+                Serial serial;
 
-                while ((serial = p.ReadUInt32BE()) != 0)
+                while ((serial = p.ReadSerial()) != 0)
                 {
                     if (!locations)
                         continue;
@@ -4288,7 +4290,7 @@ internal sealed partial class PacketHandlers
 
         p.Skip(2);
         byte type = p.ReadUInt8();
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
         ushort graphic = p.ReadUInt16BE();
         byte graphicInc = p.ReadUInt8();
         ushort amount = p.ReadUInt16BE();
@@ -4317,7 +4319,7 @@ internal sealed partial class PacketHandlers
     // 0xF5
     private static void DisplayMapF5(World world, ref SpanReader p)
     {
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
         ushort gumpid = p.ReadUInt16BE();
         ushort startX = p.ReadUInt16BE();
         ushort startY = p.ReadUInt16BE();
@@ -4349,7 +4351,7 @@ internal sealed partial class PacketHandlers
         if (!world.InGame)
             return;
 
-        uint serial = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
         byte boatSpeed = p.ReadUInt8();
         Direction movingDirection = (Direction)p.ReadUInt8() & Direction.Mask;
         Direction facingDirection = (Direction)p.ReadUInt8() & Direction.Mask;
@@ -4379,7 +4381,7 @@ internal sealed partial class PacketHandlers
 
         for (int i = 0; i < count; i++)
         {
-            uint cSerial = p.ReadUInt32BE();
+            Serial cSerial = p.ReadSerial();
             ushort cx = p.ReadUInt16BE();
             ushort cy = p.ReadUInt16BE();
             ushort cz = p.ReadUInt16BE();
@@ -4407,7 +4409,7 @@ internal sealed partial class PacketHandlers
             }
 
             UpdateGameObject(world, cSerial, ent.Graphic, 0, (ushort)(ent.Graphic == 0x2006 ? ((Item)ent).Amount : 0),
-                cx, cy, (sbyte)cz, SerialHelper.IsMobile(ent) ? ent.Direction : 0, ent.Hue, ent.Flags, 0);
+                cx, cy, (sbyte)cz, ent.Serial.IsMobile ? ent.Direction : 0, ent.Hue, ent.Flags, 0);
         }
     }
 

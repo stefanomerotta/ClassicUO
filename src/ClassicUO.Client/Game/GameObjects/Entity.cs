@@ -56,7 +56,7 @@ internal abstract class Entity : GameObject, IEquatable<Entity>
     public bool IsClicked;
     public uint LastStepTime;
     public string? Name;
-    public uint Serial;
+    public Serial Serial;
     public HitsRequestStatus HitsRequest;
 
     public bool IsHidden => (Flags & Flags.Hidden) != 0;
@@ -76,7 +76,7 @@ internal abstract class Entity : GameObject, IEquatable<Entity>
         }
     }
 
-    protected Entity(World world, uint serial)
+    protected Entity(World world, Serial serial)
         : base(world)
     {
         Serial = serial;
@@ -141,10 +141,10 @@ internal abstract class Entity : GameObject, IEquatable<Entity>
 
             // TODO: Some servers may not want to receive this (causing original client to not send it),
             //but all servers tested (latest POL, old POL, ServUO, Outlands) do.
-            if ( /*Client.Game.UO.Version > ClientVersion.CV_200 &&*/ SerialHelper.IsMobile(Serial))
+            if (Serial.IsMobile)
                 Socket.SendNameRequest(Serial);
 
-            UIManager.Add(new NameOverheadGump(World, this));
+            UIManager.Add(new NameOverheadGump(World, Serial));
         }
 
 
@@ -185,7 +185,7 @@ internal abstract class Entity : GameObject, IEquatable<Entity>
                     minColor = it.Hue;
                 }
 
-                if (SerialHelper.IsValid(it.Container))
+                if (it.Container.IsEntity)
                 {
                     Item? found = it.FindItem(graphic, hue);
 
@@ -206,7 +206,7 @@ internal abstract class Entity : GameObject, IEquatable<Entity>
                 if (it.Graphic == graphic && it.Hue == hue)
                     item = it;
 
-                if (SerialHelper.IsValid(it.Container))
+                if (it.Container.IsEntity)
                 {
                     Item? found = it.FindItem(graphic, hue);
                     if (found is not null)
@@ -257,7 +257,7 @@ internal abstract class Entity : GameObject, IEquatable<Entity>
         return null;
     }
 
-    public static implicit operator uint(Entity entity)
+    public static implicit operator Serial(Entity entity)
     {
         return entity.Serial;
     }
@@ -279,7 +279,7 @@ internal abstract class Entity : GameObject, IEquatable<Entity>
 
     public override int GetHashCode()
     {
-        return (int)Serial;
+        return (int)Serial.Value;
     }
 
     public abstract void ProcessAnimation(bool evalutate = false);

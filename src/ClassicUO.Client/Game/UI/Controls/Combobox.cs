@@ -189,7 +189,7 @@ namespace ClassicUO.Game.UI.Controls
                 string[] items,
                 byte font,
                 Combobox combobox
-            ) : base(world, 0, 0)
+            ) : base(world)
             {
                 CanMove = false;
                 AcceptMouseInput = true;

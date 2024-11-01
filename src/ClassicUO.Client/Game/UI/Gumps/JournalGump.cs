@@ -30,18 +30,16 @@
 
 #endregion
 
-using System;
-using System.IO;
-using System.Xml;
 using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
-using ClassicUO.Assets;
 using ClassicUO.Renderer;
 using ClassicUO.Resources;
 using ClassicUO.Utility.Collections;
+using System;
+using System.Xml;
 
 namespace ClassicUO.Game.UI.Gumps
 {
@@ -56,7 +54,7 @@ namespace ClassicUO.Game.UI.Gumps
         private readonly RenderedTextList _journalEntries;
         private readonly ScrollFlag _scrollBar;
 
-        public JournalGump(World world) : base(world, 0, 0)
+        public JournalGump(World world) : base(world)
         {
             Height = 300;
             CanMove = true;
@@ -139,7 +137,7 @@ namespace ClassicUO.Game.UI.Gumps
             )
             {
                 X = cx,
-                LocalSerial = 1,
+                LocalSerial = new(1),
                 IsChecked = ProfileManager.CurrentProfile.ShowJournalSystem
             };
 
@@ -154,7 +152,7 @@ namespace ClassicUO.Game.UI.Gumps
             )
             {
                 X = cx + dist,
-                LocalSerial = 2,
+                LocalSerial = new(2),
                 IsChecked = ProfileManager.CurrentProfile.ShowJournalObjects
             };
 
@@ -169,7 +167,7 @@ namespace ClassicUO.Game.UI.Gumps
             )
             {
                 X = cx + dist * 2,
-                LocalSerial = 0,
+                LocalSerial = new(0),
                 IsChecked = ProfileManager.CurrentProfile.ShowJournalClient
             };
 
@@ -184,7 +182,7 @@ namespace ClassicUO.Game.UI.Gumps
             )
             {
                 X = cx + dist * 3,
-                LocalSerial = 3,
+                LocalSerial = new(3),
                 IsChecked = ProfileManager.CurrentProfile.ShowJournalGuildAlly
             };
 
@@ -194,7 +192,7 @@ namespace ClassicUO.Game.UI.Gumps
 
                 if (c != null)
                 {
-                    switch ((TextType) c.LocalSerial)
+                    switch ((TextType) c.LocalSerial.Value)
                     {
                         case TextType.CLIENT:
                             ProfileManager.CurrentProfile.ShowJournalClient = c.IsChecked;

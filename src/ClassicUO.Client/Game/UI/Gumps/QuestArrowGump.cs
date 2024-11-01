@@ -48,7 +48,8 @@ namespace ClassicUO.Game.UI.Gumps
         private bool _needHue;
         private float _timer;
 
-        public QuestArrowGump(World world, uint serial, int mx, int my) : base(world, serial, serial)
+        public QuestArrowGump(World world, Serial serial, int mx, int my) 
+            : base(world, serial, serial)
         {
             CanMove = false;
             CanCloseWithRightClick = false;

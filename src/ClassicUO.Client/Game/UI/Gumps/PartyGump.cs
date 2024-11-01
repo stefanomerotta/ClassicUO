@@ -41,7 +41,7 @@ namespace ClassicUO.Game.UI.Gumps
 {
     internal class PartyGump : Gump
     {
-        public PartyGump(World world, int x, int y, bool canloot) : base(world, 0, 0)
+        public PartyGump(World world, int x, int y, bool canloot) : base(world)
         {
             X = x;
             Y = y;

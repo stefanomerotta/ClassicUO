@@ -42,6 +42,7 @@ using ClassicUO.Utility.Logging;
 using Microsoft.Xna.Framework;
 using SDL2;
 using StbTextEditSharp;
+using ClassicUO.Game.Data;
 
 namespace ClassicUO.Game.UI.Controls
 {
@@ -128,7 +129,7 @@ namespace ClassicUO.Game.UI.Controls
             Height = _rendererText.MaxHeight = int.Parse(parts[4]);
             Multiline = false;
             _fromServer = true;
-            LocalSerial = SerialHelper.Parse(parts[6]);
+            LocalSerial = Serial.Parse(parts[6]);
             IsFromServer = true;
 
             int index = int.Parse(parts[7]);

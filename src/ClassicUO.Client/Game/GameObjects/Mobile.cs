@@ -67,10 +67,10 @@ internal partial class Mobile : Entity
     private ushort _animationRepeatModeCount = 1;
 
     public Mobile(World world)
-        : base(world, 0)
+        : base(world, Serial.Zero)
     { }
 
-    public Mobile(World world, uint serial)
+    public Mobile(World world, Serial serial)
         : base(world, serial)
     {
         LastAnimationChangeTime = Time.Ticks;
@@ -142,7 +142,7 @@ internal partial class Mobile : Entity
     public int StepSoundOffset;
     public string Title = string.Empty;
 
-    public static Mobile Create(World world, uint serial)
+    public static Mobile Create(World world, Serial serial)
     {
         Mobile mobile = new(world) { Serial = serial };
         return mobile;
@@ -595,9 +595,9 @@ internal partial class Mobile : Entity
                     {
                         frameIndex = 0;
 
-                        if ((Serial & 0x80000000) != 0)
+                        if (Serial.IsEntity)
                         {
-                            World.CorpseManager.Remove(0, Serial);
+                            World.CorpseManager.Remove(Serial.Zero, Serial);
                             World.RemoveMobile(Serial);
                         }
                     }
@@ -605,15 +605,15 @@ internal partial class Mobile : Entity
 
                 AnimIndex = (byte)(frameIndex % frames.Length);
             }
-            else if ((Serial & 0x80000000) != 0)
+            else if (Serial.IsVirtual)
             {
-                World.CorpseManager.Remove(0, Serial);
+                World.CorpseManager.Remove(Serial.Zero, Serial);
                 World.RemoveMobile(Serial);
             }
         }
-        else if ((Serial & 0x80000000) != 0)
+        else if (Serial.IsVirtual)
         {
-            World.CorpseManager.Remove(0, Serial);
+            World.CorpseManager.Remove(Serial.Zero, Serial);
             World.RemoveMobile(Serial);
         }
 
@@ -986,15 +986,13 @@ internal partial class Mobile : Entity
 
     public override void Destroy()
     {
-        uint serial = Serial & 0x3FFFFFFF;
-
         ClearSteps();
 
         base.Destroy();
 
         if (!(this is PlayerMobile))
         {
-            UIManager.GetGump<PaperDollGump>(serial)?.Dispose();
+            UIManager.GetGump<PaperDollGump>(Serial)?.Dispose();
 
             //_pool.ReturnOne(this);
         }

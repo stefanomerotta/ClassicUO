@@ -73,7 +73,7 @@ namespace ClassicUO.Game.Managers
             return value;
         }
 
-        public void CalculateContainerPosition(uint serial, ushort g)
+        public void CalculateContainerPosition(Serial serial, ushort g)
         {
             if (UIManager.GetGumpCachePosition(serial, out Point location))
             {
@@ -197,7 +197,7 @@ namespace ClassicUO.Game.Managers
             }
         }
 
-        private void SetPositionNearGameObject(ushort g, uint serial, int width, int height)
+        private void SetPositionNearGameObject(ushort g, Serial serial, int width, int height)
         {
             Item item = _world.Items.Get(serial);
 
@@ -221,7 +221,7 @@ namespace ClassicUO.Game.Managers
                 X = item.RealScreenPosition.X + camera.Bounds.X + 40;
                 Y = item.RealScreenPosition.Y + camera.Bounds.Y - (height >> 1);
             }
-            else if (SerialHelper.IsMobile(item.Container))
+            else if (item.Container.IsMobile)
             {
                 // pack animal, snooped player, npc vendor
                 Mobile mobile = _world.Mobiles.Get(item.Container);

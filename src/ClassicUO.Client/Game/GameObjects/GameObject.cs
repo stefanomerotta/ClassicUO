@@ -232,7 +232,7 @@ namespace ClassicUO.Game.GameObjects
 
         protected void FixTextCoordinatesInScreen()
         {
-            if (this is Item it && SerialHelper.IsValid(it.Container))
+            if (this is Item it && it.Container.IsEntity)
             {
                 return;
             }
@@ -329,7 +329,7 @@ namespace ClassicUO.Game.GameObjects
             msg.Owner = this;
             TextContainer.Add(msg);
 
-            if (this is Item it && SerialHelper.IsValid(it.Container))
+            if (this is Item it && it.Container.IsEntity)
             {
                 UpdateTextCoordsV();
             }

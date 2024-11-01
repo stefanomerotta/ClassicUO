@@ -44,7 +44,7 @@ namespace ClassicUO.Game.UI.Gumps.CharCreation
     {
         private readonly ProfessionInfo _Parent;
 
-        public CreateCharProfessionGump(World world, ProfessionInfo parent = null) : base(world, 0, 0)
+        public CreateCharProfessionGump(World world, ProfessionInfo parent = null) : base(world)
         {
             _Parent = parent;
 

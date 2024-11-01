@@ -50,7 +50,7 @@ namespace ClassicUO.Game.UI.Gumps.Login
         private const ushort SELECTED_COLOR = 0x0021;
         private const ushort NORMAL_COLOR = 0x034F;
 
-        public ServerSelectionGump(World world) : base(world, 0, 0)
+        public ServerSelectionGump(World world) : base(world)
         {
             //AddChildren(new LoginBackground(true));
 

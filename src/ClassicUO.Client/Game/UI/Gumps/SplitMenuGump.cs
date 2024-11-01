@@ -30,6 +30,7 @@
 
 #endregion
 
+using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
@@ -48,7 +49,8 @@ namespace ClassicUO.Game.UI.Gumps
         private bool _updating;
 
 
-        public SplitMenuGump(World world, uint serial, Point offset) : base(world, serial, 0)
+        public SplitMenuGump(World world, Serial serial, Point offset) 
+            : base(world, serial, Serial.Zero)
         {
             Item item = World.Items.Get(serial);
 

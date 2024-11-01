@@ -41,7 +41,7 @@ namespace ClassicUO.Game.UI.Gumps
             CLEAR_SEARCH_BTN
         }
 
-        internal MarkersManagerGump(World world) : base(world, 0, 0)
+        internal MarkersManagerGump(World world) : base(world)
         {
             X = 50;
             Y = 50;

@@ -65,7 +65,7 @@ namespace ClassicUO.Game.UI.Gumps
         private readonly Label _skillsLabelSum;
         private readonly NiceButton _resetGroups;
 
-        public StandardSkillsGump(World world) : base(world, 0, 0)
+        public StandardSkillsGump(World world) : base(world)
         {
             AcceptMouseInput = false;
             CanMove = true;

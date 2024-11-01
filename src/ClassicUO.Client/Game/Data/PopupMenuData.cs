@@ -30,14 +30,14 @@
 
 #endregion
 
+using ClassicUO.Extensions;
 using ClassicUO.IO.Buffers;
-using ClassicUO.Network;
 
 namespace ClassicUO.Game.Data
 {
     internal class PopupMenuData
     {
-        public PopupMenuData(uint serial, PopupMenuItem[] items)
+        public PopupMenuData(Serial serial, PopupMenuItem[] items)
         {
             Serial = serial;
             Items = items;
@@ -45,7 +45,7 @@ namespace ClassicUO.Game.Data
 
         public PopupMenuItem[] Items { get; }
 
-        public uint Serial { get; }
+        public Serial Serial { get; }
 
         public PopupMenuItem this[int i] => Items[i];
 
@@ -53,7 +53,7 @@ namespace ClassicUO.Game.Data
         {
             ushort mode = p.ReadUInt16BE();
             bool isNewCliloc = mode >= 2;
-            uint serial = p.ReadUInt32BE();
+            Serial serial = p.ReadSerial();
             byte count = p.ReadUInt8();
             PopupMenuItem[] items = new PopupMenuItem[count];
 

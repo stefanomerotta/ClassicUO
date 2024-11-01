@@ -118,7 +118,7 @@ namespace ClassicUO.Game.Scenes
             ProfileManager.CurrentProfile != null
             && ProfileManager.CurrentProfile.UseAlternativeLights;
 
-        public void DoubleClickDelayed(uint serial)
+        public void DoubleClickDelayed(Serial serial)
         {
             _useItemQueue.Add(serial);
         }
@@ -199,7 +199,7 @@ namespace ClassicUO.Game.Scenes
                 case MessageType.Regular:
                 case MessageType.Limit3Spell:
 
-                    if (e.Parent == null || !SerialHelper.IsValid(e.Parent.Serial))
+                    if (e.Parent == null || !e.Parent.Serial.IsEntity)
                     {
                         name = ResGeneral.System;
                     }
@@ -240,7 +240,7 @@ namespace ClassicUO.Game.Scenes
 
                 case MessageType.Label:
 
-                    if (e.Parent == null || !SerialHelper.IsValid(e.Parent.Serial))
+                    if (e.Parent == null || !e.Parent.Serial.IsEntity)
                     {
                         name = string.Empty;
                     }
@@ -786,7 +786,7 @@ namespace ClassicUO.Game.Scenes
             }
 
             if (
-                _followingMode && SerialHelper.IsMobile(_followingTarget) && !_world.Player.Pathfinder.AutoWalking
+                _followingMode && _followingTarget.IsMobile && !_world.Player.Pathfinder.AutoWalking
             )
             {
                 Mobile follow = _world.Mobiles.Get(_followingTarget);
@@ -838,7 +838,7 @@ namespace ClassicUO.Game.Scenes
             {
                 if (_multi == null)
                 {
-                    _multi = Item.Create(_world, 0);
+                    _multi = Item.Create(_world, Serial.Zero);
                     _multi.Graphic = _world.TargetManager.MultiTargetInfo.Model;
                     _multi.Hue = _world.TargetManager.MultiTargetInfo.Hue;
                     _multi.IsMulti = true;
@@ -1351,7 +1351,7 @@ namespace ClassicUO.Game.Scenes
             if (_followingMode)
             {
                 _followingMode = false;
-                _followingTarget = 0;
+                _followingTarget = Serial.Zero;
                 _world.Player.Pathfinder.StopAutoWalk();
 
                 _world.MessageManager.HandleMessage(

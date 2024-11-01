@@ -41,7 +41,7 @@ internal class PlayerMobile : Mobile
 {
     private readonly Dictionary<BuffIconType, BuffIcon> _buffIcons = [];
 
-    public PlayerMobile(World world, uint serial)
+    public PlayerMobile(World world, Serial serial)
         : base(world, serial)
     {
         Skills = new Skill[Client.Game.UO.FileManager.Skills.SkillsCount];
@@ -68,8 +68,8 @@ internal class PlayerMobile : Mobile
     protected override bool IsWalking => LastStepTime > Time.Ticks - Constants.PLAYER_WALKING_DELAY;
     
 
-    public readonly HashSet<uint> AutoOpenedCorpses = [];
-    public readonly HashSet<uint> ManualOpenedCorpses = [];
+    public readonly HashSet<Serial> AutoOpenedCorpses = [];
+    public readonly HashSet<Serial> ManualOpenedCorpses = [];
 
     public short ColdResistance;
     public short DamageIncrease;
@@ -1437,7 +1437,7 @@ internal class PlayerMobile : Mobile
 
                     if (ent != null)
                     {
-                        if (SerialHelper.IsItem(ent.Serial))
+                        if (ent.Serial.IsItem)
                         {
                             Entity top = World.Get(((Item)ent).RootContainer);
 
@@ -1466,7 +1466,7 @@ internal class PlayerMobile : Mobile
 
                     if (ent != null)
                     {
-                        if (SerialHelper.IsItem(ent.Serial))
+                        if (ent.Serial.IsItem)
                         {
                             Entity top = World.Get(((Item)ent).RootContainer);
 

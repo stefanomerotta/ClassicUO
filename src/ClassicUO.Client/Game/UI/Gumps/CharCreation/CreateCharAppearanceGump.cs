@@ -74,7 +74,7 @@ namespace ClassicUO.Game.UI.Gumps.CharCreation
             }
         };
 
-        public CreateCharAppearanceGump(World world) : base(world, 0, 0)
+        public CreateCharAppearanceGump(World world) : base(world)
         {
             Add
             (
@@ -258,7 +258,7 @@ namespace ClassicUO.Game.UI.Gumps.CharCreation
         {
             if (_character == null)
             {
-                _character = new PlayerMobile(World, 1);
+                _character = new PlayerMobile(World, new(1));
                 World.Mobiles.Add(_character);
             }
 
@@ -268,7 +268,7 @@ namespace ClassicUO.Game.UI.Gumps.CharCreation
             {
                 LinkedObject next = first.Next;
 
-                World.RemoveItem((Item) first, true);
+                World.RemoveItem(((Item)first).Serial, true);
 
                 first = next;
             }
@@ -595,7 +595,7 @@ namespace ClassicUO.Game.UI.Gumps.CharCreation
 
             Add
             (
-                _paperDoll = new PaperDollInteractable(262, 135, _character, new PaperDollGump(World))
+                _paperDoll = new PaperDollInteractable(262, 135, _character.Serial, new PaperDollGump(World))
                 {
                     AcceptMouseInput = false
                 },
@@ -992,7 +992,7 @@ namespace ClassicUO.Game.UI.Gumps.CharCreation
 
             if (existsItem != null)
             {
-                World.RemoveItem(existsItem, true);
+                World.RemoveItem(existsItem.Serial, true);
                 _character.Remove(existsItem);
             }
 
@@ -1003,12 +1003,12 @@ namespace ClassicUO.Game.UI.Gumps.CharCreation
 
             // This is a workaround to avoid to see naked guy
             // We are simulating server objects into World.Items map.
-            Item item = World.GetOrCreateItem(0x4000_0000 + (uint) layer); // use layer as unique Serial
+            Item item = World.GetOrCreateItem(new(Serial.ITEM_OFFSET + (uint)layer)); // use layer as unique Serial
             _character.Remove(item);
             item.Graphic = (ushort) id;
             item.Hue = hue;
             item.Layer = layer;
-            item.Container = _character;
+            item.Container = _character.Serial;
             //
 
             return item;

@@ -37,6 +37,7 @@ using ClassicUO.Assets;
 using ClassicUO.Renderer;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using ClassicUO.Game.Data;
 
 namespace ClassicUO.Game.UI.Gumps
 {
@@ -57,7 +58,13 @@ namespace ClassicUO.Game.UI.Gumps
 
         const ushort LOCK_GRAPHIC = 0x082C;
 
-        protected AnchorableGump(World world, uint local, uint server) : base(world, local, server) { }
+        protected AnchorableGump(World world)
+            : base(world)
+        { }
+
+        protected AnchorableGump(World world, Serial local, Serial server) 
+            : base(world, local, server) 
+        { }
 
         public ANCHOR_TYPE AnchorType { get; protected set; }
         public virtual int GroupMatrixWidth { get; protected set; }

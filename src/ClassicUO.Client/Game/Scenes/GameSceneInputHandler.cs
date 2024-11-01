@@ -54,7 +54,7 @@ namespace ClassicUO.Game.Scenes
             _boatIsMoving;
         private readonly bool[] _flags = new bool[5];
         private bool _followingMode;
-        private uint _followingTarget;
+        private Serial _followingTarget;
         private uint _holdMouse2secOverItemTime;
         private bool _isMouseLeftDown;
         private bool _isSelectionActive;
@@ -229,7 +229,7 @@ namespace ClassicUO.Game.Scenes
                 {
                     if (mobile != _world.Player)
                     {
-                        if (UIManager.GetGump<BaseHealthBarGump>(mobile) != null)
+                        if (UIManager.GetGump<BaseHealthBarGump>(mobile.Serial) != null)
                         {
                             continue;
                         }
@@ -465,7 +465,7 @@ namespace ClassicUO.Game.Scenes
                 && !Client.Game.UO.GameCursor.ItemHold.IsFixedPosition
             )
             {
-                uint drop_container = 0xFFFF_FFFF;
+                Serial drop_container = Serial.MinusOne;
                 bool can_drop = false;
                 ushort dropX = 0;
                 ushort dropY = 0;
@@ -796,9 +796,9 @@ namespace ClassicUO.Game.Scenes
                 case Item item:
                     result = true;
 
-                    if (!GameActions.OpenCorpse(_world, item))
+                    if (!GameActions.OpenCorpse(_world, item.Serial))
                     {
-                        GameActions.DoubleClick(_world, item);
+                        GameActions.DoubleClick(_world, item.Serial);
                     }
 
                     break;
@@ -808,23 +808,23 @@ namespace ClassicUO.Game.Scenes
 
                     if (_world.Player.InWarMode && _world.Player != mob)
                     {
-                        GameActions.Attack(_world, mob);
+                        GameActions.Attack(_world, mob.Serial);
                     }
                     else
                     {
-                        GameActions.DoubleClick(_world, mob);
+                        GameActions.DoubleClick(_world, mob.Serial);
                     }
 
                     break;
 
                 case TextObject msg when msg.Owner is Entity entity:
                     result = true;
-                    GameActions.DoubleClick(_world, entity);
+                    GameActions.DoubleClick(_world, entity.Serial);
 
                     break;
 
                 default:
-                    _world.LastObject = 0;
+                    _world.LastObject = Serial.Zero;
 
                     break;
             }
@@ -1096,11 +1096,9 @@ namespace ClassicUO.Game.Scenes
 
                     if (obj != null)
                     {
-                        if (SerialHelper.IsMobile(obj.Serial) || obj is Item it && it.IsDamageable)
+                        if (obj.Serial.IsMobile || obj is Item it && it.IsDamageable)
                         {
-                            BaseHealthBarGump customgump = UIManager.GetGump<BaseHealthBarGump>(
-                                obj
-                            );
+                            BaseHealthBarGump customgump = UIManager.GetGump<BaseHealthBarGump>(obj.Serial);
                             customgump?.Dispose();
 
                             if (obj == _world.Player)
@@ -1143,7 +1141,7 @@ namespace ClassicUO.Game.Scenes
                         }
                         else if (obj is Item item)
                         {
-                            GameActions.PickUp(_world, item, Mouse.Position.X, Mouse.Position.Y);
+                            GameActions.PickUp(_world, item.Serial, Mouse.Position.X, Mouse.Position.Y);
                         }
                     }
 

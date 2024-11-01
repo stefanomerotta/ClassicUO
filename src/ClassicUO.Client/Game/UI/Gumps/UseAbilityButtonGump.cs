@@ -43,7 +43,7 @@ namespace ClassicUO.Game.UI.Gumps
     {
         private GumpPic _button;
 
-        public UseAbilityButtonGump(World world) : base(world, 0, 0)
+        public UseAbilityButtonGump(World world) : base(world)
         {
             CanMove = true;
             AcceptMouseInput = true;

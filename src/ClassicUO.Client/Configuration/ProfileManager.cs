@@ -60,7 +60,7 @@ internal static class ProfileManager
         string fileToLoad = Path.Combine(path, "profile.json");
 
         ProfilePath = path;
-        CurrentProfile = ConfigurationResolver.Load<Profile>(fileToLoad, ProfileJsonContext.DefaultToUse.Profile) ?? new Profile();
+        CurrentProfile = ConfigurationResolver.Load(fileToLoad, ProfileJsonContext.DefaultToUse.Profile) ?? new Profile();
 
         CurrentProfile.Username = username;
         CurrentProfile.ServerName = servername;

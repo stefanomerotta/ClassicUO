@@ -129,8 +129,8 @@ namespace ClassicUO.Game.UI.Gumps
             400,
             100,
             100,
-            0,
-            0
+            Serial.Zero,
+            Serial.Zero
         )
         {
             CanMove = true;
@@ -2173,7 +2173,7 @@ namespace ClassicUO.Game.UI.Gumps
                     {
                         if (mob != null && mob.Distance <= World.ClientViewRange)
                         {
-                            WMapEntity wme = World.WMapManager.GetEntity(mob);
+                            WMapEntity wme = World.WMapManager.GetEntity(mob.Serial);
 
                             if (wme != null)
                             {
@@ -2245,13 +2245,13 @@ namespace ClassicUO.Game.UI.Gumps
                 {
                     PartyMember partyMember = World.Party.Members[i];
 
-                    if (partyMember != null && SerialHelper.IsValid(partyMember.Serial))
+                    if (partyMember != null && partyMember.Serial.IsEntity)
                     {
                         Mobile mob = World.Mobiles.Get(partyMember.Serial);
 
                         if (mob != null && mob.Distance <= World.ClientViewRange)
                         {
-                            WMapEntity wme = World.WMapManager.GetEntity(mob);
+                            WMapEntity wme = World.WMapManager.GetEntity(mob.Serial);
 
                             if (wme != null)
                             {

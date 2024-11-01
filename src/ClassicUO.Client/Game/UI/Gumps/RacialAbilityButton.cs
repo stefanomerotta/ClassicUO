@@ -44,7 +44,7 @@ namespace ClassicUO.Game.UI.Gumps
     {
         public RacialAbilityButton(World world, ushort graphic) : this(world)
         {
-            LocalSerial = (uint) (7000 + graphic);
+            LocalSerial = new((uint) (7000 + graphic));
 
             UIManager.GetGump<RacialAbilityButton>(LocalSerial)?.Dispose();
 
@@ -52,7 +52,7 @@ namespace ClassicUO.Game.UI.Gumps
             BuildGump();
         }
 
-        public RacialAbilityButton(World world) : base(world, 0, 0)
+        public RacialAbilityButton(World world) : base(world)
         {
             CanMove = true;
             CanCloseWithRightClick = true;

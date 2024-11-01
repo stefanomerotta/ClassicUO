@@ -66,9 +66,9 @@ namespace ClassicUO.Game.Managers
             set => ProfileManager.CurrentProfile.NameOverheadToggled = value;
         }
 
-        public bool IsAllowed(Entity serial)
+        public bool IsAllowed(Entity entity)
         {
-            if (serial == null)
+            if (entity == null)
             {
                 return false;
             }
@@ -78,17 +78,17 @@ namespace ClassicUO.Game.Managers
                 return true;
             }
 
-            if (SerialHelper.IsItem(serial.Serial) && TypeAllowed == NameOverheadTypeAllowed.Items)
+            if (entity.Serial.IsItem && TypeAllowed == NameOverheadTypeAllowed.Items)
             {
                 return true;
             }
 
-            if (SerialHelper.IsMobile(serial.Serial) && TypeAllowed.HasFlag(NameOverheadTypeAllowed.Mobiles))
+            if (entity.Serial.IsMobile && TypeAllowed.HasFlag(NameOverheadTypeAllowed.Mobiles))
             {
                 return true;
             }
 
-            if (TypeAllowed.HasFlag(NameOverheadTypeAllowed.Corpses) && SerialHelper.IsItem(serial.Serial) && _world.Items.Get(serial)?.IsCorpse == true)
+            if (TypeAllowed.HasFlag(NameOverheadTypeAllowed.Corpses) && entity.Serial.IsItem && _world.Items.Get(entity.Serial)?.IsCorpse == true)
             {
                 return true;
             }

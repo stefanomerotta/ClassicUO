@@ -55,7 +55,7 @@ namespace ClassicUO.Game.UI.Gumps
         private readonly GameScene _scene;
         private readonly SystemChatControl _systemChatControl;
 
-        public WorldViewportGump(World world, GameScene scene) : base(world, 0, 0)
+        public WorldViewportGump(World world, GameScene scene) : base(world)
         {
             _scene = scene;
             AcceptMouseInput = false;

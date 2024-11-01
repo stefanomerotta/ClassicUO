@@ -30,6 +30,7 @@
 
 #endregion
 
+using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Utility.Collections;
 
@@ -37,7 +38,7 @@ namespace ClassicUO.Game.Managers
 {
     internal sealed class UseItemQueue
     {
-        private readonly Deque<uint> _actions = new Deque<uint>();
+        private readonly Deque<Serial> _actions = new();
         private long _timer;
         private readonly World _world;
 
@@ -59,21 +60,19 @@ namespace ClassicUO.Game.Managers
                     return;
                 }
 
-                uint serial = _actions.RemoveFromFront();
+                Serial serial = _actions.RemoveFromFront();
 
                 if (_world.Get(serial) != null)
                 {
-                    if (SerialHelper.IsMobile(serial))
-                    {
-                        serial |= 0x8000_0000;
-                    }
+                    if (serial.IsMobile)
+                        serial = serial.ToVirtual();
 
                     GameActions.DoubleClick(_world,serial);
                 }
             }
         }
 
-        public void Add(uint serial)
+        public void Add(Serial serial)
         {
             foreach (uint s in _actions)
             {

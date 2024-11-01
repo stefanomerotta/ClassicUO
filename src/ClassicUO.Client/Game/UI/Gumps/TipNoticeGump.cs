@@ -30,6 +30,7 @@
 
 #endregion
 
+using ClassicUO.Game.Data;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
 using ClassicUO.Network;
@@ -43,7 +44,7 @@ namespace ClassicUO.Game.UI.Gumps
         private readonly ScrollArea _scrollArea;
         private readonly StbTextBox _textBox;
 
-        public TipNoticeGump(World world, uint serial, byte type, string text) : base(world, serial, 0)
+        public TipNoticeGump(World world, Serial serial, byte type, string text) : base(world, serial, Serial.Zero)
         {
             Height = 300;
             CanMove = true;

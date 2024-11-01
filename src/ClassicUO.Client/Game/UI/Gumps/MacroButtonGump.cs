@@ -57,7 +57,7 @@ namespace ClassicUO.Game.UI.Gumps
             BuildGump();
         }
 
-        public MacroButtonGump(World world) : base(world,0, 0)
+        public MacroButtonGump(World world) : base(world)
         {
             CanMove = true;
             AcceptMouseInput = true;
@@ -187,7 +187,7 @@ namespace ClassicUO.Game.UI.Gumps
                 // hack to give macro buttons a unique id for use in anchor groups
                 int macroid = World.Macros.GetAllMacros().IndexOf(_macro);
 
-                LocalSerial = (uint) macroid + 1000;
+                LocalSerial = new((uint) macroid + 1000);
 
                 base.Save(writer);
 

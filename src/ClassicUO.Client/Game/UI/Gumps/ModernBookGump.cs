@@ -42,6 +42,7 @@ using ClassicUO.Renderer;
 using ClassicUO.Resources;
 using ClassicUO.Utility;
 using Microsoft.Xna.Framework;
+using ClassicUO.Game.Data;
 
 namespace ClassicUO.Game.UI.Gumps
 {
@@ -58,16 +59,8 @@ namespace ClassicUO.Game.UI.Gumps
         private GumpPic _forwardGumpPic, _backwardGumpPic;
         private StbTextBox _titleTextBox, _authorTextBox;
 
-        public ModernBookGump
-        (
-            World world,
-            uint serial,
-            ushort page_count,
-            string title,
-            string author,
-            bool is_editable,
-            bool old_packet
-        ) : base(world, serial, 0)
+        public ModernBookGump(World world, Serial serial, ushort page_count, string title, string author, bool is_editable, bool old_packet) 
+            : base(world, serial, Serial.Zero)
         {
             CanMove = true;
             AcceptMouseInput = true;
@@ -87,7 +80,7 @@ namespace ClassicUO.Game.UI.Gumps
         public HashSet<int> KnownPages { get; internal set; } = new HashSet<int>();
         public static bool IsNewBook => Client.Game.UO.Version > ClientVersion.CV_200;
         public bool UseNewHeader { get; set; } = true;
-        public static byte DefaultFont => (byte) (IsNewBook ? 1 : 4);
+        public static byte DefaultFont => (byte)(IsNewBook ? 1 : 4);
 
         public bool IntroChanges => _pagesChanged[0];
         internal int MaxPage => (BookPageCount >> 1) + 1;
@@ -810,7 +803,7 @@ namespace ClassicUO.Game.UI.Gumps
                     {
                         if (split[i].Length > 0)
                         {
-                            for (int p = 0, w = 0, pw = _rendererText.GetCharWidth(split[i][p]);; pw = _rendererText.GetCharWidth(split[i][p]))
+                            for (int p = 0, w = 0, pw = _rendererText.GetCharWidth(split[i][p]); ; pw = _rendererText.GetCharWidth(split[i][p]))
                             {
                                 if (w + pw > _rendererText.MaxWidth)
                                 {

@@ -50,7 +50,7 @@ namespace ClassicUO.Game.UI.Gumps
         private readonly List<InfoBarControl> _infobarControls = new List<InfoBarControl>();
         private long _refreshTime;
 
-        public InfoBarGump(World world) : base(world, 0, 0)
+        public InfoBarGump(World world) : base(world)
         {
             CanMove = true;
             AcceptMouseInput = true;

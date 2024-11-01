@@ -30,17 +30,15 @@
 
 #endregion
 
-using System;
 using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Input;
-using ClassicUO.Assets;
 using ClassicUO.Renderer;
 using Microsoft.Xna.Framework;
-using ClassicUO.Game.Scenes;
+using System;
 
 namespace ClassicUO.Game.UI.Controls
 {
@@ -50,7 +48,7 @@ namespace ClassicUO.Game.UI.Controls
         private readonly bool _is_gump;
         private readonly Gump _gump;
 
-        public ItemGump(Gump gump, uint serial, ushort graphic, ushort hue, int x, int y, bool is_gump = false)
+        public ItemGump(Gump gump, Serial serial, ushort graphic, ushort hue, int x, int y, bool is_gump = false)
         {
             _gump = gump;
             _is_gump = is_gump;

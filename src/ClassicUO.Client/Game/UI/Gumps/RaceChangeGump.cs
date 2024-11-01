@@ -71,7 +71,7 @@ namespace ClassicUO.Game.UI.Gumps
         }
         #endregion
 
-        public RaceChangeGump(World world, bool isFemale, byte race) : base(world, 0, 0)
+        public RaceChangeGump(World world, bool isFemale, byte race) : base(world)
         {
             if (race <= 0 || race > (int)RaceType.GARGOYLE)
             {
@@ -320,7 +320,7 @@ namespace ClassicUO.Game.UI.Gumps
             #region Create a fake character to use for the gump
             if (fakeMobile == null || fakeMobile.IsDestroyed)
             {
-                fakeMobile = new PlayerMobile(World, 0);
+                fakeMobile = new PlayerMobile(World, Serial.Zero);
             }
 
             LinkedObject first = fakeMobile.Items;
@@ -329,7 +329,7 @@ namespace ClassicUO.Game.UI.Gumps
             {
                 LinkedObject next = first.Next;
 
-                World.RemoveItem((Item)first, true);
+                World.RemoveItem(((Item)first).Serial, true);
 
                 first = next;
             }
@@ -460,11 +460,11 @@ namespace ClassicUO.Game.UI.Gumps
                 //Cleanup
                 if (hair != null)
                 {
-                    World.RemoveItem(hair, true);
+                    World.RemoveItem(hair.Serial, true);
                 }
                 if (beard != null)
                 {
-                    World.RemoveItem(beard, true);
+                    World.RemoveItem(beard.Serial, true);
                 }
                 Dispose();
             }
@@ -500,7 +500,7 @@ namespace ClassicUO.Game.UI.Gumps
                 return null;
             }
 
-            Item item = World.GetOrCreateItem(0x4000_0000 + (uint)layer); // use layer as unique Serial
+            Item item = World.GetOrCreateItem(new(Serial.ITEM_OFFSET + (uint)layer)); // use layer as unique Serial
             item.Graphic = (ushort)id;
             item.Hue = hue;
             item.Layer = layer;
@@ -670,7 +670,8 @@ namespace ClassicUO.Game.UI.Gumps
             private Item beard;
             private bool requestUpdate = false;
 
-            public CustomPaperDollGump(Gump gump, int x, int y, Mobile playerMobile, Item hair, Item beard) : base(x, y, playerMobile, new PaperDollGump(gump.World))
+            public CustomPaperDollGump(Gump gump, int x, int y, Mobile playerMobile, Item hair, Item beard) 
+                : base(x, y, playerMobile.Serial, new PaperDollGump(gump.World))
             {
                 _gump = gump;
                 this.playerMobile = playerMobile;

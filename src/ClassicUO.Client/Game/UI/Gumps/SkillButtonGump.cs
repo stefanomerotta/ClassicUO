@@ -30,14 +30,12 @@
 
 #endregion
 
-using System.IO;
-using System.Xml;
+using ClassicUO.Assets;
 using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
-using ClassicUO.Assets;
-using ClassicUO.Renderer;
+using System.Xml;
 
 namespace ClassicUO.Game.UI.Gumps
 {
@@ -54,7 +52,8 @@ namespace ClassicUO.Game.UI.Gumps
             BuildGump();
         }
 
-        public SkillButtonGump(World world) : base(world, 0, 0)
+        public SkillButtonGump(World world) 
+            : base(world)
         {
             CanMove = true;
             AcceptMouseInput = true;

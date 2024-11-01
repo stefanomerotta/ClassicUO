@@ -84,16 +84,16 @@ namespace ClassicUO.Game.Managers
 
     internal class LastTargetInfo
     {
-        public bool IsEntity => SerialHelper.IsValid(Serial);
+        public bool IsEntity => Serial.IsEntity;
         public bool IsStatic => !IsEntity && Graphic != 0 && Graphic != 0xFFFF;
         public bool IsLand => !IsStatic;
         public ushort Graphic;
-        public uint Serial;
+        public Serial Serial;
         public ushort X, Y;
         public sbyte Z;
 
 
-        public void SetEntity(uint serial)
+        public void SetEntity(Serial serial)
         {
             Serial = serial;
             Graphic = 0xFFFF;
@@ -103,7 +103,7 @@ namespace ClassicUO.Game.Managers
 
         public void SetStatic(ushort graphic, ushort x, ushort y, sbyte z)
         {
-            Serial = 0;
+            Serial = Serial.Zero;
             Graphic = graphic;
             X = x;
             Y = y;
@@ -112,7 +112,7 @@ namespace ClassicUO.Game.Managers
 
         public void SetLand(ushort x, ushort y, sbyte z)
         {
-            Serial = 0;
+            Serial = Serial.Zero;
             Graphic = 0xFFFF;
             X = x;
             Y = y;
@@ -121,7 +121,7 @@ namespace ClassicUO.Game.Managers
 
         public void Clear()
         {
-            Serial = 0;
+            Serial = Serial.Zero;
             Graphic = 0xFFFF;
             X = Y = 0xFFFF;
             Z = sbyte.MinValue;
@@ -137,7 +137,7 @@ namespace ClassicUO.Game.Managers
 
         public TargetManager(World world) { _world = world; }
 
-        public uint LastAttack, SelectedTarget, NewTargetSystemSerial;
+        public Serial LastAttack, SelectedTarget, NewTargetSystemSerial;
 
         public readonly LastTargetInfo LastTargetInfo = new LastTargetInfo();
 
@@ -156,7 +156,7 @@ namespace ClassicUO.Game.Managers
             {
                 MultiTargetInfo = null;
                 TargetingState = 0;
-                _world.HouseManager.Remove(0);
+                _world.HouseManager.Remove(Serial.Zero);
             }
 
             IsTargeting = false;
@@ -205,7 +205,7 @@ namespace ClassicUO.Game.Managers
         {
             if (TargetingState == CursorTarget.MultiPlacement)
             {
-                _world.HouseManager.Remove(0);
+                _world.HouseManager.Remove(Serial.Zero);
 
                 if (_world.CustomHouseManager != null)
                 {
@@ -250,7 +250,7 @@ namespace ClassicUO.Game.Managers
             );
         }
 
-        public void Target(uint serial)
+        public void Target(Serial serial)
         {
             if (!IsTargeting)
             {
@@ -276,7 +276,7 @@ namespace ClassicUO.Game.Managers
                             LastTargetInfo.SetEntity(serial);
                         }
 
-                        if (SerialHelper.IsMobile(serial) && serial != _world.Player && (_world.Player.NotorietyFlag == NotorietyFlag.Innocent || _world.Player.NotorietyFlag == NotorietyFlag.Ally))
+                        if (serial.IsMobile && serial != _world.Player && (_world.Player.NotorietyFlag == NotorietyFlag.Innocent || _world.Player.NotorietyFlag == NotorietyFlag.Ally))
                         {
                             Mobile mobile = entity as Mobile;
 
@@ -341,9 +341,9 @@ namespace ClassicUO.Game.Managers
 
                             _lastDataBuffer[6] = (byte) TargetingType;
 
-                            _lastDataBuffer[7] = (byte)(entity.Serial >> 24);
-                            _lastDataBuffer[8] = (byte)(entity.Serial >> 16);
-                            _lastDataBuffer[9] = (byte)(entity.Serial >> 8);
+                            _lastDataBuffer[7] = (byte)(entity.Serial.Value >> 24);
+                            _lastDataBuffer[8] = (byte)(entity.Serial.Value >> 16);
+                            _lastDataBuffer[9] = (byte)(entity.Serial.Value >> 8);
                             _lastDataBuffer[10] = (byte)entity.Serial;
 
                             _lastDataBuffer[11] = (byte)(entity.X >> 8);
@@ -367,7 +367,7 @@ namespace ClassicUO.Game.Managers
                                                                _targetCursorId,
                                                                (byte)TargetingType);
 
-                            if (SerialHelper.IsMobile(serial) && LastTargetInfo.Serial != serial)
+                            if (serial.IsMobile && LastTargetInfo.Serial != serial)
                             {
                                 GameActions.RequestMobileStatus(_world,serial);
                             }
@@ -381,7 +381,7 @@ namespace ClassicUO.Game.Managers
 
                     case CursorTarget.Grab:
 
-                        if (SerialHelper.IsItem(serial))
+                        if (serial.IsItem)
                         {
                             GameActions.GrabItem(_world, serial, ((Item) entity).Amount);
                         }
@@ -392,7 +392,7 @@ namespace ClassicUO.Game.Managers
 
                     case CursorTarget.SetGrabBag:
 
-                        if (SerialHelper.IsItem(serial))
+                        if (serial.IsItem)
                         {
                             ProfileManager.CurrentProfile.GrabBagSerial = serial;
                             GameActions.Print(_world, string.Format(ResGeneral.GrabBagSet0, serial));

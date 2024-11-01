@@ -30,20 +30,17 @@
 
 #endregion
 
-using System;
-using System.IO;
-using System.Xml;
+using ClassicUO.Assets;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.Map;
 using ClassicUO.Input;
-using ClassicUO.IO;
-using ClassicUO.Assets;
 using ClassicUO.Renderer;
 using ClassicUO.Utility;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using System.Runtime.CompilerServices;
+using System;
+using System.Xml;
 
 namespace ClassicUO.Game.UI.Gumps
 {
@@ -66,7 +63,8 @@ namespace ClassicUO.Game.UI.Gumps
         const ushort SMALL_MAP_GRAPHIC = 5010;
         const ushort BIG_MAP_GRAPHIC = 5011;
 
-        public MiniMapGump(World world) : base(world, 0, 0)
+        public MiniMapGump(World world) 
+            : base(world)
         {
             CanMove = true;
             AcceptMouseInput = true;

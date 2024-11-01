@@ -35,6 +35,7 @@ using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
 using ClassicUO.Assets;
 using ClassicUO.Network;
+using ClassicUO.Game.Data;
 
 namespace ClassicUO.Game.UI.Gumps
 {
@@ -49,7 +50,8 @@ namespace ClassicUO.Game.UI.Gumps
         private readonly ScrollArea _scrollArea;
         private readonly StbTextBox _textBox;
 
-        public ProfileGump(World world, uint serial, string header, string footer, string body, bool canEdit) : base(world, serial, 0)
+        public ProfileGump(World world, Serial serial, string header, string footer, string body, bool canEdit) 
+            : base(world, serial, Serial.Zero)
         {
             Height = 300 + _diffY;
             CanMove = true;

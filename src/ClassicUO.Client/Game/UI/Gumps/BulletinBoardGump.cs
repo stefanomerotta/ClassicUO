@@ -40,6 +40,7 @@ using ClassicUO.Network;
 using ClassicUO.Renderer;
 using ClassicUO.Resources;
 using ClassicUO.Utility;
+using ClassicUO.Game.Data;
 
 namespace ClassicUO.Game.UI.Gumps
 {
@@ -47,7 +48,8 @@ namespace ClassicUO.Game.UI.Gumps
     {
         private readonly DataBox _databox;
 
-        public BulletinBoardGump(World world, uint serial, int x, int y, string name) : base(world, serial, 0)
+        public BulletinBoardGump(World world, Serial serial, int x, int y, string name) 
+            : base(world, serial, Serial.Zero)
         {
             X = x;
             Y = y;
@@ -133,7 +135,7 @@ namespace ClassicUO.Game.UI.Gumps
             base.Dispose();
         }
 
-        public void RemoveBulletinObject(uint serial)
+        public void RemoveBulletinObject(Serial serial)
         {
             foreach (Control child in _databox.Children)
             {
@@ -149,7 +151,7 @@ namespace ClassicUO.Game.UI.Gumps
         }
 
 
-        public void AddBulletinObject(uint serial, string msg)
+        public void AddBulletinObject(Serial serial, string msg)
         {
             foreach (Control c in _databox.Children)
             {
@@ -161,7 +163,7 @@ namespace ClassicUO.Game.UI.Gumps
                 }
             }
 
-            BulletinBoardObject obj = new BulletinBoardObject(serial, msg);
+            BulletinBoardObject obj = new(serial, msg);
             _databox.Add(obj);
 
             _databox.WantUpdateSize = true;
@@ -184,14 +186,14 @@ namespace ClassicUO.Game.UI.Gumps
         public BulletinBoardItem
         (
             World world,
-            uint serial,
+            Serial serial,
             uint msgSerial,
             string poster,
             string subject,
             string datatime,
             string data,
             byte variant
-        ) : base(world, serial, 0)
+        ) : base(world, serial, Serial.Zero)
         {
             _msgSerial = msgSerial;
             AcceptKeyboardInput = true;
@@ -514,7 +516,7 @@ namespace ClassicUO.Game.UI.Gumps
 
     internal class BulletinBoardObject : Control
     {
-        public BulletinBoardObject(uint serial, string text)
+        public BulletinBoardObject(Serial serial, string text)
         {
             LocalSerial = serial; //board
             CanMove = true;

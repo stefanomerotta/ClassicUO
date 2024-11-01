@@ -30,6 +30,7 @@
 
 #endregion
 
+using ClassicUO.Game.Data;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
 using Microsoft.Xna.Framework;
@@ -52,8 +53,8 @@ namespace ClassicUO.Game.UI.Gumps
             int height,
             int minW,
             int minH,
-            uint local,
-            uint server,
+            Serial local,
+            Serial server,
             ushort borderHue = 0
         ) : base(world, local, server)
         {

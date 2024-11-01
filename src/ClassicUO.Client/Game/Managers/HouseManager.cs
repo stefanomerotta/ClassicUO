@@ -32,13 +32,14 @@
 
 using System;
 using System.Collections.Generic;
+using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 
 namespace ClassicUO.Game.Managers
 {
     internal sealed class HouseManager
     {
-        private readonly Dictionary<uint, House> _houses = new Dictionary<uint, House>();
+        private readonly Dictionary<Serial, House> _houses = [];
         private readonly World _world;
 
         public HouseManager(World world)
@@ -48,17 +49,17 @@ namespace ClassicUO.Game.Managers
 
         public IReadOnlyCollection<House> Houses => _houses.Values;
 
-        public void Add(uint serial, House revision)
+        public void Add(Serial serial, House revision)
         {
             _houses[serial] = revision;
         }
 
-        public bool TryGetHouse(uint serial, out House house)
+        public bool TryGetHouse(Serial serial, out House house)
         {
             return _houses.TryGetValue(serial, out house);
         }
 
-        public bool TryToRemove(uint serial, int distance)
+        public bool TryToRemove(Serial serial, int distance)
         {
             if (!IsHouseInRange(serial, distance))
             {
@@ -75,7 +76,7 @@ namespace ClassicUO.Game.Managers
             return false;
         }
 
-        public bool IsHouseInRange(uint serial, int distance)
+        public bool IsHouseInRange(Serial serial, int distance)
         {
             if (TryGetHouse(serial, out _))
             {
@@ -110,7 +111,7 @@ namespace ClassicUO.Game.Managers
             return false;
         }
 
-        public bool EntityIntoHouse(uint house, GameObject obj)
+        public bool EntityIntoHouse(Serial house, GameObject obj)
         {
             if (obj != null && TryGetHouse(house, out _))
             {
@@ -132,7 +133,7 @@ namespace ClassicUO.Game.Managers
             return false;
         }
 
-        public void Remove(uint serial)
+        public void Remove(Serial serial)
         {
             if (TryGetHouse(serial, out House house))
             {
@@ -143,21 +144,21 @@ namespace ClassicUO.Game.Managers
 
         public void RemoveMultiTargetHouse()
         {
-            if (_houses.TryGetValue(0, out House house))
+            if (_houses.TryGetValue(Serial.Zero, out House house))
             {
                 house.ClearComponents();
-                _houses.Remove(0);
+                _houses.Remove(Serial.Zero);
             }
         }
 
-        public bool Exists(uint serial)
+        public bool Exists(Serial serial)
         {
             return _houses.ContainsKey(serial);
         }
 
         public void Clear()
         {
-            foreach (KeyValuePair<uint, House> house in _houses)
+            foreach (KeyValuePair<Serial, House> house in _houses)
             {
                 house.Value.ClearComponents();
             }

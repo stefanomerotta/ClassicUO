@@ -56,7 +56,8 @@ namespace ClassicUO.Game.UI.Gumps
         private readonly RenderedText _renderedText;
         private Texture2D _borderColor = SolidColorTextureCache.GetTexture(Color.Black);
 
-        public NameOverheadGump(World world, uint serial) : base(world, serial, 0)
+        public NameOverheadGump(World world, Serial serial) 
+            : base(world, serial, Serial.Zero)
         {
             CanMove = false;
             AcceptMouseInput = true;
@@ -83,7 +84,7 @@ namespace ClassicUO.Game.UI.Gumps
                 true
             );
 
-            SetTooltip(entity);
+            SetTooltip(entity.Serial);
 
             BuildGump();
         }
@@ -99,7 +100,7 @@ namespace ClassicUO.Game.UI.Gumps
 
             if (entity is Item item)
             {
-                if (!World.OPL.TryGetNameAndData(item, out string t, out _))
+                if (!World.OPL.TryGetNameAndData(item.Serial, out string t, out _))
                 {
                     if (!item.IsCorpse && item.Amount > 1)
                     {
@@ -305,7 +306,7 @@ namespace ClassicUO.Game.UI.Gumps
         {
             if (button == MouseButtonType.Left)
             {
-                if (SerialHelper.IsMobile(LocalSerial))
+                if (LocalSerial.IsMobile)
                 {
                     if (World.Player.InWarMode)
                     {
@@ -394,7 +395,7 @@ namespace ClassicUO.Game.UI.Gumps
                         && !Client.Game.UO.GameCursor.ItemHold.IsFixedPosition
                     )
                     {
-                        uint drop_container = 0xFFFF_FFFF;
+                        Serial drop_container = Serial.MinusOne;
                         bool can_drop = false;
                         ushort dropX = 0;
                         ushort dropY = 0;
@@ -488,7 +489,7 @@ namespace ClassicUO.Game.UI.Gumps
                 DoDrag();
             }
 
-            if (!_positionLocked && SerialHelper.IsMobile(LocalSerial))
+            if (!_positionLocked && LocalSerial.IsMobile)
             {
                 Mobile m = World.Mobiles.Get(LocalSerial);
 
@@ -559,7 +560,7 @@ namespace ClassicUO.Game.UI.Gumps
             }
             else
             {
-                if (entity == World.TargetManager.LastTargetInfo.Serial)
+                if (entity.Serial == World.TargetManager.LastTargetInfo.Serial)
                 {
                     _borderColor = SolidColorTextureCache.GetTexture(Color.Red);
                     _background.Hue = _renderedText.Hue = entity is Mobile m
@@ -583,7 +584,7 @@ namespace ClassicUO.Game.UI.Gumps
                 return false;
             }
 
-            if (SerialHelper.IsMobile(LocalSerial))
+            if (LocalSerial.IsMobile)
             {
                 Mobile m = World.Mobiles.Get(LocalSerial);
 
@@ -632,7 +633,7 @@ namespace ClassicUO.Game.UI.Gumps
                     );
                 }
             }
-            else if (SerialHelper.IsItem(LocalSerial))
+            else if (LocalSerial.IsItem)
             {
                 Item item = World.Items.Get(LocalSerial);
 

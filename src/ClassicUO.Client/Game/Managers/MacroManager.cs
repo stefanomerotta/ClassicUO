@@ -52,8 +52,8 @@ namespace ClassicUO.Game.Managers
 {
     internal sealed class MacroManager : LinkedObject
     {
-        public static readonly string[] MacroNames = Enum.GetNames(typeof(MacroType));
-        private readonly uint[] _itemsInHand = new uint[2];
+        public static readonly string[] MacroNames = Enum.GetNames<MacroType>();
+        private readonly Serial[] _itemsInHand = new Serial[2];
         private MacroObject _lastMacro;
         private long _nextTimer;
         private readonly World _world;
@@ -535,7 +535,7 @@ namespace ClassicUO.Game.Managers
                                     break;
 
                                 case MacroSubType.Paperdoll:
-                                    GameActions.OpenPaperdoll(_world, _world.Player);
+                                    GameActions.OpenPaperdoll(_world, _world.Player.Serial);
 
                                     break;
 
@@ -722,7 +722,7 @@ namespace ClassicUO.Game.Managers
                                         }
                                         else
                                         {
-                                            UIManager.GetGump<BaseHealthBarGump>(_world.Player)?.Dispose();
+                                            UIManager.GetGump<BaseHealthBarGump>(_world.Player.Serial)?.Dispose();
                                         }
                                     }
                                     else if (macro.Code == MacroType.Minimize)
@@ -742,7 +742,7 @@ namespace ClassicUO.Game.Managers
                                         }
                                         else
                                         {
-                                            UIManager.GetGump<BaseHealthBarGump>(_world.Player)?.BringOnTop();
+                                            UIManager.GetGump<BaseHealthBarGump>(_world.Player.Serial)?.BringOnTop();
                                         }
                                     }
                                     else if (macro.Code == MacroType.Maximize)
@@ -753,7 +753,7 @@ namespace ClassicUO.Game.Managers
                                         }
                                         else
                                         {
-                                            BaseHealthBarGump healthbar = UIManager.GetGump<BaseHealthBarGump>(_world.Player);
+                                            BaseHealthBarGump healthbar = UIManager.GetGump<BaseHealthBarGump>(_world.Player.Serial);
 
                                             if (healthbar != null)
                                             {
@@ -1083,7 +1083,7 @@ namespace ClassicUO.Game.Managers
 
                     if (_world.TargetManager.IsTargeting)
                     {
-                        _world.TargetManager.Target(_world.Player);
+                        _world.TargetManager.Target(_world.Player.Serial);
                         WaitForTargetTimer = 0;
                     }
                     else if (WaitForTargetTimer < Time.Ticks)
@@ -1111,7 +1111,7 @@ namespace ClassicUO.Game.Managers
                         GameActions.PickUp(_world, _itemsInHand[handIndex], 0, 0, 1);
                         GameActions.Equip(_world);
 
-                        _itemsInHand[handIndex] = 0;
+                        _itemsInHand[handIndex] = Serial.Zero;
                         _nextTimer = Time.Ticks + 1000;
                     }
                     else
@@ -1129,7 +1129,7 @@ namespace ClassicUO.Game.Managers
                         {
                             _itemsInHand[handIndex] = item.Serial;
 
-                            GameActions.PickUp(_world, item, 0, 0, 1);
+                            GameActions.PickUp(_world, item.Serial, 0, 0, 1);
 
                             GameActions.DropItem
                             (
@@ -1166,9 +1166,9 @@ namespace ClassicUO.Game.Managers
 
                 case MacroType.TargetNext:
 
-                    uint sel_obj = _world.FindNext(ScanTypeObject.Mobiles, _world.TargetManager.LastTargetInfo.Serial, false);
+                    Serial sel_obj = _world.FindNext(ScanTypeObject.Mobiles, _world.TargetManager.LastTargetInfo.Serial, false);
 
-                    if (SerialHelper.IsValid(sel_obj))
+                    if (sel_obj.IsEntity)
                     {
                         _world.TargetManager.LastTargetInfo.SetEntity(sel_obj);
                         _world.TargetManager.LastAttack = sel_obj;
@@ -1235,7 +1235,7 @@ namespace ClassicUO.Game.Managers
 
                 case MacroType.AttackSelectedTarget:
 
-                    if (SerialHelper.IsMobile(_world.TargetManager.SelectedTarget))
+                    if (_world.TargetManager.SelectedTarget.IsMobile)
                     {
                         GameActions.Attack(_world, _world.TargetManager.SelectedTarget);
                     }
@@ -1243,7 +1243,7 @@ namespace ClassicUO.Game.Managers
                     break;
 
                 case MacroType.UseSelectedTarget:
-                    if (SerialHelper.IsValid(_world.TargetManager.SelectedTarget))
+                    if (_world.TargetManager.SelectedTarget.IsEntity)
                     {
                         GameActions.DoubleClick(_world, _world.TargetManager.SelectedTarget);
                     }
@@ -1298,7 +1298,7 @@ namespace ClassicUO.Game.Managers
                             {
                                 if (macro.Code == MacroType.BandageSelf)
                                 {
-                                    _world.TargetManager.Target(_world.Player);
+                                    _world.TargetManager.Target(_world.Player.Serial);
                                 }
                                 else if (_world.TargetManager.LastTargetInfo.IsEntity)
                                 {
@@ -1325,7 +1325,7 @@ namespace ClassicUO.Game.Managers
                             if (bandage != null)
                             {
                                 WaitingBandageTarget = true;
-                                GameActions.DoubleClick(_world,bandage);
+                                GameActions.DoubleClick(_world,bandage.Serial);
                                 result = 1;
                             }
                         }
@@ -1340,7 +1340,7 @@ namespace ClassicUO.Game.Managers
                             {
                                 NetClient.Socket.SendTargetSelectedObject(bandage.Serial, _world.Player.Serial);
                             }
-                            else if (SerialHelper.IsMobile(_world.TargetManager.SelectedTarget))
+                            else if (_world.TargetManager.SelectedTarget.IsMobile)
                             {
                                 NetClient.Socket.SendTargetSelectedObject(bandage.Serial, _world.TargetManager.SelectedTarget);
                             }
@@ -1551,7 +1551,7 @@ namespace ClassicUO.Game.Managers
 
                     if (potion != null)
                     {
-                        GameActions.DoubleClick(_world, potion);
+                        GameActions.DoubleClick(_world, potion.Serial);
                     }
 
                     break;
@@ -1568,7 +1568,7 @@ namespace ClassicUO.Game.Managers
 
                             if (obj != null)
                             {
-                                GameActions.DoubleClick(_world,obj);
+                                GameActions.DoubleClick(_world,obj.Serial);
                             }
 
                             break;
@@ -1580,7 +1580,7 @@ namespace ClassicUO.Game.Managers
 
                             if (obj != null)
                             {
-                                GameActions.DoubleClick(_world,obj);
+                                GameActions.DoubleClick(_world,obj.Serial);
                             }
 
                             break;
@@ -1592,7 +1592,7 @@ namespace ClassicUO.Game.Managers
 
                             if (obj != null)
                             {
-                                GameActions.DoubleClick(_world, obj);
+                                GameActions.DoubleClick(_world, obj.Serial);
                             }
 
                             break;
@@ -1604,7 +1604,7 @@ namespace ClassicUO.Game.Managers
 
                             if (obj != null)
                             {
-                                GameActions.DoubleClick(_world,obj);
+                                GameActions.DoubleClick(_world,obj.Serial);
                             }
 
                             break;
@@ -1616,7 +1616,7 @@ namespace ClassicUO.Game.Managers
 
                             if (obj != null)
                             {
-                                GameActions.DoubleClick(_world,obj);
+                                GameActions.DoubleClick(_world,obj.Serial);
                             }
 
                             break;
@@ -1628,7 +1628,7 @@ namespace ClassicUO.Game.Managers
 
                             if (obj != null)
                             {
-                                GameActions.DoubleClick(_world, obj);
+                                GameActions.DoubleClick(_world, obj.Serial);
                             }
 
                             break;
@@ -1640,7 +1640,7 @@ namespace ClassicUO.Game.Managers
 
                             if (obj != null)
                             {
-                                GameActions.DoubleClick(_world, obj);
+                                GameActions.DoubleClick(_world, obj.Serial);
                             }
 
                             break;
@@ -1650,7 +1650,7 @@ namespace ClassicUO.Game.Managers
 
                             if (obj != null)
                             {
-                                GameActions.DoubleClick(_world, obj);
+                                GameActions.DoubleClick(_world, obj.Serial);
                             }
 
                             break;
@@ -1660,7 +1660,7 @@ namespace ClassicUO.Game.Managers
 
                             if (obj != null)
                             {
-                                GameActions.DoubleClick(_world, obj);
+                                GameActions.DoubleClick(_world, obj.Serial);
                             }
 
                             break;
@@ -1670,7 +1670,7 @@ namespace ClassicUO.Game.Managers
 
                             if (obj != null)
                             {
-                                GameActions.DoubleClick(_world, obj);
+                                GameActions.DoubleClick(_world, obj.Serial);
                             }
 
                             break;
@@ -1680,7 +1680,7 @@ namespace ClassicUO.Game.Managers
 
                             if (obj != null)
                             {
-                                GameActions.DoubleClick(_world, obj);
+                                GameActions.DoubleClick(_world, obj.Serial);
                             }
 
                             break;
@@ -1690,7 +1690,7 @@ namespace ClassicUO.Game.Managers
 
                             if (obj != null)
                             {
-                                GameActions.DoubleClick(_world, obj);
+                                GameActions.DoubleClick(_world, obj.Serial);
                             }
 
                             break;
@@ -1700,7 +1700,7 @@ namespace ClassicUO.Game.Managers
 
                             if (obj != null)
                             {
-                                GameActions.DoubleClick(_world, obj);
+                                GameActions.DoubleClick(_world, obj.Serial);
                             }
 
                             break;
@@ -1712,7 +1712,7 @@ namespace ClassicUO.Game.Managers
 
                             if (obj != null)
                             {
-                                GameActions.DoubleClick(_world, obj);
+                                GameActions.DoubleClick(_world, obj.Serial);
                             }
 
                             break;
@@ -1804,17 +1804,17 @@ namespace ClassicUO.Game.Managers
             return result;
         }
 
-        private void SetLastTarget(uint serial)
+        private void SetLastTarget(Serial serial)
         {
-            if (SerialHelper.IsValid(serial))
+            if (serial.IsEntity)
             {
                 Entity ent = _world.Get(serial);
 
-                if (SerialHelper.IsMobile(serial))
+                if (serial.IsMobile)
                 {
                     if (ent != null)
                     {
-                        GameActions.MessageOverhead(_world, string.Format(ResGeneral.Target0, ent.Name), Notoriety.GetHue(((Mobile) ent).NotorietyFlag), _world.Player);
+                        GameActions.MessageOverhead(_world, string.Format(ResGeneral.Target0, ent.Name), Notoriety.GetHue(((Mobile) ent).NotorietyFlag), _world.Player.Serial);
 
                         _world.TargetManager.NewTargetSystemSerial = serial;
                         _world.TargetManager.SelectedTarget = serial;
@@ -1827,7 +1827,7 @@ namespace ClassicUO.Game.Managers
                 {
                     if (ent != null)
                     {
-                        GameActions.MessageOverhead(_world, string.Format(ResGeneral.Target0, ent.Name), 992, _world.Player);
+                        GameActions.MessageOverhead(_world, string.Format(ResGeneral.Target0, ent.Name), 992, _world.Player.Serial);
                         _world.TargetManager.SelectedTarget = serial;
                         _world.TargetManager.LastTargetInfo.SetEntity(serial);
 

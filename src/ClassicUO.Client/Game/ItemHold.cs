@@ -51,8 +51,8 @@ namespace ClassicUO.Game
         public ushort X { get; private set; }
         public ushort Y { get; private set; }
         public sbyte Z { get; private set; }
-        public uint Container { get; private set; }
-        public uint Serial { get; private set; }
+        public Serial Container { get; private set; }
+        public Serial Serial { get; private set; }
         public ushort Graphic { get; private set; }
         public ushort DisplayedGraphic { get; private set; }
         public bool IsGumpTexture { get; set; }
@@ -117,11 +117,11 @@ namespace ClassicUO.Game
 
         public void Clear()
         {
-            Serial = 0;
+            Serial = Serial.Zero;
             X = 0xFFFF;
             Y = 0xFFFF;
             Z = 0;
-            Container = 0;
+            Container = Serial.Zero;
             DisplayedGraphic = Graphic = 0xFFFF;
             Hue = 0xFFFF;
             OnGround = false;

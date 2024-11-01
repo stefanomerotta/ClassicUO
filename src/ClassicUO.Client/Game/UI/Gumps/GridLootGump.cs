@@ -41,6 +41,7 @@ using ClassicUO.Renderer;
 using ClassicUO.Resources;
 using Microsoft.Xna.Framework;
 using ClassicUO.Game.Scenes;
+using ClassicUO.Game.Data;
 
 namespace ClassicUO.Game.UI.Gumps
 {
@@ -63,7 +64,8 @@ namespace ClassicUO.Game.UI.Gumps
         private readonly bool _hideIfEmpty;
         private int _pagesCount;
 
-        public GridLootGump(World world, uint local) : base(world, local, 0)
+        public GridLootGump(World world, Serial local) 
+            : base(world, local, Serial.Zero)
         {
             _corpse = World.Items.Get(local);
 
@@ -251,7 +253,7 @@ namespace ClassicUO.Game.UI.Gumps
                         continue;
                     }
 
-                    GridLootItem gridItem = new GridLootItem(this, it, GRID_ITEM_SIZE);
+                    GridLootItem gridItem = new GridLootItem(this, it.Serial, GRID_ITEM_SIZE);
 
                     if (x >= MAX_WIDTH - 20)
                     {
@@ -440,7 +442,7 @@ namespace ClassicUO.Game.UI.Gumps
             private readonly GridLootGump _gump;
             private readonly HitBox _hit;
 
-            public GridLootItem(GridLootGump gump, uint serial, int size)
+            public GridLootItem(GridLootGump gump, Serial serial, int size)
             {
                 _gump = gump;
                 LocalSerial = serial;
@@ -494,7 +496,7 @@ namespace ClassicUO.Game.UI.Gumps
                 {
                     if (e.Button == MouseButtonType.Left)
                     {
-                        GameActions.GrabItem(_gump.World, item, (ushort)amount.Value);
+                        GameActions.GrabItem(_gump.World, item.Serial, (ushort)amount.Value);
                     }
                 };
 

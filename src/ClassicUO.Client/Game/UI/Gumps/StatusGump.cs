@@ -51,7 +51,7 @@ namespace ClassicUO.Game.UI.Gumps
         protected const ushort LOCK_LOCKED_GRAPHIC = 0x082C;
 
 
-        protected StatusGumpBase(World world) : base(world, 0, 0)
+        protected StatusGumpBase(World world) : base(world)
         {
             // sanity check
             UIManager.GetGump<HealthBarGump>(World.Player)?.Dispose();

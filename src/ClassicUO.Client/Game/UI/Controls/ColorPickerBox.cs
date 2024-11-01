@@ -30,15 +30,13 @@
 
 #endregion
 
-using System;
-using System.Runtime.InteropServices;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Input;
-using ClassicUO.Assets;
 using ClassicUO.Renderer;
 using ClassicUO.Utility;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using System;
 
 namespace ClassicUO.Game.UI.Controls
 {
@@ -48,11 +46,9 @@ namespace ClassicUO.Game.UI.Controls
         private readonly int _cellWidth;
         private readonly int _columns;
         private readonly ushort[] _customPallete;
-        private int _graduation, _selectedIndex;
+        private readonly int _rows;
         private ushort[] _hues;
         private bool _needToFileeBoxes = true;
-        private readonly int _rows;
-
 
         public ColorPickerBox
         (
@@ -64,7 +60,7 @@ namespace ClassicUO.Game.UI.Controls
             int cellW = 8,
             int cellH = 8,
             ushort[] customPallete = null
-        ) : base(world, 0, 0)
+        ) : base(world)
         {
             X = x;
             Y = y;
@@ -100,12 +96,12 @@ namespace ClassicUO.Game.UI.Controls
 
         public int Graduation
         {
-            get => _graduation;
+            get;
             set
             {
-                if (_graduation != value)
+                if (field != value)
                 {
-                    _graduation = value;
+                    field = value;
 
                     _needToFileeBoxes = true;
 
@@ -117,7 +113,7 @@ namespace ClassicUO.Game.UI.Controls
 
         public int SelectedIndex
         {
-            get => _selectedIndex;
+            get;
             set
             {
                 if (value < 0 || value >= _hues.Length)
@@ -125,9 +121,9 @@ namespace ClassicUO.Game.UI.Controls
                     return;
                 }
 
-                if (_selectedIndex != value)
+                if (field != value)
                 {
-                    _selectedIndex = value;
+                    field = value;
                     ColorSelectedIndex.Raise();
                 }
             }

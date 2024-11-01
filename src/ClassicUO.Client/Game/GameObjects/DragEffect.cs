@@ -36,6 +36,7 @@ using ClassicUO.Game.Scenes;
 using ClassicUO.Assets;
 using ClassicUO.Renderer;
 using Microsoft.Xna.Framework;
+using ClassicUO.Game.Data;
 
 namespace ClassicUO.Game.GameObjects
 {
@@ -47,8 +48,8 @@ namespace ClassicUO.Game.GameObjects
         (
             World world,
             EffectManager manager,
-            uint src,
-            uint trg,
+            Serial src,
+            Serial trg,
             ushort xSource,
             ushort ySource,
             sbyte zSource,
@@ -64,7 +65,7 @@ namespace ClassicUO.Game.GameObjects
         {
             Entity source = World.Get(src);
 
-            if (SerialHelper.IsValid(src) && source != null)
+            if (src.IsEntity && source != null)
             {
                 SetSource(source);
             }
@@ -76,7 +77,7 @@ namespace ClassicUO.Game.GameObjects
 
             Entity target = World.Get(trg);
 
-            if (SerialHelper.IsValid(trg) && target != null)
+            if (trg.IsEntity && target != null)
             {
                 SetTarget(target);
             }

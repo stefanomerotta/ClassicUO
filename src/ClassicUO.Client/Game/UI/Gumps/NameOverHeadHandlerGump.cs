@@ -46,7 +46,7 @@ namespace ClassicUO.Game.UI.Gumps
         public override GumpType GumpType => GumpType.NameOverHeadHandler;
 
 
-        public NameOverHeadHandlerGump(World world) : base(world, 0, 0)
+        public NameOverHeadHandlerGump(World world) : base(world)
         {
             CanMove = true;
             AcceptMouseInput = true;

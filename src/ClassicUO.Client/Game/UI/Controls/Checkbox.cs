@@ -37,6 +37,7 @@ using ClassicUO.Assets;
 using ClassicUO.Renderer;
 using ClassicUO.Utility;
 using Microsoft.Xna.Framework;
+using ClassicUO.Game.Data;
 
 namespace ClassicUO.Game.UI.Controls
 {
@@ -87,7 +88,7 @@ namespace ClassicUO.Game.UI.Controls
             X = int.Parse(parts[1]);
             Y = int.Parse(parts[2]);
             IsChecked = parts[5] == "1";
-            LocalSerial = SerialHelper.Parse(parts[6]);
+            LocalSerial = Serial.Parse(parts[6]);
             IsFromServer = true;
         }
 

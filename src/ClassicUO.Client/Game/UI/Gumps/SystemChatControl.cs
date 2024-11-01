@@ -258,7 +258,7 @@ namespace ClassicUO.Game.UI.Gumps
 
             switch (e.Type)
             {
-                case MessageType.Regular when e.Parent == null || !SerialHelper.IsValid(e.Parent.Serial):
+                case MessageType.Regular when e.Parent == null || !e.Parent.Serial.IsEntity:
                 case MessageType.System:
                     if (!string.IsNullOrEmpty(e.Name) && !e.Name.Equals("system", StringComparison.InvariantCultureIgnoreCase))
                     {
@@ -271,7 +271,7 @@ namespace ClassicUO.Game.UI.Gumps
 
                     break;
 
-                case MessageType.Label when e.Parent == null || !SerialHelper.IsValid(e.Parent.Serial):
+                case MessageType.Label when e.Parent == null || !e.Parent.Serial.IsEntity:
                     AddLine(e.Text, e.Font, e.Hue, e.IsUnicode);
 
                     break;
@@ -293,7 +293,7 @@ namespace ClassicUO.Game.UI.Gumps
 
                 default:
 
-                    if (e.Parent == null || !SerialHelper.IsValid(e.Parent.Serial))
+                    if (e.Parent == null || !e.Parent.Serial.IsEntity)
                     {
                         if (string.IsNullOrEmpty(e.Name) || e.Name.Equals("system", StringComparison.InvariantCultureIgnoreCase))
                         {
@@ -741,7 +741,7 @@ namespace ClassicUO.Game.UI.Gumps
                                 {
                                     GameActions.RequestPartyAccept(_gump.World.Party.Inviter);
                                     _gump.World.Party.Leader = _gump.World.Party.Inviter;
-                                    _gump.World.Party.Inviter = 0;
+                                    _gump.World.Party.Inviter = Serial.Zero;
                                 }
                                 else
                                 {
@@ -764,8 +764,8 @@ namespace ClassicUO.Game.UI.Gumps
                                 if (_gump.World.Party.Leader == 0 && _gump.World.Party.Inviter != 0)
                                 {
                                     NetClient.Socket.Send_PartyDecline(_gump.World.Party.Inviter);
-                                    _gump.World.Party.Leader = 0;
-                                    _gump.World.Party.Inviter = 0;
+                                    _gump.World.Party.Leader = Serial.Zero;
+                                    _gump.World.Party.Inviter = Serial.Zero;
                                 }
                                 else
                                 {
@@ -811,7 +811,7 @@ namespace ClassicUO.Game.UI.Gumps
 
                                 if (_gump.World.Party.Leader != 0)
                                 {
-                                    uint serial = 0;
+                                    Serial serial = Serial.Zero;
 
                                     int pos = 0;
 

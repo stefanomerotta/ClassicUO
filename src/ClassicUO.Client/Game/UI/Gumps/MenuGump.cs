@@ -30,13 +30,12 @@
 
 #endregion
 
-using System.Linq;
+using ClassicUO.Game.Data;
 using ClassicUO.Game.UI.Controls;
-using ClassicUO.Assets;
 using ClassicUO.Network;
 using ClassicUO.Renderer;
-using ClassicUO.Utility.Logging;
 using Microsoft.Xna.Framework;
+using System.Linq;
 
 namespace ClassicUO.Game.UI.Gumps
 {
@@ -47,7 +46,8 @@ namespace ClassicUO.Game.UI.Gumps
             _isLeft;
         private readonly HSliderBar _slider;
 
-        public MenuGump(World world, uint serial, uint serv, string name) : base(world, serial, serv)
+        public MenuGump(World world, Serial serial, Serial serv, string name) 
+            : base(world, serial, serv)
         {
             CanMove = true;
             AcceptMouseInput = true;
@@ -285,7 +285,8 @@ namespace ClassicUO.Game.UI.Gumps
     {
         private readonly ResizePic _resizePic;
 
-        public GrayMenuGump(World world, uint local, uint serv, string name) : base(world, local, serv)
+        public GrayMenuGump(World world, Serial local, Serial serv, string name) 
+            : base(world, local, serv)
         {
             CanMove = true;
             AcceptMouseInput = true;

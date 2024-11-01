@@ -97,7 +97,7 @@ namespace ClassicUO.Game.GameObjects
         private ushort? _displayedGraphic;
         private bool _isMulti;
 
-        public Item(World world) : base(world, 0) { }
+        public Item(World world) : base(world, Serial.Zero) { }
 
         public bool IsCoin => Graphic == 0x0EEA || Graphic == 0x0EED || Graphic == 0x0EF0;
 
@@ -156,25 +156,25 @@ namespace ClassicUO.Game.GameObjects
         public bool IsCorpse => /*MathHelper.InRange(Graphic, 0x0ECA, 0x0ED2) ||*/
             Graphic == 0x2006;
 
-        public bool OnGround => !SerialHelper.IsValid(Container);
+        public bool OnGround => Container.IsEntity;
 
-        public uint RootContainer
+        public Serial RootContainer
         {
             get
             {
                 Item item = this;
 
-                while (SerialHelper.IsItem(item.Container))
+                while (item.Container.IsItem)
                 {
                     item = World.Items.Get(item.Container);
 
                     if (item == null)
                     {
-                        return 0;
+                        return Serial.Zero;
                     }
                 }
 
-                return SerialHelper.IsMobile(item.Container) ? item.Container : item;
+                return item.Container.IsMobile ? item.Container : item.Serial;
             }
         }
 
@@ -188,7 +188,7 @@ namespace ClassicUO.Game.GameObjects
             && Graphic != 0;
 
         public ushort Amount;
-        public uint Container = 0xFFFF_FFFF;
+        public Serial Container = Serial.MinusOne;
 
         public bool IsDamageable;
         public Layer Layer;
@@ -201,11 +201,9 @@ namespace ClassicUO.Game.GameObjects
         public bool UsedLayer;
         public bool WantUpdateMulti = true;
 
-        public static Item Create(World world, uint serial)
+        public static Item Create(World world, Serial serial)
         {
-            Item i = new Item(world); // _pool.GetOne();
-            i.Serial = serial;
-
+            Item i = new(world) { Serial = serial };
             return i;
         }
 

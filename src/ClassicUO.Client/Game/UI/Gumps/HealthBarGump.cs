@@ -30,23 +30,20 @@
 
 #endregion
 
-using System;
-using System.IO;
-using System.Xml;
+using ClassicUO.Assets;
 using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
-using ClassicUO.Assets;
-using ClassicUO.Network;
 using ClassicUO.Renderer;
 using ClassicUO.Resources;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using SDL2;
-using ClassicUO.Game.Scenes;
+using System;
+using System.Xml;
 
 namespace ClassicUO.Game.UI.Gumps
 {
@@ -54,7 +51,7 @@ namespace ClassicUO.Game.UI.Gumps
     {
         private bool _targetBroke;
 
-        protected BaseHealthBarGump(World world, Entity entity) : this(world, 0, 0)
+        protected BaseHealthBarGump(World world, Entity entity) : this(world, Serial.Zero, Serial.Zero)
         {
             if (entity == null || entity.IsDestroyed)
             {
@@ -72,11 +69,11 @@ namespace ClassicUO.Game.UI.Gumps
             BuildGump();
         }
 
-        protected BaseHealthBarGump(World world, uint serial) : this(world, world.Get(serial))
+        protected BaseHealthBarGump(World world, Serial serial) : this(world, world.Get(serial))
         {
         }
 
-        protected BaseHealthBarGump(World world, uint local, uint server) : base(world, local, server)
+        protected BaseHealthBarGump(World world, Serial local, Serial server) : base(world, local, server)
         {
             CanMove = true;
             AnchorType = ANCHOR_TYPE.HEALTHBAR;
@@ -270,7 +267,7 @@ namespace ClassicUO.Game.UI.Gumps
                     }
                     else if (!GameActions.OpenCorpse(World, entity))
                     {
-                        GameActions.DoubleClick(World, entity);
+                        GameActions.DoubleClick(World, entity.Serial);
                     }
                 }
                 else
@@ -287,7 +284,7 @@ namespace ClassicUO.Game.UI.Gumps
         {
             Entity entity = World.Get(LocalSerial);
 
-            if (entity == null || SerialHelper.IsItem(entity.Serial))
+            if (entity == null || entity.Serial.IsItem)
             {
                 return;
             }
@@ -365,11 +362,11 @@ namespace ClassicUO.Game.UI.Gumps
         {
         }
 
-        public HealthBarGumpCustom(World world, uint serial) : base(world, serial)
+        public HealthBarGumpCustom(World world, Serial serial) : base(world, serial)
         {
         }
 
-        public HealthBarGumpCustom(World world) : base(world, 0, 0)
+        public HealthBarGumpCustom(World world) : base(world, Serial.Zero, Serial.Zero)
         {
         }
 
@@ -418,7 +415,8 @@ namespace ClassicUO.Game.UI.Gumps
 
             if (entity == null || entity.IsDestroyed)
             {
-                if (LocalSerial != World.Player && (ProfileManager.CurrentProfile.CloseHealthBarType == 1 || ProfileManager.CurrentProfile.CloseHealthBarType == 2 && World.CorpseManager.Exists(0, LocalSerial | 0x8000_0000)))
+                if (LocalSerial != World.Player && (ProfileManager.CurrentProfile.CloseHealthBarType == 1 
+                    || ProfileManager.CurrentProfile.CloseHealthBarType == 2 && World.CorpseManager.Exists(Serial.Zero, LocalSerial.ToVirtual())))
                 {
                     //### KEEPS PARTY BAR ACTIVE WHEN PARTY MEMBER DIES & MOBILEBAR CLOSE SELECTED ###//
                     if (!inparty && CheckIfAnchoredElseDispose())
@@ -541,7 +539,7 @@ namespace ClassicUO.Game.UI.Gumps
                 {
                     if (entity.HitsMax == 0)
                     {
-                        GameActions.RequestMobileStatus(World, entity);
+                        GameActions.RequestMobileStatus(World, entity.Serial);
                     }
 
                     _outOfRange = false;
@@ -578,7 +576,7 @@ namespace ClassicUO.Game.UI.Gumps
 
                 if (World.TargetManager.LastTargetInfo.Serial != World.Player && !_outOfRange && mobile != null)
                 {
-                    if (mobile == World.TargetManager.LastTargetInfo.Serial)
+                    if (mobile.Serial == World.TargetManager.LastTargetInfo.Serial)
                     {
                         _border[0].LineColor = HPB_COLOR_RED;
 
@@ -587,7 +585,7 @@ namespace ClassicUO.Game.UI.Gumps
                             _border[1].LineColor = _border[2].LineColor = _border[3].LineColor = HPB_COLOR_RED;
                         }
                     }
-                    else if (mobile != World.TargetManager.LastTargetInfo.Serial)
+                    else if (mobile.Serial != World.TargetManager.LastTargetInfo.Serial)
                     {
                         _border[0].LineColor = HPB_COLOR_BLACK;
 
@@ -1316,11 +1314,11 @@ namespace ClassicUO.Game.UI.Gumps
         {
         }
 
-        public HealthBarGump(World world, uint serial) : base(world,serial)
+        public HealthBarGump(World world, Serial serial) : base(world,serial)
         {
         }
 
-        public HealthBarGump(World world) : base(world, 0, 0)
+        public HealthBarGump(World world) : base(world, Serial.Zero, Serial.Zero)
         {
         }
 
@@ -1617,7 +1615,8 @@ namespace ClassicUO.Game.UI.Gumps
 
             if (entity == null || entity.IsDestroyed)
             {
-                if (LocalSerial != World.Player && !inparty && (ProfileManager.CurrentProfile.CloseHealthBarType == 1 || ProfileManager.CurrentProfile.CloseHealthBarType == 2 && World.CorpseManager.Exists(0, LocalSerial | 0x8000_0000)))
+                if (LocalSerial != World.Player && !inparty && (ProfileManager.CurrentProfile.CloseHealthBarType == 1 
+                    || ProfileManager.CurrentProfile.CloseHealthBarType == 2 && World.CorpseManager.Exists(Serial.Zero, LocalSerial.ToVirtual())))
                 {
                     if (CheckIfAnchoredElseDispose())
                     {
@@ -1742,7 +1741,7 @@ namespace ClassicUO.Game.UI.Gumps
                 {
                     if (entity.HitsMax == 0)
                     {
-                        GameActions.RequestMobileStatus(World, entity);
+                        GameActions.RequestMobileStatus(World, entity.Serial);
                     }
 
                     _outOfRange = false;

@@ -1,4 +1,5 @@
-﻿using FluentAssertions;
+﻿using ClassicUO.Game.Data;
+using FluentAssertions;
 using Xunit;
 
 namespace ClassicUO.UnitTests.Game.SerialHelper
@@ -10,7 +11,7 @@ namespace ClassicUO.UnitTests.Game.SerialHelper
         [InlineData(0x7FFFFFFF)]
         public void IsItem_Serial_Should_Be_Legal(uint serial)
         {
-            ClassicUO.Game.SerialHelper.IsItem(serial)
+            new Serial(serial).IsItem
                 .Should()
                 .BeTrue();
         }
@@ -21,7 +22,7 @@ namespace ClassicUO.UnitTests.Game.SerialHelper
         [InlineData(0x80000000)]
         public void IsItem_Serial_Should_Not_Be_Legal(uint serial)
         {
-            ClassicUO.Game.SerialHelper.IsItem(serial)
+            new Serial(serial).IsItem
                 .Should()
                 .BeFalse();
         }

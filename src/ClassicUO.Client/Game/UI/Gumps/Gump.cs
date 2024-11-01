@@ -30,23 +30,25 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Runtime.InteropServices;
-using System.Xml;
+using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Renderer;
-using ClassicUO.Utility;
 using Microsoft.Xna.Framework;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using System.Xml;
 
 namespace ClassicUO.Game.UI.Gumps
 {
     internal class Gump : Control
     {
-        public Gump(World world, uint local, uint server)
+        public Gump(World world)
+            : this(world, Serial.Zero, Serial.Zero)
+        { }
+
+        public Gump(World world, Serial local, Serial server)
         {
             World = world;
             LocalSerial = local;
@@ -57,13 +59,13 @@ namespace ClassicUO.Game.UI.Gumps
 
         public World World { get; }
 
-        public bool CanBeSaved => GumpType != Gumps.GumpType.None;
+        public bool CanBeSaved => GumpType != GumpType.None;
 
         public virtual GumpType GumpType { get; }
 
         public bool InvalidateContents { get; set; }
 
-        public uint MasterGumpSerial { get; set; }
+        public Serial MasterGumpSerial { get; set; }
 
 
         public override void Update()
@@ -178,7 +180,7 @@ namespace ClassicUO.Game.UI.Gumps
                     switch (control)
                     {
                         case Checkbox checkbox when checkbox.IsChecked:
-                            switches.Add(control.LocalSerial);
+                            switches.Add(control.LocalSerial.Value);
 
                             break;
 

@@ -23,6 +23,7 @@
 //  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES
 
 using System;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 
 namespace ClassicUO.Game.Data;
@@ -32,8 +33,11 @@ namespace ClassicUO.Game.Data;
 public readonly struct Serial : IComparable<Serial>, IComparable<uint>, IEquatable<Serial>
 {
     public const uint ITEM_OFFSET = 0x40000000;
-    public const uint MAX_ITEM_SERIAL = 0x7FFFFFFF;
+    public const uint VIRTUAL_OFFSET = 0x80000000;
+    public const uint MAX_ITEM_SERIAL = VIRTUAL_OFFSET -1;
     public const uint MAX_MOBILE_SERIAL = ITEM_OFFSET - 1;
+
+    public static readonly Serial MaxMobileSerial = new Serial(MAX_MOBILE_SERIAL);
 
     public static readonly Serial MinusOne = new(0xFFFFFFFF);
     public static readonly Serial Zero = new(0);
@@ -43,7 +47,7 @@ public readonly struct Serial : IComparable<Serial>, IComparable<uint>, IEquatab
     public bool IsEntity
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Value > 0 && Value <= MAX_ITEM_SERIAL;
+        get => IsValid && !IsVirtual;
     }
 
     public bool IsVirtual
@@ -160,4 +164,24 @@ public readonly struct Serial : IComparable<Serial>, IComparable<uint>, IEquatab
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(Serial other) => Value == other.Value;
+
+    public Serial ToVirtual() => new(Value | VIRTUAL_OFFSET);
+    public Serial ToEntity() => new(Value & MAX_ITEM_SERIAL);
+
+    public static Serial Parse(ReadOnlySpan<char> span)
+    {
+        return new(uint.Parse(span, NumberStyles.HexNumber));
+    }
+
+    public static bool TryParse(ReadOnlySpan<char> span, out Serial result)
+    {
+        if (uint.TryParse(span, NumberStyles.HexNumber, null, out uint raw))
+        {
+            result = new(raw);
+            return true;
+        }
+
+        result = MinusOne;
+        return false;
+    }
 }

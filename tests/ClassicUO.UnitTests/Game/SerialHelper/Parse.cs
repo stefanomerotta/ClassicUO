@@ -1,4 +1,5 @@
 ﻿using System;
+using ClassicUO.Game.Data;
 using FluentAssertions;
 using Xunit;
 
@@ -12,7 +13,7 @@ namespace ClassicUO.UnitTests.Game.SerialHelper
         [InlineData("-23")]
         public void Parse_Should_Return_Legal_Number(string input)
         {
-            ClassicUO.Game.SerialHelper.Parse(input)
+            Serial.Parse(input).Value
                 .Should().BePositive();
         }
 
@@ -22,7 +23,7 @@ namespace ClassicUO.UnitTests.Game.SerialHelper
         [InlineData("1F")]
         public void Parse_Should_Not_Return_Legal_Number(string input)
         {
-            Action act = () => ClassicUO.Game.SerialHelper.Parse(input);
+            Action act = () => Serial.Parse(input);
 
             act.Should().Throw<FormatException>();
         }

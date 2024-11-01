@@ -30,7 +30,7 @@ namespace ClassicUO.Game.UI.Gumps
             ADD_NEW_IGNORE,
         }
 
-        public IgnoreManagerGump(World world) : base(world, 0, 0)
+        public IgnoreManagerGump(World world) : base(world)
         {
             CanMove = true;
 

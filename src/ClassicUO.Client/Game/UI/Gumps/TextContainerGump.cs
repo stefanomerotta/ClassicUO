@@ -30,6 +30,7 @@
 
 #endregion
 
+using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.Managers;
 using ClassicUO.Renderer;
@@ -38,7 +39,14 @@ namespace ClassicUO.Game.UI.Gumps
 {
     internal abstract class TextContainerGump : Gump
     {
-        protected TextContainerGump(World world, uint local, uint server) : base(world, local, server)
+        protected TextContainerGump(World world)
+            : base(world)
+        {
+            TextRenderer = new TextRenderer(World);
+        }
+
+        protected TextContainerGump(World world, Serial local, Serial server) 
+            : base(world, local, server)
         {
             TextRenderer = new TextRenderer(World);
         }

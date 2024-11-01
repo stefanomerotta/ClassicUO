@@ -56,7 +56,7 @@ namespace ClassicUO.Game.UI.Gumps
         public bool ShowEdit =>
             Keyboard.Ctrl && Keyboard.Alt && ProfileManager.CurrentProfile.FastSpellsAssign;
 
-        public UseSpellButtonGump(World world) : base(world,0, 0)
+        public UseSpellButtonGump(World world) : base(world)
         {
             CanMove = true;
             AcceptMouseInput = true;

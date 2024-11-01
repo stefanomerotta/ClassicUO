@@ -36,6 +36,7 @@ using ClassicUO.Input;
 using ClassicUO.Assets;
 using ClassicUO.Renderer;
 using Microsoft.Xna.Framework;
+using ClassicUO.Game.Data;
 
 namespace ClassicUO.Game.UI.Controls
 {
@@ -96,16 +97,7 @@ namespace ClassicUO.Game.UI.Controls
             {
                 UIManager.GetGump<ColorPickerGump>()?.Dispose();
 
-                ColorPickerGump pickerGump = new ColorPickerGump
-                (
-                    _world,
-                    0,
-                    0,
-                    100,
-                    100,
-                    s => Hue = s
-                );
-
+                ColorPickerGump pickerGump = new(_world, Serial.Zero, 0, 100, 100, s => Hue = s);
                 UIManager.Add(pickerGump);
             }
         }

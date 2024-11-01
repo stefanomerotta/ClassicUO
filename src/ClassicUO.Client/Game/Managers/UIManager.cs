@@ -23,6 +23,7 @@
 //  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES
 
 using ClassicUO.Configuration;
+using ClassicUO.Game.Data;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Input;
@@ -36,7 +37,7 @@ namespace ClassicUO.Game.Managers;
 
 internal static class UIManager
 {
-    private static readonly Dictionary<uint, Point> _gumpPositionCache = [];
+    private static readonly Dictionary<Serial, Point> _gumpPositionCache = [];
     private static readonly Control?[] _mouseDownControls = new Control[0xFF];
 
     private static Point _dragOrigin;
@@ -232,19 +233,19 @@ internal static class UIManager
         return _mouseDownControls[(int)button];
     }
 
-    public static void SavePosition(uint serverSerial, Point point)
+    public static void SavePosition(Serial serverSerial, Point point)
     {
         _gumpPositionCache[serverSerial] = point;
     }
 
-    public static bool RemovePosition(uint serverSerial)
+    public static bool RemovePosition(Serial serverSerial)
     {
         return _gumpPositionCache.Remove(serverSerial);
     }
 
-    public static bool GetGumpCachePosition(uint id, out Point pos)
+    public static bool GetGumpCachePosition(Serial serverSerial, out Point pos)
     {
-        return _gumpPositionCache.TryGetValue(id, out pos);
+        return _gumpPositionCache.TryGetValue(serverSerial, out pos);
     }
 
     public static void ShowContextMenu(ContextMenuShowMenu? menu)
@@ -258,33 +259,34 @@ internal static class UIManager
         Add(ContextMenu);
     }
 
-    public static T? GetGump<T>(uint? serial = null) where T : Control
+    public static T? GetGump<T>(Serial serial) where T : Control
     {
-        if (serial.HasValue)
-        {
-            for (LinkedListNode<Gump>? last = Gumps.Last; last is not null; last = last.Previous)
-            {
-                Control c = last.Value;
 
-                if (!c.IsDisposed && c.LocalSerial == serial.Value && c is T t)
-                    return t;
-            }
-        }
-        else
+        for (LinkedListNode<Gump>? last = Gumps.Last; last is not null; last = last.Previous)
         {
-            for (LinkedListNode<Gump>? first = Gumps.First; first is not null; first = first.Next)
-            {
-                Control c = first.Value;
+            Control c = last.Value;
 
-                if (!c.IsDisposed && c is T t)
-                    return t;
-            }
+            if (!c.IsDisposed && c.LocalSerial == serial.Value && c is T t)
+                return t;
         }
 
         return null;
     }
 
-    public static Gump? GetGump(uint serial)
+    public static T? GetGump<T>() where T : Control
+    {
+        for (LinkedListNode<Gump>? first = Gumps.First; first is not null; first = first.Next)
+        {
+            Control c = first.Value;
+
+            if (!c.IsDisposed && c is T t)
+                return t;
+        }
+
+        return null;
+    }
+
+    public static Gump? GetGump(Serial serial)
     {
         for (LinkedListNode<Gump>? last = Gumps.Last; last is not null; last = last.Previous)
         {
@@ -297,7 +299,7 @@ internal static class UIManager
         return null;
     }
 
-    public static TradingGump? GetTradingGump(uint serial)
+    public static TradingGump? GetTradingGump(Serial serial)
     {
         for (LinkedListNode<Gump>? g = Gumps.Last; g is not null; g = g.Previous)
         {
@@ -546,7 +548,7 @@ internal static class UIManager
 
         if (!dragTarget.CanMove)
             return;
-        
+
         if (attemptAlwaysSuccessful || !_isDraggingControl)
         {
             DraggingControl = dragTarget;

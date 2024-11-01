@@ -49,7 +49,7 @@ namespace ClassicUO.Game.UI.Gumps
 {
     internal class TopBarGump : Gump
     {
-        private TopBarGump(World world) : base(world, 0, 0)
+        private TopBarGump(World world) : base(world)
         {
             CanMove = true;
             AcceptMouseInput = true;
@@ -244,7 +244,7 @@ namespace ClassicUO.Game.UI.Gumps
                     break;
 
                 case Buttons.Paperdoll:
-                    GameActions.OpenPaperdoll(World, World.Player);
+                    GameActions.OpenPaperdoll(World, World.Player.Serial);
 
                     break;
 

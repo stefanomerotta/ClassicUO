@@ -67,8 +67,8 @@ namespace ClassicUO.Game.Managers
         public void CreateEffect
         (
             GraphicEffectType type,
-            uint source,
-            uint target,
+            Serial source,
+            Serial target,
             ushort graphic,
             ushort hue,
             ushort srcX,

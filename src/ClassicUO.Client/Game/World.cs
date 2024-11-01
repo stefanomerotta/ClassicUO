@@ -1,34 +1,26 @@
-﻿#region license
-
-// Copyright (c) 2024, andreakarasho
+﻿// Copyright (c) 2024, andreakarasho
 // All rights reserved.
 //
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.
-// 3. All advertising materials mentioning features or use of this software
-//    must display the following acknowledgement:
-//    This product includes software developed by andreakarasho - https://github.com/andreakarasho
-// 4. Neither the name of the copyright holder nor the
-//    names of its contributors may be used to endorse or promote products
-//    derived from this software without specific prior written permission.
+//  Redistribution and use in source and binary forms, with or without
+//  modification, are permitted provided that the following conditions are met:
+//  1. Redistributions of source code must retain the above copyright
+//     notice, this list of conditions and the following disclaimer.
+//  2. Redistributions in binary form must reproduce the above copyright
+//     notice, this list of conditions and the following disclaimer in the
+//     documentation and/or other materials provided with the distribution.
+//  3. All advertising materials mentioning features or use of this software
+//     must display the following acknowledgement:
+//     This product includes software developed by andreakarasho - https://github.com/andreakarasho
+//  4. Neither the name of the copyright holder nor the
+//     names of its contributors may be used to endorse or promote products
+//     derived from this software without specific prior written permission.
 //
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ''AS IS'' AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY
-// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-#endregion
+//  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ''AS IS'' AND ANY
+//  EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+//  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+//  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY
+//  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+//  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES
 
 using ClassicUO.Assets;
 using ClassicUO.Configuration;
@@ -53,12 +45,12 @@ namespace ClassicUO.Game;
 internal sealed class World
 {
     private readonly EffectManager _effectManager;
-    private readonly List<uint> _toRemove = [];
+    private readonly List<Serial> _toRemove = [];
     private uint _timeToDelete;
     public Point RangeSize;
     public HouseCustomizationManager? CustomHouseManager;
-    public uint LastObject;
-    public uint ObjectToRemove;
+    public Serial LastObject;
+    public Serial ObjectToRemove;
     public ActiveSpellIconsManager ActiveSpellIcons = new();
 
     public WorldMapEntityManager WMapManager { get; }
@@ -81,8 +73,8 @@ internal sealed class World
     public CommandManager CommandManager { get; }
     public Weather Weather { get; }
     public InfoBarManager InfoBars { get; }
-    public Dictionary<uint, Item> Items { get; } = [];
-    public Dictionary<uint, Mobile> Mobiles { get; } = [];
+    public Dictionary<Serial, Item> Items { get; } = [];
+    public Dictionary<Serial, Mobile> Mobiles { get; } = [];
     public JournalManager Journal { get; } = new();
     public WorldTextManager WorldTextManager { get; }
     public IsometricLight Light { get; } = new(0);
@@ -182,7 +174,7 @@ internal sealed class World
         InfoBars = new InfoBarManager(this);
     }
 
-    public void CreatePlayer(uint serial)
+    public void CreatePlayer(Serial serial)
     {
         if (ProfileManager.CurrentProfile is null)
         {
@@ -227,160 +219,150 @@ internal sealed class World
 
     public void Update()
     {
-        if (Player != null)
+        if (Player is null)
+            return;
+
+        if (ObjectToRemove.IsEntity)
         {
-            if (SerialHelper.IsValid(ObjectToRemove))
+            Item? rem = Items.Get(ObjectToRemove);
+            ObjectToRemove = Serial.Zero;
+
+            if (rem is not null)
             {
-                Item rem = Items.Get(ObjectToRemove);
-                ObjectToRemove = 0;
+                Entity? container = Get(rem.Container);
 
-                if (rem != null)
+                RemoveItem(rem.Serial, true);
+
+                if (rem.Layer == Layer.OneHanded || rem.Layer == Layer.TwoHanded)
+                    Player.UpdateAbilities();
+
+                if (container is not null)
                 {
-                    Entity container = Get(rem.Container);
-
-                    RemoveItem(rem, true);
-
-                    if (rem.Layer == Layer.OneHanded || rem.Layer == Layer.TwoHanded)
+                    if (container.Serial.IsMobile)
                     {
-                        Player.UpdateAbilities();
+                        UIManager.GetGump<PaperDollGump>(container.Serial)?.RequestUpdateContents();
                     }
-
-                    if (container != null)
+                    else if (container.Serial.IsItem)
                     {
-                        if (SerialHelper.IsMobile(container.Serial))
-                        {
-                            UIManager.GetGump<PaperDollGump>(container.Serial)?.RequestUpdateContents();
-                        }
-                        else if (SerialHelper.IsItem(container.Serial))
-                        {
-                            UIManager.GetGump<ContainerGump>(container.Serial)?.RequestUpdateContents();
+                        UIManager.GetGump<ContainerGump>(container.Serial)?.RequestUpdateContents();
 
-                            if (container.Graphic == 0x2006)
-                            {
-                                UIManager.GetGump<GridLootGump>(container)?.RequestUpdateContents();
-                            }
-                        }
+                        if (container.Graphic == 0x2006)
+                            UIManager.GetGump<GridLootGump>(container.Serial)?.RequestUpdateContents();
                     }
                 }
             }
+        }
 
-            bool do_delete = _timeToDelete < Time.Ticks;
+        bool do_delete = _timeToDelete < Time.Ticks;
 
-            if (do_delete)
+        if (do_delete)
+            _timeToDelete = Time.Ticks + 50;
+
+        foreach (Mobile mob in Mobiles.Values)
+        {
+            mob.Update();
+
+            if (do_delete && mob.Distance > ClientViewRange /*CheckToRemove(mob, ClientViewRange)*/)
+                RemoveMobile(mob.Serial);
+
+            if (mob.IsDestroyed)
             {
-                _timeToDelete = Time.Ticks + 50;
+                _toRemove.Add(mob.Serial);
+            }
+            else
+            {
+                if (mob.NotorietyFlag == NotorietyFlag.Ally)
+                {
+                    WMapManager.AddOrUpdate
+                    (
+                        mob.Serial,
+                        mob.X,
+                        mob.Y,
+                        MathHelper.PercetangeOf(mob.Hits, mob.HitsMax),
+                        MapIndex,
+                        true,
+                        mob.Name
+                    );
+                }
+                else if (Party.Leader != 0 && Party.Contains(mob.Serial))
+                {
+                    WMapManager.AddOrUpdate
+                    (
+                        mob.Serial,
+                        mob.X,
+                        mob.Y,
+                        MathHelper.PercetangeOf(mob.Hits, mob.HitsMax),
+                        MapIndex,
+                        false,
+                        mob.Name
+                    );
+                }
+            }
+        }
+
+        if (_toRemove.Count != 0)
+        {
+            for (int i = 0; i < _toRemove.Count; i++)
+            {
+                Mobiles.Remove(_toRemove[i]);
             }
 
-            foreach (Mobile mob in Mobiles.Values)
+            _toRemove.Clear();
+        }
+
+        foreach (Item item in Items.Values)
+        {
+            item.Update();
+
+            if (do_delete && item.OnGround && item.Distance > ClientViewRange /*CheckToRemove(item, ClientViewRange)*/)
             {
-                mob.Update();
-
-                if (do_delete && mob.Distance > ClientViewRange /*CheckToRemove(mob, ClientViewRange)*/)
+                if (item.IsMulti)
                 {
-                    RemoveMobile(mob);
-                }
-
-                if (mob.IsDestroyed)
-                {
-                    _toRemove.Add(mob.Serial);
+                    if (HouseManager.TryToRemove(item.Serial, ClientViewRange))
+                    {
+                        RemoveItem(item.Serial);
+                    }
                 }
                 else
                 {
-                    if (mob.NotorietyFlag == NotorietyFlag.Ally)
-                    {
-                        WMapManager.AddOrUpdate
-                        (
-                            mob.Serial,
-                            mob.X,
-                            mob.Y,
-                            MathHelper.PercetangeOf(mob.Hits, mob.HitsMax),
-                            MapIndex,
-                            true,
-                            mob.Name
-                        );
-                    }
-                    else if (Party.Leader != 0 && Party.Contains(mob))
-                    {
-                        WMapManager.AddOrUpdate
-                        (
-                            mob.Serial,
-                            mob.X,
-                            mob.Y,
-                            MathHelper.PercetangeOf(mob.Hits, mob.HitsMax),
-                            MapIndex,
-                            false,
-                            mob.Name
-                        );
-                    }
+                    RemoveItem(item.Serial);
                 }
             }
 
-            if (_toRemove.Count != 0)
+            if (item.IsDestroyed)
             {
-                for (int i = 0; i < _toRemove.Count; i++)
-                {
-                    Mobiles.Remove(_toRemove[i]);
-                }
-
-                _toRemove.Clear();
+                _toRemove.Add(item.Serial);
             }
-
-            foreach (Item item in Items.Values)
-            {
-                item.Update();
-
-                if (do_delete && item.OnGround && item.Distance > ClientViewRange /*CheckToRemove(item, ClientViewRange)*/)
-                {
-                    if (item.IsMulti)
-                    {
-                        if (HouseManager.TryToRemove(item, ClientViewRange))
-                        {
-                            RemoveItem(item);
-                        }
-                    }
-                    else
-                    {
-                        RemoveItem(item);
-                    }
-                }
-
-                if (item.IsDestroyed)
-                {
-                    _toRemove.Add(item.Serial);
-                }
-            }
-
-            if (_toRemove.Count != 0)
-            {
-                for (int i = 0; i < _toRemove.Count; i++)
-                {
-                    Items.Remove(_toRemove[i]);
-                }
-
-                _toRemove.Clear();
-            }
-
-            _effectManager.Update();
-            WorldTextManager.Update();
-            WMapManager.RemoveUnupdatedWEntity();
         }
-    }
 
-    public bool Contains(uint serial)
-    {
-        if (SerialHelper.IsItem(serial))
+        if (_toRemove.Count != 0)
         {
-            return Items.Contains(serial);
+            for (int i = 0; i < _toRemove.Count; i++)
+            {
+                Items.Remove(_toRemove[i]);
+            }
+
+            _toRemove.Clear();
         }
 
-        return SerialHelper.IsMobile(serial) && Mobiles.Contains(serial);
+        _effectManager.Update();
+        WorldTextManager.Update();
+        WMapManager.RemoveUnupdatedWEntity();
     }
 
-    public Entity? Get(uint serial)
+    public bool Contains(Serial serial)
+    {
+        if (serial.IsItem)
+            return Items.Contains(serial);
+
+        return serial.IsMobile && Mobiles.Contains(serial);
+    }
+
+    public Entity? Get(Serial serial)
     {
         Entity? ent;
 
-        if (SerialHelper.IsMobile(serial))
+        if (serial.IsMobile)
         {
             ent = Mobiles.Get(serial);
             ent ??= Items.Get(serial);
@@ -397,7 +379,7 @@ internal sealed class World
         return ent;
     }
 
-    public Item GetOrCreateItem(uint serial)
+    public Item GetOrCreateItem(Serial serial)
     {
         Item? item = Items.Get(serial);
 
@@ -416,7 +398,7 @@ internal sealed class World
         return item;
     }
 
-    public Mobile GetOrCreateMobile(uint serial)
+    public Mobile GetOrCreateMobile(Serial serial)
     {
         Mobile mob = Mobiles.Get(serial);
 
@@ -435,7 +417,7 @@ internal sealed class World
         return mob;
     }
 
-    public void RemoveItemFromContainer(uint serial)
+    public void RemoveItemFromContainer(Serial serial)
     {
         Item it = Items.Get(serial);
 
@@ -447,17 +429,17 @@ internal sealed class World
 
     public void RemoveItemFromContainer(Item obj)
     {
-        uint containerSerial = obj.Container;
+        Serial containerSerial = obj.Container;
 
         // if entity is running the "dying" animation we have to reset container too.
         // SerialHelper.IsValid(containerSerial) is not ideal in this case
         if (containerSerial != 0xFFFF_FFFF)
         {
-            if (SerialHelper.IsMobile(containerSerial))
+            if (containerSerial.IsMobile)
             {
                 UIManager.GetGump<PaperDollGump>(containerSerial)?.RequestUpdateContents();
             }
-            else if (SerialHelper.IsItem(containerSerial))
+            else if (containerSerial.IsItem)
             {
                 UIManager.GetGump<ContainerGump>(containerSerial)?.RequestUpdateContents();
             }
@@ -469,7 +451,7 @@ internal sealed class World
                 container.Remove(obj);
             }
 
-            obj.Container = 0xFFFF_FFFF;
+            obj.Container = Serial.MinusOne;
         }
 
         obj.Next = null;
@@ -477,21 +459,18 @@ internal sealed class World
         obj.RemoveFromTile();
     }
 
-    public bool RemoveItem(uint serial, bool forceRemove = false)
+    public bool RemoveItem(Serial serial, bool forceRemove = false)
     {
-        Item item = Items.Get(serial);
-
-        if (item == null || item.IsDestroyed)
-        {
+        Item? item = Items.Get(serial);
+        if (item is not { IsDestroyed: false })
             return false;
-        }
 
-        LinkedObject first = item.Items;
+        LinkedObject? first = item.Items;
         RemoveItemFromContainer(item);
 
-        while (first != null)
+        while (first is not null)
         {
-            LinkedObject next = first.Next;
+            LinkedObject? next = first.Next;
 
             RemoveItem(first as Item, forceRemove);
 
@@ -502,27 +481,22 @@ internal sealed class World
         item.Destroy();
 
         if (forceRemove)
-        {
             Items.Remove(serial);
-        }
 
         return true;
     }
 
-    public bool RemoveMobile(uint serial, bool forceRemove = false)
+    public bool RemoveMobile(Serial serial, bool forceRemove = false)
     {
-        Mobile mobile = Mobiles.Get(serial);
-
-        if (mobile == null || mobile.IsDestroyed)
-        {
+        Mobile? mobile = Mobiles.Get(serial);
+        if (mobile is not { IsDestroyed: false })
             return false;
-        }
 
-        LinkedObject first = mobile.Items;
+        LinkedObject? first = mobile.Items;
 
-        while (first != null)
+        while (first is not null)
         {
-            LinkedObject next = first.Next;
+            LinkedObject? next = first.Next;
 
             RemoveItem(first as Item, forceRemove);
 
@@ -533,9 +507,7 @@ internal sealed class World
         mobile.Destroy();
 
         if (forceRemove)
-        {
             Mobiles.Remove(serial);
-        }
 
         return true;
     }
@@ -543,8 +515,8 @@ internal sealed class World
     public void SpawnEffect
     (
         GraphicEffectType type,
-        uint source,
-        uint target,
+        Serial source,
+        Serial target,
         ushort graphic,
         ushort hue,
         ushort srcX,
@@ -583,10 +555,10 @@ internal sealed class World
         );
     }
 
-    public uint FindNearest(ScanTypeObject scanType)
+    public Serial FindNearest(ScanTypeObject scanType)
     {
         int distance = int.MaxValue;
-        uint serial = 0;
+        Serial serial = Serial.Zero;
 
         if (scanType == ScanTypeObject.Objects)
         {
@@ -616,7 +588,7 @@ internal sealed class World
                 switch (scanType)
                 {
                     case ScanTypeObject.Party:
-                        if (!Party.Contains(mobile))
+                        if (!Party.Contains(mobile.Serial))
                         {
                             continue;
                         }
@@ -649,7 +621,7 @@ internal sealed class World
         return serial;
     }
 
-    public uint FindNext(ScanTypeObject scanType, uint lastSerial, bool reverse)
+    public Serial FindNext(ScanTypeObject scanType, Serial lastSerial, bool reverse)
     {
         bool found = false;
 
@@ -690,7 +662,7 @@ internal sealed class World
                 switch (scanType)
                 {
                     case ScanTypeObject.Party:
-                        if (!Party.Contains(mobile))
+                        if (!Party.Contains(mobile.Serial))
                         {
                             continue;
                         }
@@ -731,10 +703,10 @@ internal sealed class World
         {
             /* If we get here, it means we didn't find anything but we started with a serial number. That means
              * if we restart the search from the beginning it may find something again. */
-            return FindNext(scanType, 0, reverse);
+            return FindNext(scanType, Serial.Zero, reverse);
         }
 
-        return 0;
+        return Serial.Zero;
     }
 
 
@@ -742,18 +714,21 @@ internal sealed class World
     {
         foreach (Mobile mobile in Mobiles.Values)
         {
-            RemoveMobile(mobile);
+            RemoveMobile(mobile.Serial);
         }
 
         foreach (Item item in Items.Values)
         {
-            RemoveItem(item);
+            RemoveItem(item.Serial);
         }
 
-        UIManager.GetGump<BaseHealthBarGump>(Player?.Serial)?.Dispose();
+        if (Player is not null)
+            UIManager.GetGump<BaseHealthBarGump>(Player.Serial)?.Dispose();
+        else
+            UIManager.GetGump<BaseHealthBarGump>()?.Dispose();
 
-        ObjectToRemove = 0;
-        LastObject = 0;
+        ObjectToRemove = Serial.Zero;
+        LastObject = Serial.Zero;
         Items.Clear();
         Mobiles.Clear();
         Player?.Destroy();
@@ -764,7 +739,7 @@ internal sealed class World
         Light.Personal = Light.RealPersonal = 0;
         ClientLockedFeatures.SetFlags(0);
         Party?.Clear();
-        TargetManager.LastAttack = 0;
+        TargetManager.LastAttack = Serial.Zero;
         MessageManager.PromptData = default;
         _effectManager.Clear();
         _toRemove.Clear();
@@ -808,10 +783,10 @@ internal sealed class World
                 HouseManager.Remove(item.Serial);
             }
 
-            _toRemove.Add(item);
+            _toRemove.Add(item.Serial);
         }
 
-        foreach (uint serial in _toRemove)
+        foreach (Serial serial in _toRemove)
         {
             RemoveItem(serial, true);
         }
@@ -828,10 +803,10 @@ internal sealed class World
                 }
             }
 
-            _toRemove.Add(mob);
+            _toRemove.Add(mob.Serial);
         }
 
-        foreach (uint serial in _toRemove)
+        foreach (Serial serial in _toRemove)
         {
             RemoveMobile(serial, true);
         }

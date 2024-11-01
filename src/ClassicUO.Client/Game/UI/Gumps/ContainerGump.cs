@@ -30,9 +30,6 @@
 
 #endregion
 
-using System;
-using System.IO;
-using System.Xml;
 using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
@@ -40,9 +37,10 @@ using ClassicUO.Game.Managers;
 using ClassicUO.Game.Scenes;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Input;
-using ClassicUO.Assets;
 using ClassicUO.Renderer;
 using Microsoft.Xna.Framework;
+using System;
+using System.Xml;
 
 namespace ClassicUO.Game.UI.Gumps
 {
@@ -59,9 +57,12 @@ namespace ClassicUO.Game.UI.Gumps
 
         internal const int CORPSES_GUMP = 0x0009;
 
-        public ContainerGump(World world) : base(world, 0, 0) { }
+        public ContainerGump(World world)
+            : base(world)
+        { }
 
-        public ContainerGump(World world, uint serial, ushort gumpid, bool playsound) : base(world, serial, 0)
+        public ContainerGump(World world, Serial serial, ushort gumpid, bool playsound)
+            : base(world, serial, Serial.Zero)
         {
             Item item = world.Items.Get(serial);
 
@@ -267,13 +268,13 @@ namespace ClassicUO.Game.UI.Gumps
             }
 
             Entity it = SelectedObject.Object as Entity;
-            uint serial = it != null ? it.Serial : 0;
-            uint dropcontainer = LocalSerial;
+            Serial serial = it != null ? it.Serial : Serial.Zero;
+            Serial dropcontainer = LocalSerial;
 
             if (
                 World.TargetManager.IsTargeting
                 && !Client.Game.UO.GameCursor.ItemHold.Enabled
-                && SerialHelper.IsValid(serial)
+                && serial.IsEntity
             )
             {
                 World.TargetManager.Target(serial);
@@ -302,7 +303,7 @@ namespace ClassicUO.Game.UI.Gumps
 
                 bool candrop = thisCont.Distance <= Constants.DRAG_ITEMS_DISTANCE;
 
-                if (candrop && SerialHelper.IsValid(serial))
+                if (candrop && serial.IsEntity)
                 {
                     candrop = false;
 
@@ -342,13 +343,13 @@ namespace ClassicUO.Game.UI.Gumps
                                     case 0x238C:
                                     case 0x23A0:
                                     case 0x2D50:
-                                    {
-                                        dropcontainer = target.Serial;
-                                        x = target.X;
-                                        y = target.Y;
+                                        {
+                                            dropcontainer = target.Serial;
+                                            x = target.X;
+                                            y = target.Y;
 
-                                        break;
-                                    }
+                                            break;
+                                        }
                                 }
                             }
                         }
@@ -475,7 +476,7 @@ namespace ClassicUO.Game.UI.Gumps
 
                     Mouse.CancelDoubleClick = true;
                 }
-                else if (!Client.Game.UO.GameCursor.ItemHold.Enabled && SerialHelper.IsValid(serial))
+                else if (!Client.Game.UO.GameCursor.ItemHold.Enabled && serial.IsEntity)
                 {
                     if (!World.DelayedObjectClickManager.IsEnabled)
                     {
