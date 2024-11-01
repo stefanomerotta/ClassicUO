@@ -175,18 +175,11 @@ internal static class UIManager
 
         if (MouseOverControl is not null)
         {
-            if (_mouseDownControls[index] is { } ctrl)
-            {
-                if (MouseOverControl == ctrl || Client.Game.UO.GameCursor.ItemHold.Enabled)
-                {
-                    MouseOverControl.InvokeMouseUp(Mouse.Position, button);
-                }
-                else if (MouseOverControl != ctrl)
-                {
-                    if (!ctrl.IsDisposed)
-                        ctrl.InvokeMouseUp(Mouse.Position, button);
-                }
-            }
+            if (Client.Game.UO.GameCursor.ItemHold.Enabled)
+                MouseOverControl.InvokeMouseUp(Mouse.Position, button);
+
+            else if (_mouseDownControls[index] is { } ctrl && (ctrl == MouseOverControl || !ctrl.IsDisposed))
+                ctrl.InvokeMouseUp(Mouse.Position, button);
         }
         else if (_mouseDownControls[index] is { IsDisposed: false } ctrl)
         {
