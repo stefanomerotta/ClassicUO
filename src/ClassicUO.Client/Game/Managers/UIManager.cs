@@ -40,6 +40,8 @@ internal static class UIManager
     private static readonly Dictionary<Serial, Point> _gumpPositionCache = [];
     private static readonly Control?[] _mouseDownControls = new Control[0xFF];
 
+
+    //private static readonly Dictionary<uint, TargetLineGump> _targetLineGumps = new Dictionary<uint, TargetLineGump>();
     private static Point _dragOrigin;
     private static bool _isDraggingControl;
     private static Control? _keyboardFocusControl;
@@ -55,14 +57,15 @@ internal static class UIManager
     public static SystemChatControl? SystemChat { get; set; }
     public static PopupMenuGump? PopupMenu { get; private set; }
     public static ContextMenuShowMenu? ContextMenu { get; private set; }
+    public static bool IsDragging => _isDraggingControl && DraggingControl != null;
+    public static Dictionary<Serial, Point> GumpPositionCache => _gumpPositionCache;
 
-    public static bool IsDragging => _isDraggingControl && DraggingControl is not null;
     public static bool IsMouseOverWorld
     {
         get
         {
             Point mouse = Mouse.Position;
-            Profile? profile = ProfileManager.CurrentProfile;
+            Profile profile = ProfileManager.CurrentProfile;
 
             return profile is not null
                 && Client.Game.UO.GameCursor.AllowDrawSDLCursor
@@ -84,10 +87,8 @@ internal static class UIManager
             _keyboardFocusControl?.OnFocusLost();
             _keyboardFocusControl = value;
 
-            if (value is not { AcceptKeyboardInput: true, IsFocused: false })
-                return;
-
-            value.OnFocusEnter();
+            if (value is { AcceptKeyboardInput: true, IsFocused: false })
+                value.OnFocusEnter();
         }
     }
 
@@ -96,11 +97,10 @@ internal static class UIManager
         PopupMenu?.Dispose();
         PopupMenu = popup;
 
-        if (popup is not { IsDisposed: false })
-            return;
-
-        Add(PopupMenu);
+        if (popup is { IsDisposed: false })
+            Add(PopupMenu);
     }
+
 
     public static bool IsModalControlOpen()
     {
@@ -118,10 +118,10 @@ internal static class UIManager
     {
         HandleMouseInput();
 
-        if (_mouseDownControls[(int)MouseButtonType.Left] != null)
+        if (_mouseDownControls[(int)MouseButtonType.Left] is { } ctrl
+            && (ProfileManager.CurrentProfile is not { HoldAltToMoveGumps: false } || Keyboard.Alt))
         {
-            if (ProfileManager.CurrentProfile is not { HoldAltToMoveGumps: true } || Keyboard.Alt)
-                AttemptDragControl(_mouseDownControls[(int)MouseButtonType.Left], true);
+            AttemptDragControl(ctrl, true);
         }
 
         if (_isDraggingControl)
@@ -134,14 +134,11 @@ internal static class UIManager
 
         if (MouseOverControl is not null)
         {
-            if (MouseOverControl.IsEnabled && MouseOverControl.IsVisible)
+            if (MouseOverControl is { IsEnabled: true, IsVisible: true } && _lastFocus != MouseOverControl)
             {
-                if (_lastFocus != MouseOverControl)
-                {
-                    _lastFocus?.OnFocusLost();
-                    MouseOverControl.OnFocusEnter();
-                    _lastFocus = MouseOverControl;
-                }
+                _lastFocus?.OnFocusLost();
+                MouseOverControl.OnFocusEnter();
+                _lastFocus = MouseOverControl;
             }
 
             MakeTopMostGump(MouseOverControl);
@@ -156,7 +153,7 @@ internal static class UIManager
         {
             foreach (Gump s in Gumps)
             {
-                if (s is { IsModal: true, ModalClickOutsideAreaClosesThisControl: true })
+                if (s.IsModal && s.ModalClickOutsideAreaClosesThisControl)
                 {
                     s.Dispose();
                     Mouse.CancelDoubleClick = true;
@@ -175,30 +172,33 @@ internal static class UIManager
 
         int index = (int)button;
 
-        if (_mouseDownControls[index] is not { } ctrl)
-            return;
-
         if (MouseOverControl is not null)
         {
-            if (MouseOverControl == ctrl || Client.Game.UO.GameCursor.ItemHold.Enabled)
+            if (_mouseDownControls[index] is { } ctrl)
             {
-                MouseOverControl.InvokeMouseUp(Mouse.Position, button);
-            }
-            else if (MouseOverControl != ctrl && !ctrl.IsDisposed)
-            {
-                ctrl.InvokeMouseUp(Mouse.Position, button);
+                if (MouseOverControl == ctrl || Client.Game.UO.GameCursor.ItemHold.Enabled)
+                {
+                    MouseOverControl.InvokeMouseUp(Mouse.Position, button);
+                }
+                else if (MouseOverControl != ctrl)
+                {
+                    if (!ctrl.IsDisposed)
+                        ctrl.InvokeMouseUp(Mouse.Position, button);
+                }
             }
         }
-        else if (!ctrl.IsDisposed)
+        else if (_mouseDownControls[index] is { IsDisposed: false } ctrl)
         {
             ctrl.InvokeMouseUp(Mouse.Position, button);
         }
 
         if (button == MouseButtonType.Right)
         {
+            Control? mouseDownControl = _mouseDownControls[index];
+
             // only attempt to close the gump if the mouse is still on the gump when right click mouse up occurs
-            if (MouseOverControl == ctrl)
-                ctrl.InvokeMouseCloseGumpWithRClick();
+            if (mouseDownControl is not null && MouseOverControl == mouseDownControl)
+                mouseDownControl.InvokeMouseCloseGumpWithRClick();
         }
 
         _mouseDownControls[index] = null;
@@ -208,10 +208,7 @@ internal static class UIManager
     {
         HandleMouseInput();
 
-        if (MouseOverControl is null)
-            return false;
-
-        if (!MouseOverControl.InvokeMouseDoubleClick(Mouse.Position, button))
+        if (MouseOverControl is null || !MouseOverControl.InvokeMouseDoubleClick(Mouse.Position, button))
             return false;
 
         if (button == MouseButtonType.Left)
@@ -222,10 +219,8 @@ internal static class UIManager
 
     public static void OnMouseWheel(bool isup)
     {
-        if (MouseOverControl is not { AcceptMouseInput: true })
-            return;
-
-        MouseOverControl.InvokeMouseWheel(isup ? MouseEventType.WheelScrollUp : MouseEventType.WheelScrollDown);
+        if (MouseOverControl is { AcceptMouseInput: true })
+            MouseOverControl.InvokeMouseWheel(isup ? MouseEventType.WheelScrollUp : MouseEventType.WheelScrollDown);
     }
 
     public static Control? LastControlMouseDown(MouseButtonType button)
@@ -235,42 +230,27 @@ internal static class UIManager
 
     public static void SavePosition(Serial serverSerial, Point point)
     {
-        _gumpPositionCache[serverSerial] = point;
+        GumpPositionCache[serverSerial] = point;
     }
 
     public static bool RemovePosition(Serial serverSerial)
     {
-        return _gumpPositionCache.Remove(serverSerial);
+        return GumpPositionCache.Remove(serverSerial);
     }
 
-    public static bool GetGumpCachePosition(Serial serverSerial, out Point pos)
+    public static bool GetGumpCachePosition(Serial id, out Point pos)
     {
-        return _gumpPositionCache.TryGetValue(serverSerial, out pos);
+        return GumpPositionCache.TryGetValue(id, out pos);
     }
 
-    public static void ShowContextMenu(ContextMenuShowMenu? menu)
+    public static void ShowContextMenu(ContextMenuShowMenu menu)
     {
         ContextMenu?.Dispose();
+
         ContextMenu = menu;
 
-        if (ContextMenu is not { IsDisposed: false })
-            return;
-
-        Add(ContextMenu);
-    }
-
-    public static T? GetGump<T>(Serial serial) where T : Control
-    {
-
-        for (LinkedListNode<Gump>? last = Gumps.Last; last is not null; last = last.Previous)
-        {
-            Control c = last.Value;
-
-            if (!c.IsDisposed && c.LocalSerial == serial.Value && c is T t)
-                return t;
-        }
-
-        return null;
+        if (ContextMenu is { IsDisposed: false })
+            Add(ContextMenu);
     }
 
     public static T? GetGump<T>() where T : Control
@@ -280,6 +260,19 @@ internal static class UIManager
             Control c = first.Value;
 
             if (!c.IsDisposed && c is T t)
+                return t;
+        }
+
+        return null;
+    }
+
+    public static T? GetGump<T>(Serial serial) where T : Control
+    {
+        for (LinkedListNode<Gump>? last = Gumps.Last; last is not null; last = last.Previous)
+        {
+            Control c = last.Value;
+
+            if (!c.IsDisposed && c.LocalSerial == serial.Value && c is T t)
                 return t;
         }
 
@@ -374,14 +367,11 @@ internal static class UIManager
 
     private static void HandleKeyboardInput()
     {
-        if (_keyboardFocusControl is null)
-            return;
-
-        if (_keyboardFocusControl.IsDisposed)
-        {
+        if (_keyboardFocusControl is { IsDisposed: true })
             _keyboardFocusControl = null;
+
+        if (_keyboardFocusControl is not null)
             return;
-        }
 
         if (SystemChat is { IsDisposed: false })
         {
@@ -393,7 +383,7 @@ internal static class UIManager
         for (LinkedListNode<Gump>? first = Gumps.First; first is not null; first = first.Next)
         {
             Control c = first.Value;
-            if (c is not { IsDisposed: false, IsVisible: true, IsEnabled: true })
+            if (c.IsDisposed || !c.IsVisible || !c.IsEnabled)
                 continue;
 
             _keyboardFocusControl = c.GetFirstControlAcceptKeyboardInput();
@@ -413,8 +403,8 @@ internal static class UIManager
         {
             MouseOverControl.InvokeMouseExit(Mouse.Position);
 
-            if (MouseOverControl.RootParent is { } root && (gump is null || root != MouseOverControl.RootParent))
-                root.InvokeMouseExit(Mouse.Position);
+            if (MouseOverControl.RootParent is not null && (gump is null || gump.RootParent != MouseOverControl.RootParent))
+                MouseOverControl.RootParent.InvokeMouseExit(Mouse.Position);
         }
 
         if (gump is not null)
@@ -423,8 +413,8 @@ internal static class UIManager
             {
                 gump.InvokeMouseEnter(Mouse.Position);
 
-                if (gump.RootParent is { } root && (MouseOverControl is null || root != MouseOverControl.RootParent))
-                    root.InvokeMouseEnter(Mouse.Position);
+                if (gump.RootParent is not null && (MouseOverControl is null || gump.RootParent != MouseOverControl.RootParent))
+                    gump.RootParent.InvokeMouseEnter(Mouse.Position);
             }
 
             gump.InvokeMouseOver(Mouse.Position);
@@ -462,8 +452,8 @@ internal static class UIManager
     {
         Gump? gump = control as Gump;
 
-        if (gump is null && control?.RootParent is Gump root)
-            gump = root;
+        if (gump is null && control?.RootParent is Gump)
+            gump = control.RootParent as Gump;
 
         if (gump is null)
             return;
@@ -498,7 +488,7 @@ internal static class UIManager
         if (!_needSort)
             return;
 
-        for (LinkedListNode<Gump>? el = Gumps.First; el is not null; el = el.Next)
+        for (LinkedListNode<Gump>? el = Gumps.First; el != null; el = el.Next)
         {
             Gump c = el.Value;
 
@@ -534,10 +524,14 @@ internal static class UIManager
 
     public static void AttemptDragControl(Control control, bool attemptAlwaysSuccessful = false)
     {
-        if ((_isDraggingControl && !attemptAlwaysSuccessful) || Client.Game.UO.GameCursor.ItemHold is { Enabled: true, IsFixedPosition: false })
+        if ((_isDraggingControl && !attemptAlwaysSuccessful)
+            || Client.Game.UO.GameCursor.ItemHold is { Enabled: true, IsFixedPosition: true })
+        {
             return;
+        }
 
         Control dragTarget = control;
+
         if (!dragTarget.CanMove)
             return;
 
