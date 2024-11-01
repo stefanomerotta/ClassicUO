@@ -180,7 +180,7 @@ namespace ClassicUO.Game.UI.Gumps.CharCreation
                     break;
 
                 case CharCreationStep.ChooseProfession:
-                    Control existing = Children.FirstOrDefault(page => page.Page == 2);
+                    Control existing = _children.FirstOrDefault(page => page.Page == 2);
 
                     if (existing != null)
                     {
@@ -194,7 +194,7 @@ namespace ClassicUO.Game.UI.Gumps.CharCreation
                     break;
 
                 case CharCreationStep.ChooseTrade:
-                    existing = Children.FirstOrDefault(page => page.Page == 3);
+                    existing = _children.FirstOrDefault(page => page.Page == 3);
 
                     if (existing != null)
                     {
@@ -207,7 +207,7 @@ namespace ClassicUO.Game.UI.Gumps.CharCreation
                     break;
 
                 case CharCreationStep.ChooseCity:
-                    existing = Children.FirstOrDefault(page => page.Page == 4);
+                    existing = _children.FirstOrDefault(page => page.Page == 4);
 
                     if (existing != null)
                     {

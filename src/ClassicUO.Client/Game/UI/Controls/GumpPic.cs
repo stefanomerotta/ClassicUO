@@ -30,6 +30,7 @@
 
 #endregion
 
+using System;
 using System.Collections.Generic;
 using ClassicUO.Input;
 using ClassicUO.Network;
@@ -87,9 +88,11 @@ namespace ClassicUO.Game.UI.Controls
                 return true;
             }
 
-            for (int i = 0; i < Children.Count; i++)
+            ReadOnlySpan<Control> children = Children;
+
+            for (int i = 0; i < children.Length; i++)
             {
-                Control c = Children[i];
+                Control c = children[i];
 
                 // might be wrong x, y. They should be calculated by position
                 if (c.Contains(x, y))

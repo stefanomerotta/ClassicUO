@@ -230,7 +230,7 @@ namespace ClassicUO.Game.UI.Gumps
             int x = 20;
             int y = 20;
 
-            foreach (GridLootItem gridLootItem in Children.OfType<GridLootItem>())
+            foreach (GridLootItem gridLootItem in _children.OfType<GridLootItem>())
             {
                 gridLootItem.Dispose();
             }

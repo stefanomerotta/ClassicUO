@@ -250,7 +250,7 @@ namespace ClassicUO.Game.UI.Gumps.Login
 
             if (!string.IsNullOrEmpty(charName))
             {
-                LoadingGump existing = Children.OfType<LoadingGump>().FirstOrDefault();
+                LoadingGump existing = _children.OfType<LoadingGump>().FirstOrDefault();
 
                 if (existing != null)
                 {

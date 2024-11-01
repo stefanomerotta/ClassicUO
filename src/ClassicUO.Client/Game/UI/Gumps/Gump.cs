@@ -170,50 +170,50 @@ namespace ClassicUO.Game.UI.Gumps
             return IsVisible && base.Draw(batcher, x, y);
         }
 
-        public override void OnButtonClick(int buttonID)
+        public override void OnButtonClick(int buttonId)
         {
-            if (!IsDisposed && LocalSerial != 0)
+            if (IsDisposed || LocalSerial == 0)
+                return;
+            
+            List<uint> switches = [];
+            List<(ushort, string)> entries = [];
+
+            foreach (Control control in Children)
             {
-                List<uint> switches = [];
-                List<(ushort, string)> entries = [];
-
-                foreach (Control control in Children)
+                switch (control)
                 {
-                    switch (control)
-                    {
-                        case Checkbox checkbox when checkbox.IsChecked:
-                            switches.Add(control.LocalSerial.Value);
+                    case Checkbox checkbox when checkbox.IsChecked:
+                        switches.Add(control.LocalSerial.Value);
 
-                            break;
+                        break;
 
-                        case StbTextBox textBox:
-                            entries.Add(((ushort)textBox.LocalSerial, textBox.Text));
+                    case StbTextBox textBox:
+                        entries.Add(((ushort)textBox.LocalSerial, textBox.Text));
 
-                            break;
-                    }
+                        break;
                 }
-
-                GameActions.ReplyGump
-                (
-                    LocalSerial,
-                    // Seems like MasterGump serial does not work as expected.
-                    /*MasterGumpSerial != 0 ? MasterGumpSerial :*/ ServerSerial,
-                    buttonID,
-                    CollectionsMarshal.AsSpan(switches),
-                    CollectionsMarshal.AsSpan(entries)
-                );
-
-                if (CanMove)
-                {
-                    UIManager.SavePosition(ServerSerial, Location);
-                }
-                else
-                {
-                    UIManager.RemovePosition(ServerSerial);
-                }
-
-                Dispose();
             }
+
+            GameActions.ReplyGump
+            (
+                LocalSerial,
+                // Seems like MasterGump serial does not work as expected.
+                /*MasterGumpSerial != 0 ? MasterGumpSerial :*/ ServerSerial,
+                buttonId,
+                CollectionsMarshal.AsSpan(switches),
+                CollectionsMarshal.AsSpan(entries)
+            );
+
+            if (CanMove)
+            {
+                UIManager.SavePosition(ServerSerial, Location);
+            }
+            else
+            {
+                UIManager.RemovePosition(ServerSerial);
+            }
+
+            Dispose();
         }
 
         protected override void CloseWithRightClick()

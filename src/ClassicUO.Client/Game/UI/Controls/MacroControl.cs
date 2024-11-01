@@ -194,18 +194,18 @@ namespace ClassicUO.Game.UI.Controls
 
         private void RemoveLastCommand()
         {
-            if (_databox.Children.Count != 0)
+            if (!_databox.Children.IsEmpty)
             {
                 LinkedObject last = Macro.GetLast();
 
                 Macro.Remove(last);
 
-                _databox.Children[_databox.Children.Count - 1].Dispose();
+                _databox.Children[^1].Dispose();
 
                 SetupMacroUI();
             }
 
-            if (_databox.Children.Count == 0)
+            if (_databox.Children.IsEmpty)
             {
                 AddEmptyMacro();
             }
@@ -219,7 +219,7 @@ namespace ClassicUO.Game.UI.Controls
             }
 
             _databox.Clear();
-            _databox.Children.Clear();
+            _databox.ClearChildren();
 
             if (Macro.Items == null)
             {
@@ -544,7 +544,7 @@ namespace ClassicUO.Game.UI.Controls
                     box.Tag = newMacroObj;
 
 
-                    for (int i = 1; i < Children.Count; i++)
+                    for (int i = 1; i < Children.Length; i++)
                     {
                         Children[i]?.Dispose();
                     }

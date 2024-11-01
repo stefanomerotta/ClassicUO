@@ -2008,7 +2008,7 @@ namespace ClassicUO.Game.UI.Gumps
                                 name
                             )
                             {
-                                ButtonParameter = (int) Buttons.Last + 1 + rightArea.Children.Count,
+                                ButtonParameter = (int) Buttons.Last + 1 + rightArea.Children.Length,
                                 CanMove = true
                             }
                         );
@@ -2123,7 +2123,7 @@ namespace ClassicUO.Game.UI.Gumps
                         macro.Name
                     )
                     {
-                        ButtonParameter = (int) Buttons.Last + 1 + rightArea.Children.Count,
+                        ButtonParameter = (int) Buttons.Last + 1 + rightArea.Children.Length,
                         Tag = macro,
                         CanMove = true
                     }
@@ -3169,7 +3169,7 @@ namespace ClassicUO.Game.UI.Gumps
             {
                 InfoBarBuilderControl ibbc = new InfoBarBuilderControl(this, new InfoBarItem("", InfoBarVars.HP, 0x3B9));
                 ibbc.X = 5;
-                ibbc.Y = _databox.Children.Count * ibbc.Height;
+                ibbc.Y = _databox.Children.Length * ibbc.Height;
                 _infoBarBuilderControls.Add(ibbc);
                 _databox.Add(ibbc);
                 _databox.WantUpdateSize = true;
@@ -4543,19 +4543,17 @@ namespace ClassicUO.Game.UI.Gumps
 
             public void AddRight(Control c, int offset = 15)
             {
-                int i = _databox.Children.Count - 1;
+                ReadOnlySpan<Control> children = _databox.Children;
+                int i = children.Length - 1;
 
-                for (; i >= 0; --i)
+                for (; i >= 0; i--)
                 {
-                    if (_databox.Children[i].IsVisible)
-                    {
+                    if (children[i].IsVisible)
                         break;
-                    }
                 }
 
-                c.X = i >= 0 ? _databox.Children[i].Bounds.Right + offset : _indent;
-
-                c.Y = i >= 0 ? _databox.Children[i].Bounds.Top : 0;
+                c.X = i >= 0 ? children[i].Bounds.Right + offset : _indent;
+                c.Y = i >= 0 ? children[i].Bounds.Top : 0;
 
                 _databox.Add(c);
                 _databox.WantUpdateSize = true;
@@ -4563,22 +4561,19 @@ namespace ClassicUO.Game.UI.Gumps
 
             public override void Add(Control c, int page = 0)
             {
-                int i = _databox.Children.Count - 1;
+                ReadOnlySpan<Control> children = _databox.Children;
+                int i = children.Length - 1;
                 int bottom = 0;
 
                 for (; i >= 0; --i)
                 {
-                    if (_databox.Children[i].IsVisible)
-                    {
-                        if (bottom == 0 || bottom < _databox.Children[i].Bounds.Bottom + 2)
-                        {
-                            bottom = _databox.Children[i].Bounds.Bottom + 2;
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
+                    if (!children[i].IsVisible)
+                        continue;
+                    
+                    if (bottom == 0 || bottom < children[i].Bounds.Bottom + 2)
+                        bottom = children[i].Bounds.Bottom + 2;
+                    else
+                        break;
                 }
 
                 c.X = _indent;

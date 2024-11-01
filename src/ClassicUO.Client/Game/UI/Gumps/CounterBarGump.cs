@@ -45,6 +45,7 @@ using ClassicUO.Utility;
 using ClassicUO.Utility.Logging;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using System;
 
 namespace ClassicUO.Game.UI.Gumps
 {
@@ -206,15 +207,13 @@ namespace ClassicUO.Game.UI.Gumps
             _background.Height = Height;
 
             CounterItem[] items = GetControls<CounterItem>();
-
-            int[] indices = new int[items.Length];
+            Span<int> indices = stackalloc int[items.Length];
 
             for (int row = 0; row < _rows; row++)
             {
                 for (int col = 0; col < _columns; col++)
                 {
-                    int index = /*_isVertical ? col * _rows + row :*/
-                        row * _columns + col;
+                    int index = row * _columns + col;
 
                     if (index < items.Length)
                     {
@@ -231,15 +230,14 @@ namespace ClassicUO.Game.UI.Gumps
                     }
                     else
                     {
-                        Add(
-                            new CounterItem(
-                                this,
-                                col * _rectSize + 2,
-                                row * _rectSize + 2,
-                                _rectSize - 4,
-                                _rectSize - 4
-                            )
-                        );
+                        Add(new CounterItem
+                        (
+                            this,
+                            col * _rectSize + 2,
+                            row * _rectSize + 2,
+                            _rectSize - 4,
+                            _rectSize - 4
+                        ));
                     }
                 }
             }
@@ -247,13 +245,11 @@ namespace ClassicUO.Game.UI.Gumps
             for (int i = 0; i < indices.Length; i++)
             {
                 int index = indices[i];
-
-                if (index >= 0 && index < items.Length)
-                {
-                    items[i].Parent = null;
-
-                    items[i].Dispose();
-                }
+                if (index < 0 || index >= items.Length)
+                    continue;
+                
+                items[i].Parent = null;
+                items[i].Dispose();
             }
 
             SetInScreen();

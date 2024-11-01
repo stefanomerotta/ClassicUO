@@ -39,7 +39,6 @@ using Microsoft.Xna.Framework;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace ClassicUO.Network.Packets;
@@ -176,7 +175,7 @@ internal sealed partial class IncomingPackets
         try
         {
             ZLib.ZLibError result = ZLib.Decompress(source.Slice(sourcePosition, clen), span[..dlen]);
-            SpanReader reader = new SpanReader(span[..dlen]);
+            SpanReader reader = new(span[..dlen]);
 
             ushort id = 0;
             sbyte x = 0;
@@ -560,41 +559,44 @@ internal sealed partial class IncomingPackets
     private static void UpdatePlayer(World world, Serial serial, ushort graphic, byte graph_inc, ushort hue, Flags flags,
         ushort x, ushort y, sbyte z, Direction direction)
     {
-        if (serial == world.Player)
+        if (world.Player is not { } player)
+            return;
+
+        if (serial != player)
+            return;
+        
+        world.RangeSize.X = x;
+        world.RangeSize.Y = y;
+
+        bool oldDead = player.IsDead;
+
+        player.CloseBank();
+        player.Walker.WalkingFailed = false;
+        player.Graphic = graphic;
+        player.Direction = direction & Direction.Mask;
+        player.FixHue(hue);
+        player.Flags = flags;
+        player.Walker.DenyWalk(0xFF, -1, -1, -1);
+
+        GameScene? gs = Client.Game.GetScene<GameScene>();
+        if (gs is not null)
         {
-            world.RangeSize.X = x;
-            world.RangeSize.Y = y;
-
-            bool olddead = world.Player.IsDead;
-
-            world.Player.CloseBank();
-            world.Player.Walker.WalkingFailed = false;
-            world.Player.Graphic = graphic;
-            world.Player.Direction = direction & Direction.Mask;
-            world.Player.FixHue(hue);
-            world.Player.Flags = flags;
-            world.Player.Walker.DenyWalk(0xFF, -1, -1, -1);
-
-            GameScene? gs = Client.Game.GetScene<GameScene>();
-            if (gs is not null)
-            {
-                world.Weather.Reset();
-                gs.UpdateDrawPosition = true;
-            }
-
-            if (olddead != world.Player.IsDead)
-            {
-                if (world.Player.IsDead)
-                    world.ChangeSeason(Game.Managers.Season.Desolation, 42);
-                else
-                    world.ChangeSeason(world.OldSeason, world.OldMusicIndex);
-            }
-
-            world.Player.Walker.ResendPacketResync = false;
-            world.Player.CloseRangedGumps();
-            world.Player.SetInWorldTile(x, y, z);
-            world.Player.UpdateAbilities();
+            world.Weather.Reset();
+            gs.UpdateDrawPosition = true;
         }
+
+        if (oldDead != player.IsDead)
+        {
+            if (player.IsDead)
+                world.ChangeSeason(Game.Managers.Season.Desolation, 42);
+            else
+                world.ChangeSeason(world.OldSeason, world.OldMusicIndex);
+        }
+
+        player.Walker.ResendPacketResync = false;
+        player.CloseRangedGumps();
+        player.SetInWorldTile(x, y, z);
+        player.UpdateAbilities();
     }
 
     private static void ClearContainerAndRemoveItems(World world, Entity container, bool remove_unequipped = false)
@@ -681,28 +683,28 @@ internal sealed partial class IncomingPackets
 
             string entry = gparams[0];
 
-            if (string.Equals(entry, "button", StringComparison.InvariantCultureIgnoreCase))
+            if (entry.InvariantEqualsIgnoreCase("button"))
             {
                 gump.Add(new Button(gparams), page);
             }
-            else if (string.Equals(entry, "buttontileart", StringComparison.InvariantCultureIgnoreCase))
+            else if (entry.InvariantEqualsIgnoreCase("buttontileart"))
             {
                 gump.Add(new ButtonTileArt(gparams), page);
             }
-            else if (string.Equals(entry, "checkertrans", StringComparison.InvariantCultureIgnoreCase))
+            else if (entry.InvariantEqualsIgnoreCase("checkertrans"))
             {
                 CheckerTrans checkerTrans = new(gparams);
                 gump.Add(checkerTrans, page);
                 ApplyTrans(gump, page, checkerTrans.X, checkerTrans.Y, checkerTrans.Width, checkerTrans.Height);
             }
-            else if (string.Equals(entry, "croppedtext", StringComparison.InvariantCultureIgnoreCase))
+            else if (entry.InvariantEqualsIgnoreCase("croppedtext"))
             {
                 gump.Add(new CroppedText(gparams, lines), page);
             }
-            else if (string.Equals(entry, "gumppic", StringComparison.InvariantCultureIgnoreCase))
+            else if (entry.InvariantEqualsIgnoreCase("gumppic"))
             {
                 GumpPic pic;
-                bool isVirtue = gparams.Count >= 6 && gparams[5].IndexOf("virtuegumpitem", StringComparison.InvariantCultureIgnoreCase) >= 0;
+                bool isVirtue = gparams.Count >= 6 && gparams[5].Contains("virtuegumpitem", StringComparison.InvariantCultureIgnoreCase);
 
                 if (isVirtue)
                 {
@@ -710,6 +712,7 @@ internal sealed partial class IncomingPackets
                     {
                         ContainsByBounds = true
                     };
+
                     string lvl;
 
                     switch (pic.Hue)
@@ -772,15 +775,15 @@ internal sealed partial class IncomingPackets
 
                 gump.Add(pic, page);
             }
-            else if (string.Equals(entry, "gumppictiled", StringComparison.InvariantCultureIgnoreCase))
+            else if (entry.InvariantEqualsIgnoreCase("gumppictiled"))
             {
                 gump.Add(new GumpPicTiled(gparams), page);
             }
-            else if (string.Equals(entry, "htmlgump", StringComparison.InvariantCultureIgnoreCase))
+            else if (entry.InvariantEqualsIgnoreCase("htmlgump"))
             {
                 gump.Add(new HtmlControl(gparams, lines), page);
             }
-            else if (string.Equals(entry, "xmfhtmlgump", StringComparison.InvariantCultureIgnoreCase))
+            else if (entry.InvariantEqualsIgnoreCase("xmfhtmlgump"))
             {
                 gump.Add(new HtmlControl(
                         int.Parse(gparams[1]),
@@ -800,7 +803,7 @@ internal sealed partial class IncomingPackets
                     page
                 );
             }
-            else if (string.Equals(entry, "xmfhtmlgumpcolor", StringComparison.InvariantCultureIgnoreCase))
+            else if (entry.InvariantEqualsIgnoreCase("xmfhtmlgumpcolor"))
             {
                 int color = int.Parse(gparams[8]);
 
@@ -825,7 +828,7 @@ internal sealed partial class IncomingPackets
                     page
                 );
             }
-            else if (string.Equals(entry, "xmfhtmltok", StringComparison.InvariantCultureIgnoreCase))
+            else if (entry.InvariantEqualsIgnoreCase("xmfhtmltok"))
             {
                 int color = int.Parse(gparams[7]);
                 if (color == 0x7FFF)
@@ -869,16 +872,16 @@ internal sealed partial class IncomingPackets
                     page
                 );
             }
-            else if (string.Equals(entry, "page", StringComparison.InvariantCultureIgnoreCase))
+            else if (entry.InvariantEqualsIgnoreCase("page"))
             {
                 if (gparams.Count >= 2)
                     page = int.Parse(gparams[1]);
             }
-            else if (string.Equals(entry, "resizepic", StringComparison.InvariantCultureIgnoreCase))
+            else if (entry.InvariantEqualsIgnoreCase("resizepic"))
             {
                 gump.Add(new ResizePic(gparams), page);
             }
-            else if (string.Equals(entry, "text", StringComparison.InvariantCultureIgnoreCase))
+            else if (entry.InvariantEqualsIgnoreCase("text"))
             {
                 if (gparams.Count >= 5)
                     gump.Add(new Label(gparams, lines), page);
@@ -901,15 +904,15 @@ internal sealed partial class IncomingPackets
             {
                 gump.Add(new StaticPic(gparams), page);
             }
-            else if (string.Equals(entry, "noclose", StringComparison.InvariantCultureIgnoreCase))
+            else if (entry.InvariantEqualsIgnoreCase("noclose"))
             {
                 gump.CanCloseWithRightClick = false;
             }
-            else if (string.Equals(entry, "nodispose", StringComparison.InvariantCultureIgnoreCase))
+            else if (entry.InvariantEqualsIgnoreCase("nodispose"))
             {
                 gump.CanCloseWithEsc = false;
             }
-            else if (string.Equals(entry, "nomove", StringComparison.InvariantCultureIgnoreCase))
+            else if (entry.InvariantEqualsIgnoreCase("nomove"))
             {
                 gump.CanMove = false;
             }
@@ -918,17 +921,17 @@ internal sealed partial class IncomingPackets
             {
                 group++;
             }
-            else if (string.Equals(entry, "radio", StringComparison.InvariantCultureIgnoreCase))
+            else if (entry.InvariantEqualsIgnoreCase("radio"))
             {
                 gump.Add(new RadioButton(group, gparams, lines), page);
             }
-            else if (string.Equals(entry, "checkbox", StringComparison.InvariantCultureIgnoreCase))
+            else if (entry.InvariantEqualsIgnoreCase("checkbox"))
             {
                 gump.Add(new Checkbox(gparams, lines), page);
             }
-            else if (string.Equals(entry, "tooltip", StringComparison.InvariantCultureIgnoreCase))
+            else if (entry.InvariantEqualsIgnoreCase("tooltip"))
             {
-                string? text = null;
+                string? text;
 
                 if (gparams.Count > 2 && gparams[2].Length != 0)
                 {
@@ -954,7 +957,8 @@ internal sealed partial class IncomingPackets
                     text = Client.Game.UO.FileManager.Clilocs.GetString(int.Parse(gparams[1]));
                 }
 
-                Control? last = gump.Children.Count != 0 ? gump.Children[gump.Children.Count - 1] : null;
+                ReadOnlySpan<Control> children = gump.Children;
+                Control? last = !children.IsEmpty ? children[^1] : null;
 
                 if (last is not null)
                 {
@@ -975,28 +979,29 @@ internal sealed partial class IncomingPackets
                     last.AcceptMouseInput = true;
                 }
             }
-            else if (string.Equals(entry, "itemproperty", StringComparison.InvariantCultureIgnoreCase))
+            else if (entry.InvariantEqualsIgnoreCase("itemproperty"))
             {
-                if (world.ClientFeatures.TooltipsEnabled && gump.Children.Count != 0)
+                ReadOnlySpan<Control> children = gump.Children;
+                if (world.ClientFeatures.TooltipsEnabled && !children.IsEmpty)
                 {
-                    gump.Children[gump.Children.Count - 1].SetTooltip(Serial.Parse(gparams[1]));
+                    children[^1].SetTooltip(Serial.Parse(gparams[1]));
 
                     if (Serial.TryParse(gparams[1], out Serial s) && (!world.OPL.TryGetRevision(s, out uint rev) || rev == 0))
                         OutgoingPackets.AddMegaClilocRequest(s);
                 }
             }
-            else if (string.Equals(entry, "noresize", StringComparison.InvariantCultureIgnoreCase))
+            else if (entry.InvariantEqualsIgnoreCase("noresize"))
             { }
-            else if (string.Equals(entry, "mastergump", StringComparison.InvariantCultureIgnoreCase))
+            else if (entry.InvariantEqualsIgnoreCase("mastergump"))
             {
                 gump.MasterGumpSerial = gparams.Count > 0 ? Serial.Parse(gparams[1]) : Serial.Zero;
             }
-            else if (string.Equals(entry, "picinpic", StringComparison.InvariantCultureIgnoreCase))
+            else if (entry.InvariantEqualsIgnoreCase("picinpic"))
             {
                 if (gparams.Count > 7)
                     gump.Add(new GumpPicInPic(gparams), page);
             }
-            else if (string.Equals(entry, "\0", StringComparison.InvariantCultureIgnoreCase))
+            else if (entry.InvariantEqualsIgnoreCase("\0"))
             {
                 //This gump is null terminated: Breaking
                 break;
@@ -1007,7 +1012,7 @@ internal sealed partial class IncomingPackets
                 if (gparams.Count >= 3)
                     gump.Add(new GumpPic(gparams));
             }
-            else if (string.Equals(entry, "togglelimitgumpscale", StringComparison.InvariantCultureIgnoreCase))
+            else if (entry.InvariantEqualsIgnoreCase("togglelimitgumpscale"))
             {
                 // ??
             }
@@ -1030,10 +1035,11 @@ internal sealed partial class IncomingPackets
     {
         int x2 = x + width;
         int y2 = y + height;
+        ReadOnlySpan<Control> children = gump.Children;
 
-        for (int i = 0; i < gump.Children.Count; i++)
+        for (int i = 0; i < children.Length; i++)
         {
-            Control child = gump.Children[i];
+            Control child = children[i];
             bool canDraw = child.Page == 0 || current_page == child.Page;
 
             bool overlap =

@@ -30,77 +30,61 @@
 
 #endregion
 
+using ClassicUO.Core;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Input;
-using ClassicUO.Assets;
 using ClassicUO.Renderer;
 using Microsoft.Xna.Framework;
-using ClassicUO.Game.Data;
-using ClassicUO.Core;
 
-namespace ClassicUO.Game.UI.Controls
+namespace ClassicUO.Game.UI.Controls;
+
+#nullable enable
+
+internal sealed class ClickableColorBox : ColorBox
 {
-    internal class ClickableColorBox : ColorBox
+    private readonly World _world;
+
+    public ClickableColorBox(World world, int x, int y, int w, int h, ushort hue) 
+        : base(w, h, hue)
     {
-        private readonly World _world;
+        _world = world;
+        X = x;
+        Y = y;
+        WantUpdateSize = false;
 
-        public ClickableColorBox
+        GumpPic background = new(0, 0, 0x00D4, 0);
+        Add(background);
+
+        Width = background.Width;
+        Height = background.Height;
+    }
+
+    public override bool Draw(UltimaBatcher2D batcher, int x, int y)
+    {
+        if (!Children.IsEmpty)
+            Children[0].Draw(batcher, x, y);
+
+        Vector3 hueVector = ShaderHueTranslator.GetHueVector(Hue);
+
+        batcher.Draw
         (
-            World world,
-            int x,
-            int y,
-            int w,
-            int h,
-            ushort hue
-        ) : base(w, h, hue)
-        {
-            _world = world;
-            X = x;
-            Y = y;
-            WantUpdateSize = false;
+           SolidColorTextureCache.GetTexture(Color.White),
+           new Rectangle(x + 3, y + 3, Width - 6, Height - 6),
+            hueVector
+        );
 
-            GumpPic background = new GumpPic(0, 0, 0x00D4, 0);
-            Add(background);
+        return true;
+    }
 
-            Width = background.Width;
-            Height = background.Height;
-        }
+    protected override void OnMouseUp(int x, int y, MouseButtonType button)
+    {
+        if (button != MouseButtonType.Left)
+            return;
 
-        public override bool Draw(UltimaBatcher2D batcher, int x, int y)
-        {
-            if (Children.Count != 0)
-            {
-                Children[0].Draw(batcher, x, y);
-            }
+        UIManager.GetGump<ColorPickerGump>()?.Dispose();
 
-            Vector3 hueVector = ShaderHueTranslator.GetHueVector(Hue);
-
-            batcher.Draw
-            (
-               SolidColorTextureCache.GetTexture(Color.White),
-               new Rectangle
-               (
-                   x + 3,
-                   y + 3,
-                   Width - 6,
-                   Height - 6
-                ),
-                hueVector
-            );
-
-            return true;
-        }
-
-        protected override void OnMouseUp(int x, int y, MouseButtonType button)
-        {
-            if (button == MouseButtonType.Left)
-            {
-                UIManager.GetGump<ColorPickerGump>()?.Dispose();
-
-                ColorPickerGump pickerGump = new(_world, Serial.Zero, 0, 100, 100, s => Hue = s);
-                UIManager.Add(pickerGump);
-            }
-        }
+        ColorPickerGump pickerGump = new(_world, Serial.Zero, 0, 100, 100, s => Hue = s);
+        UIManager.Add(pickerGump);
     }
 }

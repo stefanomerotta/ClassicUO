@@ -235,7 +235,7 @@ namespace ClassicUO.Game.UI.Gumps
 
             if (_updateSkillsNeeded)
             {
-                foreach (Label label in Children.OfType<Label>())
+                foreach (Label label in _children.OfType<Label>())
                 {
                     label.Dispose();
                 }

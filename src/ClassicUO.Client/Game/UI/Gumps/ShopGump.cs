@@ -96,7 +96,7 @@ namespace ClassicUO.Game.UI.Gumps
         private const int RIGHT_OFFSET = 32;
         private const int RIGHT_BOTTOM_HEIGHT = 93;
 
-        public ShopGump(World world, Serial serial, bool isBuyGump, int x, int y) 
+        public ShopGump(World world, Serial serial, bool isBuyGump, int x, int y)
             : base(world, serial, Serial.Zero) //60 is the base height, original size
         {
             int height = ProfileManager.CurrentProfile.VendorGumpHeight;
@@ -367,11 +367,9 @@ namespace ClassicUO.Game.UI.Gumps
 
         public void AddItem(Serial serial, ushort graphic, ushort hue, ushort amount, uint price, string name, bool fromcliloc)
         {
-            int count = _shopScrollArea.Children.Count - 1;
+            int y = _shopScrollArea.Children is { IsEmpty: false } children ? children[^1].Bounds.Bottom : 0;
 
-            int y = count > 0 ? _shopScrollArea.Children[count].Bounds.Bottom : 0;
-
-            ShopItem shopItem = new ShopItem(this, serial, graphic, hue, amount, price, name)
+            ShopItem shopItem = new(this, serial, graphic, hue, amount, price, name)
             {
                 X = 5,
                 Y = y + 2,
@@ -603,11 +601,7 @@ namespace ClassicUO.Game.UI.Gumps
 
         private void ShopItem_MouseClick(object sender, MouseEventArgs e)
         {
-            foreach (
-                ShopItem shopItem in _shopScrollArea.Children
-                    .SelectMany(o => o.Children)
-                    .OfType<ShopItem>()
-            )
+            foreach (ShopItem shopItem in _shopScrollArea.GetDescendantsOfType<ShopItem>())
             {
                 shopItem.IsSelected = shopItem == sender;
             }
@@ -738,7 +732,7 @@ namespace ClassicUO.Game.UI.Gumps
             {
                 set
                 {
-                    foreach (Label label in Children.OfType<Label>())
+                    foreach (Label label in _children.OfType<Label>())
                     {
                         label.Hue = (ushort)(value ? 0x0021 : 0x0219);
                     }

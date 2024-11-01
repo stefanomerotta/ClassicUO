@@ -22,37 +22,19 @@
 //  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 //  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES
 
-using ClassicUO.Renderer;
-using Microsoft.Xna.Framework;
+using System;
 
-namespace ClassicUO.Game.UI.Controls;
+namespace ClassicUO.Extensions;
 
-#nullable enable
-
-internal class ColorBox : Control
+public static class StringExtensions
 {
-    public ushort Hue { get; set; }
-
-    public ColorBox(int width, int height, ushort hue)
+    public static bool InvariantEquals(this string a, string b)
     {
-        CanMove = false;
-        Width = width;
-        Height = height;
-        Hue = hue;
-        WantUpdateSize = false;
+        return a.Equals(b, StringComparison.InvariantCulture);
     }
 
-    public override bool Draw(UltimaBatcher2D batcher, int x, int y)
+    public static bool InvariantEqualsIgnoreCase(this string a, string b)
     {
-        Vector3 hueVector = ShaderHueTranslator.GetHueVector(Hue);
-
-        batcher.Draw
-        (
-            SolidColorTextureCache.GetTexture(Color.White),
-            new Rectangle(x, y, Width, Height),
-            hueVector
-        );
-
-        return true;
+        return a.Equals(b, StringComparison.InvariantCultureIgnoreCase);
     }
 }

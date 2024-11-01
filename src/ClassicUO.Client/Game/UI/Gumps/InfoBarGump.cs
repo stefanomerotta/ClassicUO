@@ -144,7 +144,7 @@ namespace ClassicUO.Game.UI.Gumps
 
             base.Update();
 
-            Control last = Children.LastOrDefault();
+            Control last = _children.LastOrDefault();
 
             if (last != null)
             {

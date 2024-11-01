@@ -49,9 +49,9 @@ namespace ClassicUO.Game.UI.Controls
 
         public void ReArrangeChildren()
         {
-            for (int i = 0, height = 0; i < Children.Count; ++i)
+            for (int i = 0, height = 0; i < _children.Count; ++i)
             {
-                Control c = Children[i];
+                Control c = _children[i];
 
                 if (c.IsVisible && !c.IsDisposed)
                 {
@@ -75,7 +75,7 @@ namespace ClassicUO.Game.UI.Controls
             x += ScreenCoordinateX;
             y += ScreenCoordinateY;
 
-            foreach (Control child in Children)
+            foreach (Control child in _children)
             {
                 child.HitTest(x, y, ref t);
 

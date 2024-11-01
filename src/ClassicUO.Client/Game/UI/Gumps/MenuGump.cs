@@ -273,7 +273,7 @@ namespace ClassicUO.Game.UI.Gumps
 
             public void CalculateWidth()
             {
-                MaxValue = Children.Sum(s => s.Width) - Width;
+                MaxValue = _children.Sum(s => s.Width) - Width;
 
                 if (MaxValue < 0)
                 {
@@ -314,7 +314,7 @@ namespace ClassicUO.Game.UI.Gumps
 
         public int AddItem(string name, int y)
         {
-            RadioButton radio = new RadioButton(0, 0x138A, 0x138B, name, 1, 0x0386, false, 330)
+            RadioButton radio = new(0, 0x138A, 0x138B, name, 1, 0x0386, false, 330)
             {
                 X = 50,
                 Y = y
@@ -340,7 +340,7 @@ namespace ClassicUO.Game.UI.Gumps
 
                     ushort index = 1;
 
-                    foreach (RadioButton radioButton in Children.OfType<RadioButton>())
+                    foreach (RadioButton radioButton in _children.OfType<RadioButton>())
                     {
                         if (radioButton.IsChecked)
                         {

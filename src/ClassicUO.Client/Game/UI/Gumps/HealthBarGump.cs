@@ -379,7 +379,7 @@ namespace ClassicUO.Game.UI.Gumps
         protected override void UpdateContents()
         {
             Clear();
-            Children.Clear();
+            _children.Clear();
 
             _background = null;
             _hpLineRed = _manaLineRed = _stamLineRed = null;
@@ -1347,7 +1347,7 @@ namespace ClassicUO.Game.UI.Gumps
         protected override void UpdateContents()
         {
             Clear();
-            Children.Clear();
+            _children.Clear();
 
             _background = _hpLineRed = _manaLineRed = _stamLineRed = null;
             _buttonHeal1 = _buttonHeal2 = null;

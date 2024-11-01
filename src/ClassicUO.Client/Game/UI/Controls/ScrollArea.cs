@@ -136,9 +136,11 @@ namespace ClassicUO.Game.UI.Controls
 
             if (batcher.ClipBegin(x + ScissorRectangle.X, y + ScissorRectangle.Y, Width - 14 + ScissorRectangle.Width, Height + ScissorRectangle.Height))
             {
-                for (int i = 1; i < Children.Count; i++)
+                ReadOnlySpan<Control> children = Children;
+
+                for (int i = 1; i < children.Length; i++)
                 {
-                    Control child = Children[i];
+                    Control child = children[i];
 
                     if (!child.IsVisible)
                     {
@@ -175,9 +177,11 @@ namespace ClassicUO.Game.UI.Controls
 
         public override void Clear()
         {
-            for (int i = 1; i < Children.Count; i++)
+            var children = Children;
+
+            for (int i = 1; i < children.Length; i++)
             {
-                Children[i].Dispose();
+                children[i].Dispose();
             }
         }
 
@@ -188,9 +192,11 @@ namespace ClassicUO.Game.UI.Controls
 
             int startX = 0, startY = 0, endX = 0, endY = 0;
 
-            for (int i = 1; i < Children.Count; i++)
+            ReadOnlySpan<Control> children = Children;
+
+            for (int i = 1; i < children.Length; i++)
             {
-                Control c = Children[i];
+                Control c = children[i];
 
                 if (c.IsVisible && !c.IsDisposed)
                 {
@@ -236,9 +242,9 @@ namespace ClassicUO.Game.UI.Controls
 
             _scrollBar.UpdateOffset(0, Offset.Y);
 
-            for (int i = 1; i < Children.Count; i++)
+            for (int i = 1; i < children.Length; i++)
             {
-                Children[i].UpdateOffset(0, -_scrollBar.Value + ScissorRectangle.Y);
+                children[i].UpdateOffset(0, -_scrollBar.Value + ScissorRectangle.Y);
             }
         }
     }

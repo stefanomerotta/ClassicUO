@@ -444,7 +444,7 @@ namespace ClassicUO.Game.UI.Gumps.CharCreation
                 Remove(_facialLabel);
             }
 
-            foreach (CustomColorPicker customPicker in Children.OfType<CustomColorPicker>().ToList())
+            foreach (CustomColorPicker customPicker in _children.OfType<CustomColorPicker>().ToList())
             {
                 Remove(customPicker);
             }
