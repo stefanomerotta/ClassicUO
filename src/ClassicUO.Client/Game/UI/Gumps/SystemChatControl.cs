@@ -33,6 +33,7 @@
 using System;
 using System.Collections.Generic;
 using ClassicUO.Configuration;
+using ClassicUO.Core;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.Scenes;

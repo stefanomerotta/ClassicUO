@@ -23,6 +23,7 @@
 //  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES
 
 using ClassicUO.Configuration;
+using ClassicUO.Core;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Game.UI.Gumps;

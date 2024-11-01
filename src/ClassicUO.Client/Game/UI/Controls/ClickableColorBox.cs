@@ -37,6 +37,7 @@ using ClassicUO.Assets;
 using ClassicUO.Renderer;
 using Microsoft.Xna.Framework;
 using ClassicUO.Game.Data;
+using ClassicUO.Core;
 
 namespace ClassicUO.Game.UI.Controls
 {

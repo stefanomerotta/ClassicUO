@@ -32,6 +32,7 @@
 
 using System;
 using ClassicUO.Configuration;
+using ClassicUO.Extensions;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.UI.Gumps;
 

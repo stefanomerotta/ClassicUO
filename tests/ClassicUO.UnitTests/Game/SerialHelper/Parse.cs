@@ -1,4 +1,5 @@
 ﻿using System;
+using ClassicUO.Core;
 using ClassicUO.Game.Data;
 using FluentAssertions;
 using Xunit;

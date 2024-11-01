@@ -41,6 +41,7 @@ using ClassicUO.Renderer;
 using ClassicUO.Resources;
 using ClassicUO.Utility;
 using ClassicUO.Game.Data;
+using ClassicUO.Core;
 
 namespace ClassicUO.Game.UI.Gumps
 {

@@ -43,6 +43,8 @@ using ClassicUO.Assets;
 using ClassicUO.Renderer;
 using ClassicUO.Utility;
 using ClassicUO.Renderer.Gumps;
+using ClassicUO.Core;
+using ClassicUO.Extensions;
 
 namespace ClassicUO.Game.UI.Gumps.CharCreation
 {

@@ -43,6 +43,7 @@ using Microsoft.Xna.Framework;
 using SDL2;
 using StbTextEditSharp;
 using ClassicUO.Game.Data;
+using ClassicUO.Core;
 
 namespace ClassicUO.Game.UI.Controls
 {

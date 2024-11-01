@@ -22,10 +22,10 @@
 //  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 //  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES
 
-using ClassicUO.Game.Data;
 using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ClassicUO.Core;
 
 namespace ClassicUO.Configuration.Json;
 

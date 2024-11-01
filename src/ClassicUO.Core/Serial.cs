@@ -22,19 +22,16 @@
 //  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 //  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES
 
-using System;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 
-namespace ClassicUO.Game.Data;
-
-#nullable enable
+namespace ClassicUO.Core;
 
 public readonly struct Serial : IComparable<Serial>, IComparable<uint>, IEquatable<Serial>
 {
     public const uint ITEM_OFFSET = 0x40000000;
     public const uint VIRTUAL_OFFSET = 0x80000000;
-    public const uint MAX_ITEM_SERIAL = VIRTUAL_OFFSET -1;
+    public const uint MAX_ITEM_SERIAL = VIRTUAL_OFFSET - 1;
     public const uint MAX_MOBILE_SERIAL = ITEM_OFFSET - 1;
 
     public static readonly Serial MaxMobileSerial = new Serial(MAX_MOBILE_SERIAL);
@@ -74,7 +71,7 @@ public readonly struct Serial : IComparable<Serial>, IComparable<uint>, IEquatab
         get => Value > 0;
     }
 
-    internal Serial(uint serial)
+    public Serial(uint serial)
     {
         Value = serial;
     }

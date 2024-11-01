@@ -1,3 +1,4 @@
+using ClassicUO.Core;
 using ClassicUO.IO.Encoders;
 using System;
 using System.Buffers;
@@ -308,6 +309,12 @@ public ref struct VariableSpanWriter : IDisposable
             throw new Exception("Error while trying to write text to span");
 
         WriteFixedString<T>(text.Span, charLength);
+    }
+
+    [MethodImpl(IMPL_OPTION)]
+    public void WriteSerial(Serial serial)
+    {
+        WriteUInt32BE(serial.Value);
     }
 
     [MethodImpl(IMPL_OPTION)]

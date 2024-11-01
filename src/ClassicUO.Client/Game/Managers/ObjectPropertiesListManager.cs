@@ -31,6 +31,7 @@
 #endregion
 
 using System.Collections.Generic;
+using ClassicUO.Core;
 using ClassicUO.Game.Data;
 using ClassicUO.Network;
 

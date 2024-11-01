@@ -62,8 +62,14 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ClassicUO.Assets", "src\ClassicUO.Assets\ClassicUO.Assets.csproj", "{4B2C7249-9728-451B-8C9C-F73A164703B6}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ClassicUO.Client", "src\ClassicUO.Client\ClassicUO.Client.csproj", "{63A88323-2F8B-4CF1-AA17-C1372ACCA187}"
+	ProjectSection(ProjectDependencies) = postProject
+		{C471F2D7-1981-4C50-B359-4B7A68847C5C} = {C471F2D7-1981-4C50-B359-4B7A68847C5C}
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ClassicUO.IO", "src\ClassicUO.IO\ClassicUO.IO.csproj", "{EE30483B-AC0F-46C1-AAF5-A5DE2B187084}"
+	ProjectSection(ProjectDependencies) = postProject
+		{C471F2D7-1981-4C50-B359-4B7A68847C5C} = {C471F2D7-1981-4C50-B359-4B7A68847C5C}
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ClassicUO.Renderer", "src\ClassicUO.Renderer\ClassicUO.Renderer.csproj", "{CE54D5D2-068A-4456-9720-2AF0688D9E7F}"
 EndProject
@@ -74,6 +80,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ClassicUO.Bootstrap", "src\ClassicUO.Bootstrap\src\ClassicUO.Bootstrap.csproj", "{8974A04C-8360-4225-ABDD-0C56555F676D}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FileEmbed", "external\FileEmbed\FileEmbed\FileEmbed.csproj", "{027B5178-C306-4900-996D-97E8E43567B6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClassicUO.Core", "src\ClassicUO.Core\ClassicUO.Core.csproj", "{C471F2D7-1981-4C50-B359-4B7A68847C5C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -171,6 +179,14 @@ Global
 		{027B5178-C306-4900-996D-97E8E43567B6}.Release|Any CPU.Build.0 = Release|Any CPU
 		{027B5178-C306-4900-996D-97E8E43567B6}.Release|x64.ActiveCfg = Release|Any CPU
 		{027B5178-C306-4900-996D-97E8E43567B6}.Release|x64.Build.0 = Release|Any CPU
+		{C471F2D7-1981-4C50-B359-4B7A68847C5C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C471F2D7-1981-4C50-B359-4B7A68847C5C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C471F2D7-1981-4C50-B359-4B7A68847C5C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C471F2D7-1981-4C50-B359-4B7A68847C5C}.Debug|x64.Build.0 = Debug|Any CPU
+		{C471F2D7-1981-4C50-B359-4B7A68847C5C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C471F2D7-1981-4C50-B359-4B7A68847C5C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C471F2D7-1981-4C50-B359-4B7A68847C5C}.Release|x64.ActiveCfg = Release|Any CPU
+		{C471F2D7-1981-4C50-B359-4B7A68847C5C}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -188,6 +204,7 @@ Global
 		{A6DCFCE5-192B-4AE1-B228-206D37A0021C} = {FA5D7AB8-3570-4E55-95B0-35BA6842FEE3}
 		{8974A04C-8360-4225-ABDD-0C56555F676D} = {8EAF9583-DC5B-46DC-A01E-47B00A1C862E}
 		{027B5178-C306-4900-996D-97E8E43567B6} = {FA5D7AB8-3570-4E55-95B0-35BA6842FEE3}
+		{C471F2D7-1981-4C50-B359-4B7A68847C5C} = {8EAF9583-DC5B-46DC-A01E-47B00A1C862E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {0A99E91A-ADAB-45C3-8170-2656140F6EFA}

@@ -13,7 +13,7 @@ namespace ClassicUO.Network;
 
 internal abstract class NetClient
 {
-    public static NetClient Socket { get; } = new SimpleNetClient();
+    public static NetClient Socket { get; } = new AsyncNetClient();
 
     protected readonly Huffman _huffman = new();
     protected bool _isCompressionEnabled;

@@ -1,4 +1,5 @@
-﻿using ClassicUO.Game;
+﻿using ClassicUO.Core;
+using ClassicUO.Game;
 using ClassicUO.Game.Data;
 using System;
 using Xunit;

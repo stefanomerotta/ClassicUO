@@ -30,14 +30,15 @@
 
 #endregion
 
-using ClassicUO.Game.Data;
+using ClassicUO.Core;
+using ClassicUO.Game.GameObjects;
 using System.Collections.Generic;
 
-namespace ClassicUO.Game.GameObjects;
+namespace ClassicUO.Extensions;
 
 #nullable enable
 
-internal static class DictExt
+internal static class DictionaryExtensions
 {
     public static T? Get<T>(this Dictionary<Serial, T> dict, Serial serial) where T : Entity
     {

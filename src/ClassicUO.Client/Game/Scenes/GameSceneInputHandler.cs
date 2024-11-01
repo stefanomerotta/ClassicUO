@@ -45,6 +45,7 @@ using ClassicUO.Utility;
 using Microsoft.Xna.Framework;
 using SDL2;
 using MathHelper = ClassicUO.Utility.MathHelper;
+using ClassicUO.Core;
 
 namespace ClassicUO.Game.Scenes
 {

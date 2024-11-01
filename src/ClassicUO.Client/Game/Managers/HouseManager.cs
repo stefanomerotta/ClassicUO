@@ -32,6 +32,8 @@
 
 using System;
 using System.Collections.Generic;
+using ClassicUO.Core;
+using ClassicUO.Extensions;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 

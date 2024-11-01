@@ -22,6 +22,15 @@
 //  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 //  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES
 
+using ClassicUO.Configuration.Json;
+using ClassicUO.Core;
+using ClassicUO.Extensions;
+using ClassicUO.Game;
+using ClassicUO.Game.GameObjects;
+using ClassicUO.Game.Managers;
+using ClassicUO.Game.UI.Gumps;
+using ClassicUO.Utility.Logging;
+using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -30,14 +39,6 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Xml;
-using ClassicUO.Configuration.Json;
-using ClassicUO.Game;
-using ClassicUO.Game.Data;
-using ClassicUO.Game.GameObjects;
-using ClassicUO.Game.Managers;
-using ClassicUO.Game.UI.Gumps;
-using ClassicUO.Utility.Logging;
-using Microsoft.Xna.Framework;
 
 namespace ClassicUO.Configuration;
 

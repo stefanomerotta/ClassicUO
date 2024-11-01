@@ -61,6 +61,8 @@ using System.Runtime.InteropServices;
 using ClassicUO.Network.Encryptions;
 using System.Threading;
 using ClassicUO.IO.Buffers;
+using ClassicUO.Core;
+using ClassicUO.Extensions;
 
 namespace ClassicUO.Game.UI.Gumps
 {

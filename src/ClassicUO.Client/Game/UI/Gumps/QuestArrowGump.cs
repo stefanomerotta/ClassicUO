@@ -31,6 +31,7 @@
 #endregion
 
 using ClassicUO.Configuration;
+using ClassicUO.Core;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.Scenes;
 using ClassicUO.Game.UI.Controls;

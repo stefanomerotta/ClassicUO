@@ -50,6 +50,8 @@ using ClassicUO.Utility.Logging;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using SDL2;
+using ClassicUO.Core;
+using ClassicUO.Extensions;
 
 namespace ClassicUO.Game.Scenes
 {

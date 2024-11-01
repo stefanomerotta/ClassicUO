@@ -1,4 +1,5 @@
-﻿using ClassicUO.IO.Encoders;
+﻿using ClassicUO.Core;
+using ClassicUO.IO.Encoders;
 using ClassicUO.Utility;
 using System;
 using System.Buffers;
@@ -378,6 +379,12 @@ public unsafe ref struct SpanReader
         Position += totalByteLength;
 
         return result;
+    }
+
+    [MethodImpl(IMPL_OPTION)]
+    public Serial ReadSerial()
+    {
+        return new(ReadUInt32BE());
     }
 
     [MethodImpl(IMPL_OPTION)]

@@ -39,6 +39,7 @@ using ClassicUO.Assets;
 using ClassicUO.Network;
 using ClassicUO.Resources;
 using ClassicUO.Utility;
+using ClassicUO.Core;
 
 namespace ClassicUO.Game.Managers
 {

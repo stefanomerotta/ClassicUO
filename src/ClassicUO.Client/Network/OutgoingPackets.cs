@@ -24,6 +24,7 @@
 
 using ClassicUO.Assets;
 using ClassicUO.Configuration;
+using ClassicUO.Core;
 using ClassicUO.Extensions;
 using ClassicUO.Game;
 using ClassicUO.Game.Data;

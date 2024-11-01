@@ -30,6 +30,7 @@
 
 #endregion
 
+using ClassicUO.Core;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Network;

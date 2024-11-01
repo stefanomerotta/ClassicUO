@@ -40,6 +40,8 @@ using ClassicUO.Assets;
 using ClassicUO.Renderer;
 using ClassicUO.Utility;
 using Microsoft.Xna.Framework;
+using ClassicUO.Core;
+using ClassicUO.Extensions;
 
 namespace ClassicUO.Game.Managers
 {

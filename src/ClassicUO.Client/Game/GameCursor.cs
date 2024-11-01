@@ -45,6 +45,7 @@ using ClassicUO.Utility;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using SDL2;
+using ClassicUO.Core;
 
 namespace ClassicUO.Game
 {
