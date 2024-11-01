@@ -33,42 +33,33 @@ using ClassicUO.Game.Scenes;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.IO.Buffers;
-using ClassicUO.Network.Packets;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Logging;
 using Microsoft.Xna.Framework;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace ClassicUO.Network;
+namespace ClassicUO.Network.Packets;
 
 #nullable enable
 
 internal sealed partial class IncomingPackets
 {
-    public delegate void OnPacketBufferReader(World world, ref SpanReader p);
-
     private static Serial _requestedGridLoot;
 
     private static readonly TextFileParser _parser = new(string.Empty, [' '], [], ['{', '}']);
     private static readonly TextFileParser _cmdparser = new(string.Empty, [' ', ','], [], ['@', '@']);
 
-    private readonly OnPacketBufferReader?[] _handlers = new OnPacketBufferReader[0x100];
+    private readonly PacketHandlerData[] _handlers = new PacketHandlerData[0x100];
     private readonly List<Serial> _clilocRequests = [];
     private readonly List<Serial> _customHouseRequests = [];
     private readonly PacketLogger _packetLogger = new();
     private readonly CircularBuffer _buffer = new();
     private readonly CircularBuffer _pluginsBuffer = new();
     private byte[] _readingBuffer = new byte[4096];
-
-    public static IncomingPackets Handler { get; } = new IncomingPackets();
-
-    public void Add(byte id, OnPacketBufferReader handler)
-    {
-        _handlers[id] = handler;
-    }
 
     public int ParsePackets(NetClient socket, World world)
     {
@@ -79,10 +70,10 @@ internal sealed partial class IncomingPackets
             socket.CommitReadData(data.Length);
         }
 
-        return ParsePackets(socket, world, _buffer, true) + ParsePackets(socket, world, _pluginsBuffer, false);
+        return ParsePackets(world, _buffer, true) + ParsePackets(world, _pluginsBuffer, false);
     }
 
-    private int ParsePackets(NetClient socket, World world, CircularBuffer stream, bool allowPlugins)
+    private unsafe int ParsePackets(World world, CircularBuffer stream, bool allowPlugins)
     {
         int packetsCount = 0;
 
@@ -92,17 +83,8 @@ internal sealed partial class IncomingPackets
 
             while (stream.Length > 0)
             {
-                if (!GetPacketInfo(socket, stream, stream.Length, out byte packetId, out int offset, out int packetlength))
-                {
-                    Log.Warn($"Invalid ID: {packetId:X2} | off: {offset} | len: {packetlength} | stream.pos: {stream.Length}");
+                if (!GetPacketInfo(stream, out int packetlength, out bool dynamicLength, out delegate*<World, ref SpanReader, void> handler))
                     break;
-                }
-
-                if (stream.Length < packetlength) // need more data
-                {
-                    Log.Warn($"need more data ID: {packetId:X2} | off: {offset} | len: {packetlength} | stream.pos: {stream.Length}");
-                    break;
-                }
 
                 while (packetlength > packetBuffer.Length)
                 {
@@ -118,7 +100,10 @@ internal sealed partial class IncomingPackets
                 // It will be fixed once the new plugin system is done.
                 if (!allowPlugins || Plugin.ProcessRecvPacket(packetBuffer, ref packetlength))
                 {
-                    AnalyzePacket(world, packetBuffer.AsSpan(0, packetlength), offset);
+                    SpanReader reader = new(packetBuffer.AsSpan(0, packetlength));
+                    reader.Skip(dynamicLength ? 3 : 1);
+
+                    handler(world, ref reader);
                     packetsCount++;
                 }
             }
@@ -135,91 +120,50 @@ internal sealed partial class IncomingPackets
         _pluginsBuffer.Enqueue(data);
     }
 
-    private void AnalyzePacket(World world, ReadOnlySpan<byte> data, int offset)
+    private unsafe bool GetPacketInfo(CircularBuffer buffer, out int packetLength, out bool dynamicLength, 
+        out delegate*<World, ref SpanReader, void> handler)
     {
-        if (data.IsEmpty)
-            return;
+        packetLength = 0;
+        dynamicLength = false;
+        handler = &NoOp;
 
-        OnPacketBufferReader? bufferReader = _handlers[data[0]];
-        if (bufferReader is null)
-            return;
+        if (buffer.Length <= 0)
+            return false;
 
-        SpanReader buffer = new(data);
-        buffer.Seek(offset);
-        bufferReader(world, ref buffer);
-    }
+        int packetId = buffer[0];
+        ref PacketHandlerData handlerData = ref _handlers[packetId];
 
-    private static bool GetPacketInfo(NetClient socket, CircularBuffer buffer, int bufferLen, out byte packetId,
-        out int packetOffset, out int packetLength)
-    {
-        if (bufferLen <= 0)
+        packetLength = handlerData.Length;
+
+        if(packetLength == 0)
         {
-            packetId = 0xFF;
-            packetLength = 0;
-            packetOffset = 0;
-
+            Log.Warn($"Invalid packet ID: {packetId:X2} | stream.pos: {buffer.Length}");
             return false;
         }
 
-        packetLength = socket.PacketsTable.GetPacketLength(packetId = buffer[0]);
-        packetOffset = 1;
-
         if (packetLength == -1)
         {
-            if (bufferLen < 3)
+            dynamicLength = true;
+
+            if (buffer.Length < 3)
+            {
+                Log.Warn($"need more data ID: {packetId:X2} | off: 3 | len: dynamic | stream.pos: {buffer.Length}");
                 return false;
+            }
 
-            byte b0 = buffer[1];
-            byte b1 = buffer[2];
-
-            packetLength = (b0 << 8) | b1;
-            packetOffset = 3;
+            packetLength = (buffer[1] << 8) | buffer[2];
         }
+
+        if (packetLength > buffer.Length)
+        {
+            Log.Warn($"need more data ID: {packetId:X2} | off: {(dynamicLength ? 3 : 1)} | len: {packetLength} | stream.pos: {buffer.Length}");
+            return false;
+        }
+
+        handler = handlerData.Handler;
 
         return true;
     }
-
-    public static void SendMegaClilocRequests(World world)
-    {
-        if (world.ClientFeatures.TooltipsEnabled && Handler._clilocRequests.Count != 0)
-            NetClient.Socket.SendMegaClilocRequest(Handler._clilocRequests);
-
-        if (Handler._customHouseRequests.Count > 0)
-        {
-            for (int i = 0; i < Handler._customHouseRequests.Count; i++)
-            {
-                NetClient.Socket.SendCustomHouseDataRequest(Handler._customHouseRequests[i]);
-            }
-
-            Handler._customHouseRequests.Clear();
-        }
-    }
-
-    public static void AddMegaClilocRequest(Serial serial)
-    {
-        foreach (Serial s in Handler._clilocRequests)
-        {
-            if (s == serial)
-                return;
-        }
-
-        Handler._clilocRequests.Add(serial);
-    }
-
-    private static void Unknown_0x32(World world, ref SpanReader p) { }
-    private static void SetTime(World world, ref SpanReader p) { }
-    private static void Help(World world, ref SpanReader p) { }
-    private static void UltimaMessengerR(World world, ref SpanReader p) { }
-    private static void AssistVersion(World world, ref SpanReader p) { }
-    private static void Semivisible(World world, ref SpanReader p) { }
-    private static void InvalidMapEnable(World world, ref SpanReader p) { }
-    private static void GetUserServerPingGodClientR(World world, ref SpanReader p) { }
-    private static void GlobalQueCount(World world, ref SpanReader p) { }
-    private static void ConfigurationFileR(World world, ref SpanReader p) { }
-    private static void GenericAOSCommandsR(World world, ref SpanReader p) { }
-    private static void CharacterTransferLog(World world, ref SpanReader p) { }
-    private static void KREncryptionResponse(World world, ref SpanReader p) { }
-    private static void FreeshardListR(World world, ref SpanReader p) { }
 
     private static unsafe void ReadUnsafeCustomHouseData(ReadOnlySpan<byte> source, int sourcePosition, int dlen, int clen, int planeZ,
         int planeMode, short minX, short minY, short maxY, Item item, House house)
@@ -1038,7 +982,7 @@ internal sealed partial class IncomingPackets
                     gump.Children[gump.Children.Count - 1].SetTooltip(Serial.Parse(gparams[1]));
 
                     if (Serial.TryParse(gparams[1], out Serial s) && (!world.OPL.TryGetRevision(s, out uint rev) || rev == 0))
-                        AddMegaClilocRequest(s);
+                        OutgoingPackets.AddMegaClilocRequest(s);
                 }
             }
             else if (string.Equals(entry, "noresize", StringComparison.InvariantCultureIgnoreCase))

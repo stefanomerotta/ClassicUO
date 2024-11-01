@@ -35,7 +35,6 @@ using ClassicUO.Game.UI.Controls;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.IO.Buffers;
 using ClassicUO.IO.Encoders;
-using ClassicUO.Network.Packets;
 using ClassicUO.Renderer;
 using ClassicUO.Resources;
 using ClassicUO.Utility;
@@ -46,7 +45,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace ClassicUO.Network;
+namespace ClassicUO.Network.Packets;
 
 #nullable enable
 
@@ -68,131 +67,6 @@ internal sealed partial class IncomingPackets
         0,
         0x06E7, // 0x0051 - 19
     ];
-
-    static IncomingPackets()
-    {
-        Handler.Add(0x1B, EnterWorld);
-        Handler.Add(0x55, LoginComplete);
-        Handler.Add(0xBD, SendClientVersion);
-        Handler.Add(0x03, ClientTalk);
-        Handler.Add(0x0B, Damage);
-        Handler.Add(0x11, CharacterStatus);
-        Handler.Add(0x15, FollowR);
-        Handler.Add(0x16, NewHealthbarUpdate);
-        Handler.Add(0x17, NewHealthbarUpdate);
-        Handler.Add(0x1A, UpdateItem);
-        Handler.Add(0x1C, Talk);
-        Handler.Add(0x1D, DeleteObject);
-        Handler.Add(0x20, UpdatePlayer);
-        Handler.Add(0x21, DenyWalk);
-        Handler.Add(0x22, ConfirmWalk);
-        Handler.Add(0x23, DragAnimation);
-        Handler.Add(0x24, OpenContainer);
-        Handler.Add(0x25, UpdateContainedItem);
-        Handler.Add(0x27, DenyMoveItem);
-        Handler.Add(0x28, EndDraggingItem);
-        Handler.Add(0x29, DropItemAccepted);
-        Handler.Add(0x2C, DeathScreen);
-        Handler.Add(0x2D, MobileAttributes);
-        Handler.Add(0x2E, EquipItem);
-        Handler.Add(0x2F, Swing);
-        Handler.Add(0x32, Unknown_0x32);
-        Handler.Add(0x38, Pathfinding);
-        Handler.Add(0x3A, UpdateSkills);
-        Handler.Add(0x3B, CloseVendorInterface);
-        Handler.Add(0x3C, UpdateContainedItems);
-        Handler.Add(0x4E, PersonalLightLevel);
-        Handler.Add(0x4F, LightLevel);
-        Handler.Add(0x54, PlaySoundEffect);
-        Handler.Add(0x56, MapData);
-        Handler.Add(0x5B, SetTime);
-        Handler.Add(0x65, SetWeather);
-        Handler.Add(0x66, BookData);
-        Handler.Add(0x6C, TargetCursor);
-        Handler.Add(0x6D, PlayMusic);
-        Handler.Add(0x6F, SecureTrading);
-        Handler.Add(0x6E, CharacterAnimation);
-        Handler.Add(0x70, GraphicEffect70);
-        Handler.Add(0x71, BulletinBoardData);
-        Handler.Add(0x72, Warmode);
-        Handler.Add(0x73, Ping);
-        Handler.Add(0x74, BuyList);
-        Handler.Add(0x77, UpdateCharacter);
-        Handler.Add(0x78, UpdateObject);
-        Handler.Add(0x7C, OpenMenu);
-        Handler.Add(0x88, OpenPaperdoll);
-        Handler.Add(0x89, CorpseEquipment);
-        Handler.Add(0x90, DisplayMap90);
-        Handler.Add(0x93, OpenBook93);
-        Handler.Add(0x95, DyeData);
-        Handler.Add(0x97, MovePlayer);
-        Handler.Add(0x98, UpdateName);
-        Handler.Add(0x99, MultiPlacement);
-        Handler.Add(0x9A, ASCIIPrompt);
-        Handler.Add(0x9E, SellList);
-        Handler.Add(0xA1, UpdateHitpoints);
-        Handler.Add(0xA2, UpdateMana);
-        Handler.Add(0xA3, UpdateStamina);
-        Handler.Add(0xA5, OpenUrl);
-        Handler.Add(0xA6, TipWindow);
-        Handler.Add(0xAA, AttackCharacter);
-        Handler.Add(0xAB, TextEntryDialog);
-        Handler.Add(0xAF, DisplayDeath);
-        Handler.Add(0xAE, UnicodeTalk);
-        Handler.Add(0xB0, OpenGump);
-        Handler.Add(0xB2, ChatMessage);
-        Handler.Add(0xB7, Help);
-        Handler.Add(0xB8, CharacterProfile);
-        Handler.Add(0xB9, EnableLockedFeatures);
-        Handler.Add(0xBA, DisplayQuestArrow);
-        Handler.Add(0xBB, UltimaMessengerR);
-        Handler.Add(0xBC, Season);
-        Handler.Add(0xBE, AssistVersion);
-        Handler.Add(0xBF, ExtendedCommand);
-        Handler.Add(0xC0, GraphicEffectC0);
-        Handler.Add(0xC1, DisplayClilocString);
-        Handler.Add(0xC2, UnicodePrompt);
-        Handler.Add(0xC4, Semivisible);
-        Handler.Add(0xC6, InvalidMapEnable);
-        Handler.Add(0xC7, GraphicEffectC7);
-        Handler.Add(0xC8, ClientViewRange);
-        Handler.Add(0xCA, GetUserServerPingGodClientR);
-        Handler.Add(0xCB, GlobalQueCount);
-        Handler.Add(0xCC, DisplayClilocString);
-        Handler.Add(0xD0, ConfigurationFileR);
-        Handler.Add(0xD1, Logout);
-        Handler.Add(0xD2, UpdateCharacter);
-        Handler.Add(0xD3, UpdateObject);
-        Handler.Add(0xD4, OpenBookD4);
-        Handler.Add(0xD6, MegaCliloc);
-        Handler.Add(0xD7, GenericAOSCommandsR);
-        Handler.Add(0xD8, CustomHouse);
-        Handler.Add(0xDB, CharacterTransferLog);
-        Handler.Add(0xDC, OPLInfo);
-        Handler.Add(0xDD, OpenCompressedGump);
-        Handler.Add(0xDE, UpdateMobileStatus);
-        Handler.Add(0xDF, BuffDebuff);
-        Handler.Add(0xE2, NewCharacterAnimation);
-        Handler.Add(0xE3, KREncryptionResponse);
-        Handler.Add(0xE5, DisplayWaypoint);
-        Handler.Add(0xE6, RemoveWaypoint);
-        Handler.Add(0xF0, KrriosClientSpecial);
-        Handler.Add(0xF1, FreeshardListR);
-        Handler.Add(0xF3, UpdateItemSA);
-        Handler.Add(0xF5, DisplayMapF5);
-        Handler.Add(0xF6, BoatMoving);
-        Handler.Add(0xF7, PacketList);
-
-        // login
-        Handler.Add(0xA8, ServerListReceived);
-        Handler.Add(0x8C, ReceiveServerRelay);
-        Handler.Add(0x86, UpdateCharacterList);
-        Handler.Add(0xA9, ReceiveCharacterList);
-        Handler.Add(0x82, ReceiveLoginRejection);
-        Handler.Add(0x85, ReceiveLoginRejection);
-        Handler.Add(0x53, ReceiveLoginRejection);
-        Handler.Add(0xFD, LoginDelay);
-    }
 
     // 0x03
     // TODO: REMOVE, seems sent only by clients
@@ -701,7 +575,7 @@ internal sealed partial class IncomingPackets
 
         Serial serial = p.ReadSerial();
         ushort graphic = p.ReadUInt16BE();
-        byte graphic_inc = p.ReadUInt8();
+        byte graphicInc = p.ReadUInt8();
         ushort hue = p.ReadUInt16BE();
         Flags flags = (Flags)p.ReadUInt8();
         ushort x = p.ReadUInt16BE();
@@ -710,7 +584,7 @@ internal sealed partial class IncomingPackets
         Direction direction = (Direction)p.ReadUInt8();
         sbyte z = p.ReadInt8();
 
-        UpdatePlayer(world, serial, graphic, graphic_inc, hue, flags, x, y, z, direction);
+        UpdatePlayer(world, serial, graphic, graphicInc, hue, flags, x, y, z, direction);
     }
 
     // 0x21
@@ -2717,26 +2591,26 @@ internal sealed partial class IncomingPackets
             text = p.ReadString<UnicodeBE>();
         }
 
-        TextType text_type = TextType.SYSTEM;
+        TextType textType = TextType.SYSTEM;
 
         if (type == MessageType.Alliance || type == MessageType.Guild)
         {
-            text_type = TextType.GUILD_ALLY;
+            textType = TextType.GUILD_ALLY;
         }
         else if (type == MessageType.System || serial == 0xFFFF_FFFF || serial == 0
-            || name.Equals("system", StringComparison.CurrentCultureIgnoreCase) && entity == null)
+            || name.Equals("system", StringComparison.CurrentCultureIgnoreCase) && entity is null)
         {
             // do nothing
         }
         else if (entity is not null)
         {
-            text_type = TextType.OBJECT;
+            textType = TextType.OBJECT;
 
             if (string.IsNullOrEmpty(entity.Name))
                 entity.Name = string.IsNullOrEmpty(name) ? text : name;
         }
 
-        world.MessageManager.HandleMessage(entity, text, name, hue, type, ProfileManager.CurrentProfile.ChatFont, text_type, true);
+        world.MessageManager.HandleMessage(entity, text, name, hue, type, ProfileManager.CurrentProfile.ChatFont, textType, true);
     }
 
     // 0xAF
@@ -4038,7 +3912,7 @@ internal sealed partial class IncomingPackets
         uint revision = p.ReadUInt32BE();
 
         if (!world.OPL.IsRevisionEquals(serial, revision))
-            AddMegaClilocRequest(serial);
+            OutgoingPackets.AddMegaClilocRequest(serial);
     }
 
     // 0xDD

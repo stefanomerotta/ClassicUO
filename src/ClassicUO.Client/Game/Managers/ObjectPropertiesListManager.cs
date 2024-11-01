@@ -34,6 +34,7 @@ using System.Collections.Generic;
 using ClassicUO.Core;
 using ClassicUO.Game.Data;
 using ClassicUO.Network;
+using ClassicUO.Network.Packets;
 
 namespace ClassicUO.Game.Managers
 {
@@ -72,7 +73,7 @@ namespace ClassicUO.Game.Managers
             // if we don't have the OPL of this item, let's request it to the server.
             // Original client seems asking for OPL when character is not running. 
             // We'll ask OPL when mouse is over an object.
-            IncomingPackets.AddMegaClilocRequest(serial);
+            OutgoingPackets.AddMegaClilocRequest(serial);
 
             return false;
         }

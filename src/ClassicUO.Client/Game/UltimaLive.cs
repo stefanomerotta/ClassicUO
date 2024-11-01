@@ -30,13 +30,16 @@
 
 #endregion
 
+using ClassicUO.Assets;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.Map;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.IO;
-using ClassicUO.Assets;
+using ClassicUO.IO.Buffers;
+using ClassicUO.IO.Encoders;
 using ClassicUO.Network;
+using ClassicUO.Network.Packets;
 using ClassicUO.Utility.Logging;
 using System;
 using System.Collections.Concurrent;
@@ -44,10 +47,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Runtime.InteropServices;
-using ClassicUO.IO.Buffers;
-using ClassicUO.IO.Encoders;
-using ClassicUO.Network.Packets;
 
 namespace ClassicUO.Game
 {
@@ -78,11 +77,11 @@ namespace ClassicUO.Game
         protected string RealShardName;
         protected string ShardName;
 
-        public static void Enable()
+        public static unsafe void Enable()
         {
             Log.Trace("Setup packet for UltimaLive");
-            IncomingPackets.Handler.Add(0x3F, OnUltimaLivePacket);
-            IncomingPackets.Handler.Add(0x40, OnUpdateTerrainPacket);
+            IncomingPackets.Handler.Add(0x3F, &OnUltimaLivePacket);
+            IncomingPackets.Handler.Add(0x40, &OnUpdateTerrainPacket);
         }
 
         //The UltimaLive packets could be also used for other things than maps and statics

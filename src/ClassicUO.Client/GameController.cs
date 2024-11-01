@@ -40,6 +40,7 @@ using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Input;
 using ClassicUO.Network;
 using ClassicUO.Network.Encryptions;
+using ClassicUO.Network.Packets;
 using ClassicUO.Renderer;
 using ClassicUO.Resources;
 using ClassicUO.Utility;
@@ -144,6 +145,7 @@ internal unsafe class GameController : Microsoft.Xna.Framework.Game
         Audio.Initialize();
         // TODO: temporary fix to avoid crash when laoding plugins
         Settings.GlobalSettings.Encryption = (byte) NetClient.Socket.Load(UO.FileManager.Version, (EncryptionType) Settings.GlobalSettings.Encryption);
+        IncomingPackets.Configure(UO.FileManager.Version);
 
         Log.Trace("Loading plugins...");
         PluginHost?.Initialize();

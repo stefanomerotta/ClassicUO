@@ -439,7 +439,7 @@ internal static class GameActions
 
     public static void DropItem(Serial serial, int x, int y, int z, Serial container)
     {
-        if (Client.Game.UO.GameCursor.ItemHold is { Enabled: true, IsFixedPosition: true } hold
+        if (Client.Game.UO.GameCursor.ItemHold is { Enabled: true, IsFixedPosition: false } hold
             && (hold.Serial != container || hold.ItemData.IsStackable))
         {
             Socket.SendDropRequest(serial, x, y, z, container);

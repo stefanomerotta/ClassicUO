@@ -745,7 +745,7 @@ namespace ClassicUO.Game.Scenes
                 _time_cleanup = Time.Ticks + 500;
             }
 
-            IncomingPackets.SendMegaClilocRequests(_world);
+            OutgoingPackets.SendMegaClilocRequests(_world);
 
             if (_forceStopScene)
             {

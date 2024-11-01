@@ -45,6 +45,9 @@ internal static class OutgoingPackets
 {
     private const int MAX_INT_STR_LEN = 19;
 
+    private static readonly List<Serial> _clilocRequests = [];
+    private static readonly List<Serial> _customHouseRequests = [];
+
     public static void SendSeedOld(this NetClient socket, uint v)
     {
         using FixedSpanWriter writer = new(stackalloc byte[4]);
@@ -392,7 +395,6 @@ internal static class OutgoingPackets
 
         socket.Send(writer);
     }
-
 
     // 0x3B
     public static void SendBuyRequest(this NetClient socket, Serial serial, ReadOnlySpan<(Serial, ushort)> items)
@@ -1342,7 +1344,6 @@ internal static class OutgoingPackets
         socket.Send(writer);
     }
 
-
     // 0xBF
     public static void SendTargetSelectedObject(this NetClient socket, Serial serial, Serial targetSerial)
     {
@@ -1890,25 +1891,56 @@ internal static class OutgoingPackets
         Plugin.ProcessRecvPacket(temp, ref len);
     }
 
-    public static void SendMegaClilocRequest(this NetClient client, List<Serial> clilocRequests)
-    {
-        if (Client.Game.UO.Version >= ClientVersion.CV_5090)
-            if (clilocRequests.Count != 0)
-                client.SendMegaClilocRequestNew(clilocRequests);
-            else
-            {
-                foreach (Serial serial in clilocRequests)
-                    client.SendMegaClilocRequest(serial);
-
-                clilocRequests.Clear();
-            }
-    }
-
     public static void SendDropRequest(this NetClient client, Serial serial, int x, int y, int z, Serial container)
     {
         if (Client.Game.UO.Version >= ClientVersion.CV_6017)
             client.SendDropRequestNew(serial, (ushort)x, (ushort)y, (sbyte)z, 0, container);
         else
             client.SendDropRequestOld(serial, (ushort)x, (ushort)y, (sbyte)z, container);
+    }
+
+    public static void SendMegaClilocRequests(World world)
+    {
+        if (world.ClientFeatures.TooltipsEnabled && _clilocRequests.Count != 0)
+            NetClient.Socket.SendMegaClilocRequest(_clilocRequests);
+
+        if (_customHouseRequests.Count > 0)
+        {
+            for (int i = 0; i < _customHouseRequests.Count; i++)
+            {
+                NetClient.Socket.SendCustomHouseDataRequest(_customHouseRequests[i]);
+            }
+
+            _customHouseRequests.Clear();
+        }
+    }
+
+    public static void AddMegaClilocRequest(Serial serial)
+    {
+        foreach (Serial s in _clilocRequests)
+        {
+            if (s == serial)
+                return;
+        }
+
+        _clilocRequests.Add(serial);
+    }
+
+    private static void SendMegaClilocRequest(this NetClient client, List<Serial> clilocRequests)
+    {
+        if (clilocRequests.Count == 0)
+            return;
+
+        if (Client.Game.UO.Version >= ClientVersion.CV_5090)
+        {
+            client.SendMegaClilocRequestNew(clilocRequests);
+        }
+        else
+        {
+            foreach (Serial serial in clilocRequests)
+                client.SendMegaClilocRequest(serial);
+
+            clilocRequests.Clear();
+        }
     }
 }
