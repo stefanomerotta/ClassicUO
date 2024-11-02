@@ -2955,527 +2955,479 @@ internal sealed partial class IncomingPackets
     }
 
     // 0xBF
-    private static void ExtendedCommand(World world, ref SpanReader p)
+    private static unsafe void ExtendedCommand(World world, ref SpanReader p)
     {
-        ushort cmd = p.ReadUInt16BE();
+        p.Skip(1);
+        byte extId = p.ReadUInt8();
 
-        switch (cmd)
+        delegate*<World, ref SpanReader, void> handler = Instance._extendedHandlers[extId].Handler;
+        if (handler is null)
         {
-            case 0:
-                break;
+            Log.Warn($"Unhandled 0xBF - sub: {extId:X2}");
+            return;
+        }
 
-            //===========================================================================================
-            //===========================================================================================
-            case 1: // fast walk prevention
-                for (int i = 0; i < 6; i++)
+        handler(world, ref p);
+    }
+
+    // 0xBF.01
+    private static void FastWalkPrevention(World world, ref SpanReader p)
+    {
+        for (int i = 0; i < 6; i++)
+        {
+            world.Player.Walker.FastWalkStack.SetValue(i, p.ReadUInt32BE());
+        }
+    }
+
+    // 0xBF.02
+    private static void FastWalkStack(World world, ref SpanReader p)
+    {
+        world.Player.Walker.FastWalkStack.AddValue(p.ReadUInt32BE());
+    }
+
+    // 0xBF.04
+    private static void CloseGenericGump(World world, ref SpanReader p)
+    {
+        Serial ser = p.ReadSerial();
+        int button = (int)p.ReadUInt32BE();
+
+        LinkedListNode<Gump>? first = UIManager.Gumps.First;
+
+        while (first is not null)
+        {
+            LinkedListNode<Gump>? nextGump = first.Next;
+
+            if (first.Value.ServerSerial == ser && first.Value.IsFromServer)
+            {
+                if (button != 0)
                 {
-                    world.Player.Walker.FastWalkStack.SetValue(i, p.ReadUInt32BE());
-                }
-
-                break;
-
-            //===========================================================================================
-            //===========================================================================================
-            case 2: // add key to fast walk stack
-                world.Player.Walker.FastWalkStack.AddValue(p.ReadUInt32BE());
-
-                break;
-
-            //===========================================================================================
-            //===========================================================================================
-            case 4: // close generic gump
-                Serial ser = p.ReadSerial();
-                int button = (int)p.ReadUInt32BE();
-
-                LinkedListNode<Gump>? first = UIManager.Gumps.First;
-
-                while (first is not null)
-                {
-                    LinkedListNode<Gump>? nextGump = first.Next;
-
-                    if (first.Value.ServerSerial == ser && first.Value.IsFromServer)
-                    {
-                        if (button != 0)
-                        {
-                            first.Value?.OnButtonClick(button);
-                        }
-                        else
-                        {
-                            if (first.Value.CanMove)
-                                UIManager.SavePosition(ser, first.Value.Location);
-                            else
-                                UIManager.RemovePosition(ser);
-                        }
-
-                        first.Value.Dispose();
-                    }
-
-                    first = nextGump;
-                }
-
-                break;
-
-            //===========================================================================================
-            //===========================================================================================
-            case 6: //party
-                world.Party.ParsePacket(ref p);
-                break;
-
-            //===========================================================================================
-            //===========================================================================================
-            case 8: // map change
-                world.MapIndex = p.ReadUInt8();
-                break;
-
-            //===========================================================================================
-            //===========================================================================================
-            case 0x0C: // close statusbar gump
-                UIManager.GetGump<HealthBarGump>(p.ReadSerial())?.Dispose();
-                break;
-
-            //===========================================================================================
-            //===========================================================================================
-            case 0x10: // display equip info
-                Item? item = world.Items.Get(p.ReadSerial());
-                if (item is null)
-                    return;
-
-                uint cliloc = p.ReadUInt32BE();
-                string? str = "";
-
-                if (cliloc > 0)
-                {
-                    str = Client.Game.UO.FileManager.Clilocs.GetString((int)cliloc, true);
-
-                    if (!string.IsNullOrEmpty(str))
-                        item.Name = str;
-
-                    world.MessageManager.HandleMessage(item, str, item.Name, 0x3B2, MessageType.Regular, 3, TextType.OBJECT, true);
-                }
-
-                str = string.Empty;
-                ushort crafterNameLen = 0;
-                uint next = p.ReadUInt32BE();
-
-                Span<char> span = stackalloc char[256];
-                ValueStringBuilder strBuffer = new(span);
-                if (next == 0xFFFFFFFD)
-                {
-                    crafterNameLen = p.ReadUInt16BE();
-
-                    if (crafterNameLen > 0)
-                    {
-                        strBuffer.Append(ResGeneral.CraftedBy);
-                        strBuffer.Append(p.ReadFixedString<ASCIICP1215>(crafterNameLen));
-                    }
-                }
-
-                if (crafterNameLen != 0)
-                    next = p.ReadUInt32BE();
-
-                if (next == 0xFFFFFFFC)
-                    strBuffer.Append("[Unidentified");
-
-                byte count = 0;
-
-                while (p.Position < p.Length - 4)
-                {
-                    if (count != 0 || next == 0xFFFFFFFD || next == 0xFFFFFFFC)
-                        next = p.ReadUInt32BE();
-
-                    short charges = (short)p.ReadUInt16BE();
-                    string? attr = Client.Game.UO.FileManager.Clilocs.GetString((int)next);
-
-                    if (attr is not null)
-                    {
-                        if (charges == -1)
-                        {
-                            if (count > 0)
-                            {
-                                strBuffer.Append("/");
-                                strBuffer.Append(attr);
-                            }
-                            else
-                            {
-                                strBuffer.Append(" [");
-                                strBuffer.Append(attr);
-                            }
-                        }
-                        else
-                        {
-                            strBuffer.Append("\n[");
-                            strBuffer.Append(attr);
-                            strBuffer.Append(" : ");
-                            strBuffer.Append(charges.ToString());
-                            strBuffer.Append("]");
-                            count += 20;
-                        }
-                    }
-
-                    count++;
-                }
-
-                if (count < 20 && count > 0 || next == 0xFFFFFFFC && count == 0)
-                    strBuffer.Append(']');
-
-                if (strBuffer.Length != 0)
-                    world.MessageManager.HandleMessage(item, strBuffer.ToString(), item.Name, 0x3B2, MessageType.Regular, 3, TextType.OBJECT, true);
-
-                strBuffer.Dispose();
-
-                NetClient.Socket.SendMegaClilocRequest(item);
-
-                break;
-
-            //===========================================================================================
-            //===========================================================================================
-            case 0x11:
-                break;
-
-            //===========================================================================================
-            //===========================================================================================
-            case 0x14: // display popup/context menu
-                UIManager.ShowGamePopup(new PopupMenuGump(world, PopupMenuData.Parse(ref p))
-                {
-                    X = world.DelayedObjectClickManager.LastMouseX,
-                    Y = world.DelayedObjectClickManager.LastMouseY
-                });
-
-                break;
-
-            //===========================================================================================
-            //===========================================================================================
-            case 0x16: // close user interface windows
-                uint id = p.ReadUInt32BE();
-                Serial serial = p.ReadSerial();
-
-                switch (id)
-                {
-                    case 1: // paperdoll
-                        UIManager.GetGump<PaperDollGump>(serial)?.Dispose();
-
-                        break;
-
-                    case 2: //statusbar
-                        UIManager.GetGump<HealthBarGump>(serial)?.Dispose();
-
-                        if (serial == world.Player.Serial)
-                            StatusGumpBase.GetStatusGump()?.Dispose();
-
-                        break;
-
-                    case 8: // char profile
-                        UIManager.GetGump<ProfileGump>()?.Dispose();
-
-                        break;
-
-                    case 0x0C: //container
-                        UIManager.GetGump<ContainerGump>(serial)?.Dispose();
-
-                        break;
-                }
-
-                break;
-
-            //===========================================================================================
-            //===========================================================================================
-            case 0x18: // enable map patches
-
-                if (Client.Game.UO.FileManager.Maps.ApplyPatches(ref p))
-                {
-                    int map = world.MapIndex;
-                    world.MapIndex = -1;
-                    world.MapIndex = map;
-
-                    Log.Trace("Map Patches applied.");
-                }
-
-                break;
-
-            //===========================================================================================
-            //===========================================================================================
-            case 0x19: //extened stats
-                byte version = p.ReadUInt8();
-                serial = p.ReadSerial();
-
-                switch (version)
-                {
-                    case 0:
-                        Mobile? bonded = world.Mobiles.Get(serial);
-
-                        if (bonded is null)
-                            break;
-
-                        bool dead = p.ReadBool();
-                        bonded.IsDead = dead;
-
-                        break;
-
-                    case 2:
-
-                        if (serial == world.Player)
-                        {
-                            byte updategump = p.ReadUInt8();
-                            byte state = p.ReadUInt8();
-
-                            world.Player.StrLock = (Lock)((state >> 4) & 3);
-                            world.Player.DexLock = (Lock)((state >> 2) & 3);
-                            world.Player.IntLock = (Lock)(state & 3);
-
-                            StatusGumpBase.GetStatusGump()?.RequestUpdateContents();
-                        }
-
-                        break;
-
-                    case 5:
-
-                        int pos = p.Position;
-                        byte zero = p.ReadUInt8();
-                        byte type2 = p.ReadUInt8();
-
-                        if (type2 == 0xFF)
-                        {
-                            byte status = p.ReadUInt8();
-                            ushort animation = p.ReadUInt16BE();
-                            ushort frame = p.ReadUInt16BE();
-
-                            if (status == 0 && animation == 0 && frame == 0)
-                            {
-                                p.Seek(pos);
-                                goto case 0;
-                            }
-
-                            Mobile? mobile = world.Mobiles.Get(serial);
-
-                            if (mobile is not null)
-                            {
-                                mobile.SetAnimation(Mobile.GetReplacedObjectAnimation(mobile.Graphic, animation));
-                                mobile.ExecuteAnimation = false;
-                                mobile.AnimIndex = (byte)frame;
-                            }
-                        }
-                        else if (world.Player != null && serial == world.Player)
-                        {
-                            p.Seek(pos);
-                            goto case 2;
-                        }
-
-                        break;
-                }
-
-                break;
-
-            //===========================================================================================
-            //===========================================================================================
-            case 0x1B: // new spellbook content
-                p.Skip(2);
-                Item spellbook = world.GetOrCreateItem(p.ReadSerial());
-                spellbook.Graphic = p.ReadUInt16BE();
-                spellbook.Clear();
-                ushort type = p.ReadUInt16BE();
-
-                for (int j = 0; j < 2; j++)
-                {
-                    uint spells = 0;
-
-                    for (int i = 0; i < 4; i++)
-                    {
-                        spells |= (uint)(p.ReadUInt8() << (i * 8));
-                    }
-
-                    for (int i = 0; i < 32; i++)
-                    {
-                        if ((spells & (1 << i)) != 0)
-                        {
-                            ushort cc = (ushort)(j * 32 + i + 1);
-                            Serial s = new(cc);
-                            // FIXME: should i call Item.Create ?
-                            Item spellItem = Item.Create(world, s); // new Item()
-                            spellItem.Serial = s;
-                            spellItem.Graphic = 0x1F2E;
-                            spellItem.Amount = cc;
-                            spellItem.Container = spellbook.Serial;
-                            spellbook.PushToBack(spellItem);
-                        }
-                    }
-                }
-
-                UIManager.GetGump<SpellbookGump>(spellbook.Serial)?.RequestUpdateContents();
-
-                break;
-
-            //===========================================================================================
-            //===========================================================================================
-            case 0x1D: // house revision state
-                serial = p.ReadSerial();
-                uint revision = p.ReadUInt32BE();
-
-                Item? multi = world.Items.Get(serial);
-                if (multi is null)
-                    world.HouseManager.Remove(serial);
-
-                if (!world.HouseManager.TryGetHouse(serial, out House house) || !house.IsCustom || house.Revision != revision)
-                {
-                    OutgoingPackets.AddHouseClilocRequest(serial);
+                    first.Value?.OnButtonClick(button);
                 }
                 else
                 {
-                    house.Generate();
-                    world.BoatMovingManager.ClearSteps(serial);
-
-                    UIManager.GetGump<MiniMapGump>()?.RequestUpdateContents();
-
-                    if (world.HouseManager.EntityIntoHouse(serial, world.Player))
-                        Client.Game.GetScene<GameScene>()?.UpdateMaxDrawZ(true);
+                    if (first.Value.CanMove)
+                        UIManager.SavePosition(ser, first.Value.Location);
+                    else
+                        UIManager.RemovePosition(ser);
                 }
+
+                first.Value.Dispose();
+            }
+
+            first = nextGump;
+        }
+    }
+
+    // 0xBF.06
+    private static void PartyCommands(World world, ref SpanReader p)
+    {
+        world.Party.ParsePacket(ref p);
+    }
+
+    // 0xBF.08
+    private static void SetMap(World world, ref SpanReader p)
+    {
+        world.MapIndex = p.ReadUInt8();
+    }
+
+    // 0xBF.0C
+    private static void CloseStatusbar(World world, ref SpanReader p)
+    {
+        UIManager.GetGump<HealthBarGump>(p.ReadSerial())?.Dispose();
+    }
+
+    // 0xBF.10
+    private static void DisplayEquipInfo(World world, ref SpanReader p)
+    {
+        Item? item = world.Items.Get(p.ReadSerial());
+        if (item is null)
+            return;
+
+        uint cliloc = p.ReadUInt32BE();
+        string? str = "";
+
+        if (cliloc > 0)
+        {
+            str = Client.Game.UO.FileManager.Clilocs.GetString((int)cliloc, true);
+
+            if (!string.IsNullOrEmpty(str))
+                item.Name = str;
+
+            world.MessageManager.HandleMessage(item, str, item.Name, 0x3B2, MessageType.Regular, 3, TextType.OBJECT, true);
+        }
+
+        str = "";
+        ushort crafterNameLen = 0;
+        uint next = p.ReadUInt32BE();
+
+        Span<char> span = stackalloc char[256];
+        ValueStringBuilder strBuffer = new(span);
+        if (next == 0xFFFFFFFD)
+        {
+            crafterNameLen = p.ReadUInt16BE();
+
+            if (crafterNameLen > 0)
+            {
+                strBuffer.Append(ResGeneral.CraftedBy);
+                strBuffer.Append(p.ReadFixedString<ASCIICP1215>(crafterNameLen));
+            }
+        }
+
+        if (crafterNameLen != 0)
+            next = p.ReadUInt32BE();
+
+        if (next == 0xFFFFFFFC)
+            strBuffer.Append("[Unidentified");
+
+        byte count = 0;
+
+        while (p.Position < p.Length - 4)
+        {
+            if (count != 0 || next is 0xFFFFFFFC or 0xFFFFFFFD)
+                next = p.ReadUInt32BE();
+
+            short charges = (short)p.ReadUInt16BE();
+            string? attr = Client.Game.UO.FileManager.Clilocs.GetString((int)next);
+
+            if (attr is null)
+            {
+                count++;
+                continue;
+            }
+
+            if (charges == -1)
+            {
+                if (count > 0)
+                {
+                    strBuffer.Append("/");
+                    strBuffer.Append(attr);
+                }
+                else
+                {
+                    strBuffer.Append(" [");
+                    strBuffer.Append(attr);
+                }
+            }
+            else
+            {
+                strBuffer.Append("\n[");
+                strBuffer.Append(attr);
+                strBuffer.Append(" : ");
+                strBuffer.Append(charges.ToString());
+                strBuffer.Append("]");
+                count += 20;
+            }
+
+            count++;
+        }
+
+        if (count is > 0 and < 20 || next == 0xFFFFFFFC && count == 0)
+            strBuffer.Append(']');
+
+        if (strBuffer.Length != 0)
+            world.MessageManager.HandleMessage(item, strBuffer.ToString(), item.Name, 0x3B2, MessageType.Regular, 3, TextType.OBJECT, true);
+
+        strBuffer.Dispose();
+
+        NetClient.Socket.SendMegaClilocRequest(item);
+    }
+
+    // 0xBF.14
+    private static void DisplayPopupOrContextMenu(World world, ref SpanReader p)
+    {
+        UIManager.ShowGamePopup(new PopupMenuGump(world, PopupMenuData.Parse(ref p))
+        {
+            X = world.DelayedObjectClickManager.LastMouseX,
+            Y = world.DelayedObjectClickManager.LastMouseY
+        });
+    }
+
+    // 0xBF.16
+    private static void CloseUserInterfaceWindows(World world, ref SpanReader p)
+    {
+        uint id = p.ReadUInt32BE();
+        Serial serial = p.ReadSerial();
+
+        switch (id)
+        {
+            case 1: UIManager.GetGump<PaperDollGump>(serial)?.Dispose(); break; // paperdoll
+
+            case 2: //statusbar
+                UIManager.GetGump<HealthBarGump>(serial)?.Dispose();
+
+                if (serial == world.Player.Serial)
+                    StatusGumpBase.GetStatusGump()?.Dispose();
 
                 break;
 
-            //===========================================================================================
-            //===========================================================================================
-            case 0x20:
-                serial = p.ReadSerial();
-                type = p.ReadUInt8();
-                ushort graphic = p.ReadUInt16BE();
-                ushort x = p.ReadUInt16BE();
-                ushort y = p.ReadUInt16BE();
-                sbyte z = p.ReadInt8();
+            case 8: UIManager.GetGump<ProfileGump>()?.Dispose(); break; // char profile
+            case 0x0C: UIManager.GetGump<ContainerGump>(serial)?.Dispose(); break; //container
+        }
+    }
 
-                switch (type)
-                {
-                    case 1: // update
-                        break;
+    // 0xBF.18
+    private static void EnableMapPatches(World world, ref SpanReader p)
+    {
+        if (!Client.Game.UO.FileManager.Maps.ApplyPatches(ref p))
+            return;
 
-                    case 2: // remove
-                        break;
+        int map = world.MapIndex;
+        world.MapIndex = -1;
+        world.MapIndex = map;
 
-                    case 3: // update multi pos
-                        break;
+        Log.Trace("Map Patches applied.");
+    }
 
-                    case 4: // begin
-                        HouseCustomizationGump? gump = UIManager.GetGump<HouseCustomizationGump>();
-                        if (gump is not null)
-                            break;
+    // 0xBF.19
+    private static void ExtendedStats(World world, ref SpanReader p)
+    {
+        byte version = p.ReadUInt8();
+        Serial serial = p.ReadSerial();
 
-                        gump = new HouseCustomizationGump(world, serial, 50, 50);
-                        UIManager.Add(gump);
+        switch (version)
+        {
+            case 0:
+                Mobile? bonded = world.Mobiles.Get(serial);
+                if (bonded is null)
+                    break;
 
-                        break;
-
-                    case 5: // end
-                        UIManager.GetGump<HouseCustomizationGump>(serial)?.Dispose();
-
-                        break;
-                }
+                bool dead = p.ReadBool();
+                bonded.IsDead = dead;
 
                 break;
 
-            //===========================================================================================
-            //===========================================================================================
-            case 0x21:
+            case 2:
 
-                for (int i = 0; i < 2; i++)
-                {
-                    world.Player.Abilities[i] &= (Ability)0x7F;
-                }
+                if (serial != world.Player)
+                    break;
 
-                break;
+                _ = p.ReadUInt8();
+                byte state = p.ReadUInt8();
 
-            //===========================================================================================
-            //===========================================================================================
-            case 0x22:
-                p.Skip(1);
+                world.Player.StrLock = (Lock)((state >> 4) & 3);
+                world.Player.DexLock = (Lock)((state >> 2) & 3);
+                world.Player.IntLock = (Lock)(state & 3);
 
-                Entity? en = world.Get(p.ReadSerial());
-
-                if (en is not null)
-                {
-                    byte damage = p.ReadUInt8();
-
-                    if (damage > 0)
-                        world.WorldTextManager.AddDamage(en.Serial, damage);
-                }
+                StatusGumpBase.GetStatusGump()?.RequestUpdateContents();
 
                 break;
 
-            case 0x25:
+            case 5:
 
-                ushort spell = p.ReadUInt16BE();
-                bool active = p.ReadBool();
+                int pos = p.Position;
+                _ = p.ReadUInt8();
+                byte type2 = p.ReadUInt8();
 
-                foreach (Gump g in UIManager.Gumps)
+                if (type2 == 0xFF)
                 {
-                    if (!g.IsDisposed && g.IsVisible)
+                    byte status = p.ReadUInt8();
+                    ushort animation = p.ReadUInt16BE();
+                    ushort frame = p.ReadUInt16BE();
+
+                    if (status == 0 && animation == 0 && frame == 0)
                     {
-                        if (g is UseSpellButtonGump spellButton && spellButton.SpellID == spell)
-                        {
-                            if (active)
-                            {
-                                spellButton.Hue = 38;
-                                world.ActiveSpellIcons.Add(spell);
-                            }
-                            else
-                            {
-                                spellButton.Hue = 0;
-                                world.ActiveSpellIcons.Remove(spell);
-                            }
+                        p.Seek(pos);
+                        goto case 0;
+                    }
 
-                            break;
-                        }
+                    Mobile? mobile = world.Mobiles.Get(serial);
+
+                    if (mobile is not null)
+                    {
+                        mobile.SetAnimation(Mobile.GetReplacedObjectAnimation(mobile.Graphic, animation));
+                        mobile.ExecuteAnimation = false;
+                        mobile.AnimIndex = (byte)frame;
                     }
                 }
-
-                break;
-
-            //===========================================================================================
-            //===========================================================================================
-            case 0x26:
-                byte val = p.ReadUInt8();
-
-                if (val > (int)CharacterSpeedType.FastUnmountAndCantRun)
-                    val = 0;
-
-                world.Player.SpeedMode = (CharacterSpeedType)val;
-
-                break;
-
-            case 0x2A:
-                bool isfemale = p.ReadBool();
-                byte race = p.ReadUInt8();
-
-                UIManager.GetGump<RaceChangeGump>()?.Dispose();
-                UIManager.Add(new RaceChangeGump(world, isfemale, race));
-                break;
-
-            case 0x2B:
-                serial = p.ReadSerial();
-                byte animId = p.ReadUInt8();
-                byte frameCount = p.ReadUInt8();
-
-                foreach (Mobile m in world.Mobiles.Values)
+                else if (world.Player is not null && serial == world.Player)
                 {
-                    if ((m.Serial.Value & 0xFFFF) == serial.Value)
-                    {
-                        m.SetAnimation(animId);
-                        m.AnimIndex = frameCount;
-                        m.ExecuteAnimation = false;
-
-                        break;
-                    }
+                    p.Seek(pos);
+                    goto case 2;
                 }
 
                 break;
+        }
+    }
 
-            case 0xBEEF: // ClassicUO commands
+    // 0xBF.1B
+    private static void NewSpellbookContent(World world, ref SpanReader p)
+    {
+        p.Skip(2);
 
-                type = p.ReadUInt16BE();
+        Item spellbook = world.GetOrCreateItem(p.ReadSerial());
+        spellbook.Graphic = p.ReadUInt16BE();
+        spellbook.Clear();
+        _ = p.ReadUInt16BE();
+
+        for (int j = 0; j < 2; j++)
+        {
+            uint spells = 0;
+
+            for (int i = 0; i < 4; i++)
+            {
+                spells |= (uint)(p.ReadUInt8() << (i * 8));
+            }
+
+            for (int i = 0; i < 32; i++)
+            {
+                if ((spells & (1 << i)) != 0)
+                {
+                    ushort cc = (ushort)(j * 32 + i + 1);
+                    Serial s = new(cc);
+                    // FIXME: should i call Item.Create ?
+                    Item spellItem = Item.Create(world, s); // new Item()
+                    spellItem.Serial = s;
+                    spellItem.Graphic = 0x1F2E;
+                    spellItem.Amount = cc;
+                    spellItem.Container = spellbook.Serial;
+                    spellbook.PushToBack(spellItem);
+                }
+            }
+        }
+
+        UIManager.GetGump<SpellbookGump>(spellbook.Serial)?.RequestUpdateContents();
+    }
+
+    // 0xBF.1D
+    private static void HouseRevisionState(World world, ref SpanReader p)
+    {
+        Serial serial = p.ReadSerial();
+        uint revision = p.ReadUInt32BE();
+
+        Item? multi = world.Items.Get(serial);
+        if (multi is null)
+            world.HouseManager.Remove(serial);
+
+        if (!world.HouseManager.TryGetHouse(serial, out House house) || !house.IsCustom || house.Revision != revision)
+        {
+            OutgoingPackets.AddHouseClilocRequest(serial);
+        }
+        else
+        {
+            house.Generate();
+            world.BoatMovingManager.ClearSteps(serial);
+
+            UIManager.GetGump<MiniMapGump>()?.RequestUpdateContents();
+
+            if (world.HouseManager.EntityIntoHouse(serial, world.Player))
+                Client.Game.GetScene<GameScene>()?.UpdateMaxDrawZ(true);
+        }
+    }
+
+    // 0xBF.20
+    private static void CustomHousing(World world, ref SpanReader p)
+    {
+        Serial serial = p.ReadSerial();
+        byte type = p.ReadUInt8();
+
+        switch (type)
+        {
+            case 1: break; // update
+            case 2: break; // remove
+            case 3: break; // update multi pos
+
+            case 4: // begin
+                HouseCustomizationGump? gump = UIManager.GetGump<HouseCustomizationGump>();
+                if (gump is not null)
+                    break;
+
+                gump = new HouseCustomizationGump(world, serial, 50, 50);
+                UIManager.Add(gump);
 
                 break;
 
-            default:
-                Log.Warn($"Unhandled 0xBF - sub: {cmd.ToHex()}");
-
+            case 5: // end
+                UIManager.GetGump<HouseCustomizationGump>(serial)?.Dispose();
                 break;
+        }
+    }
+
+    // 0xBF.21
+    private static void AbilityIcon(World world, ref SpanReader p)
+    {
+        world.Player.Abilities[0] &= (Ability)0x7F;
+        world.Player.Abilities[1] &= (Ability)0x7F;
+    }
+
+    // 0xBF.22
+    private static void DamageBF(World world, ref SpanReader p)
+    {
+        p.Skip(1);
+
+        Entity? en = world.Get(p.ReadSerial());
+        if (en is null)
+            return;
+
+        byte damage = p.ReadUInt8();
+
+        if (damage > 0)
+            world.WorldTextManager.AddDamage(en.Serial, damage);
+    }
+
+    // 0xBF.25
+    private static void ChangeAbility(World world, ref SpanReader p)
+    {
+        ushort spell = p.ReadUInt16BE();
+        bool active = p.ReadBool();
+
+        foreach (Gump g in UIManager.Gumps)
+        {
+            if (g.IsDisposed || !g.IsVisible || g is not UseSpellButtonGump spellButton || spellButton.SpellID != spell)
+                continue;
+            
+            if (active)
+            {
+                spellButton.Hue = 38;
+                world.ActiveSpellIcons.Add(spell);
+            }
+            else
+            {
+                spellButton.Hue = 0;
+                world.ActiveSpellIcons.Remove(spell);
+            }
+
+            break;
+        }
+    }
+
+    // 0xBF.26
+    private static void MountSpeed(World world, ref SpanReader p)
+    {
+        byte val = p.ReadUInt8();
+
+        if (val > (int)CharacterSpeedType.FastUnmountAndCantRun)
+            val = 0;
+
+        world.Player.SpeedMode = (CharacterSpeedType)val;
+    }
+
+    // 0xBF.2A
+    private static void ChangeRace(World world, ref SpanReader p)
+    {
+        bool isFemale = p.ReadBool();
+        byte race = p.ReadUInt8();
+
+        UIManager.GetGump<RaceChangeGump>()?.Dispose();
+        UIManager.Add(new RaceChangeGump(world, isFemale, race));
+    }
+
+    // 0xBF.2B
+    private static void UnknownBF(World world, ref SpanReader p)
+    {
+        Serial serial = p.ReadSerial();
+        byte animId = p.ReadUInt8();
+        byte frameCount = p.ReadUInt8();
+
+        foreach (Mobile m in world.Mobiles.Values)
+        {
+            if ((m.Serial.Value & 0xFFFF) != serial.Value)
+                continue;
+            
+            m.SetAnimation(animId);
+            m.AnimIndex = frameCount;
+            m.ExecuteAnimation = false;
+
+            break;
         }
     }
 

@@ -157,6 +157,28 @@ internal sealed partial class IncomingPackets
         Add(0xA8, &ServerListReceived);
         Add(0xA9, &ReceiveCharacterList);
         Add(0xFD, &LoginDelay, 2);
+
+        // extended - 0xBF
+        AddExtended(0x01, &FastWalkPrevention);
+        AddExtended(0x02, &FastWalkStack);
+        AddExtended(0x04, &CloseGenericGump);
+        AddExtended(0x06, &PartyCommands);
+        AddExtended(0x08, &SetMap);
+        AddExtended(0x0C, &CloseStatusbar);
+        AddExtended(0x10, &DisplayEquipInfo);
+        AddExtended(0x14, &DisplayPopupOrContextMenu);
+        AddExtended(0x16, &CloseUserInterfaceWindows);
+        AddExtended(0x18, &EnableMapPatches);
+        AddExtended(0x19, &ExtendedStats);
+        AddExtended(0x1B, &NewSpellbookContent);
+        AddExtended(0x1D, &HouseRevisionState);
+        AddExtended(0x20, &CustomHousing);
+        AddExtended(0x21, &AbilityIcon);
+        AddExtended(0x22, &DamageBF);
+        AddExtended(0x25, &ChangeAbility);
+        AddExtended(0x26, &MountSpeed);
+        AddExtended(0x2A, &ChangeRace);
+        AddExtended(0x2B, &UnknownBF);
     }
 
     public static unsafe void Configure(ClientVersion version)
@@ -193,23 +215,28 @@ internal sealed partial class IncomingPackets
 
     public unsafe void Add(byte id, delegate*<World, ref SpanReader, void> handler, byte length = 0)
     {
-        _handlers[id] = new(id, length, handler);
+        _handlers[id] = new(length, handler);
     }
 
     public unsafe void AdjustLength(byte packetId, byte length = 0)
     {
         PacketHandlerData old = _handlers[packetId];
-        _handlers[packetId] = new(packetId, length, old.Handler);
+        _handlers[packetId] = new(length, old.Handler);
     }
 
     public unsafe void SetNotSupported(byte packetId)
     {
-        _handlers[packetId] = new(packetId, 0, &NotSupported);
+        _handlers[packetId] = new(0, &NotSupported);
     }
 
     public unsafe void SetNoOp(byte packetId, byte length = 0)
     {
-        _handlers[packetId] = new(packetId, length, &NoOp);
+        _handlers[packetId] = new(length, &NoOp);
+    }
+
+    public unsafe void AddExtended(byte extId, delegate*<World, ref SpanReader, void> handler)
+    {
+        _extendedHandlers[extId] = new(handler);
     }
 
     private static void NotSupported(World world, ref SpanReader p)

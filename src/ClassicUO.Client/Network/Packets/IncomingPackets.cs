@@ -53,6 +53,7 @@ internal sealed partial class IncomingPackets
     private static readonly TextFileParser _cmdparser = new(string.Empty, [' ', ','], [], ['@', '@']);
 
     private readonly PacketHandlerData[] _handlers = new PacketHandlerData[0x100];
+    private readonly ExtendedPacketHandlerData[] _extendedHandlers = new ExtendedPacketHandlerData[0x100];
     private readonly PacketLogger _packetLogger = new();
     private readonly CircularBuffer _buffer = new();
     private readonly CircularBuffer _pluginsBuffer = new();
