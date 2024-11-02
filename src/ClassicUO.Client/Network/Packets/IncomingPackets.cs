@@ -97,7 +97,7 @@ internal sealed partial class IncomingPackets
                 // It will be fixed once the new plugin system is done.
                 if (allowPlugins && !Plugin.ProcessRecvPacket(packetBuffer, ref packetlength))
                     continue;
-                
+
                 SpanReader reader = new(packetBuffer.AsSpan(0, packetlength));
                 reader.Skip(dynamicLength ? 3 : 1);
 
@@ -115,6 +115,11 @@ internal sealed partial class IncomingPackets
             return;
 
         _pluginsBuffer.Enqueue(data);
+    }
+
+    public unsafe short GetPacketLength(byte id)
+    {
+        return _handlers[id].Length;
     }
 
     private unsafe bool GetPacketInfo(CircularBuffer buffer, out int packetLength, out bool dynamicLength,

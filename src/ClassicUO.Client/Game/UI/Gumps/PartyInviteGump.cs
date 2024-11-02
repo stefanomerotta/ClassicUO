@@ -100,7 +100,7 @@ internal class PartyInviteGump : Gump
         {
             if (World.Party.Inviter != 0 && World.Party.Leader == 0)
             {
-                NetClient.Socket.Send_PartyDecline(World.Party.Inviter);
+                NetClient.Socket.SendPartyDecline(World.Party.Inviter);
                 World.Party.Inviter = Serial.Zero;
             }
 

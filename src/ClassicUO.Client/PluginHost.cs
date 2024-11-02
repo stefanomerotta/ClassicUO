@@ -1,6 +1,7 @@
 ﻿using ClassicUO.Configuration;
 using ClassicUO.Game;
 using ClassicUO.Network;
+using ClassicUO.Network.Packets;
 using Microsoft.Xna.Framework.Graphics;
 using SDL2;
 using System;
@@ -216,10 +217,16 @@ namespace ClassicUO
         [MarshalAs(UnmanagedType.FunctionPtr)]
         private readonly dOnPluginReflectionCommand _reflectionCmd = reflectionCmd;
 
-
-        static short getPacketLength(int id)
+        private static short getPacketLength(int id)
         {
-            return NetClient.Socket.PacketsTable.GetPacketLength(id);
+            if (id > byte.MaxValue)
+                return -1;
+
+            short length = IncomingPackets.Instance.GetPacketLength((byte)id);
+            if (length == 0)
+                return -1;
+
+            return length;
         }
 
         static void setWindowTitle(IntPtr ptr)

@@ -24,7 +24,6 @@ internal abstract class NetClient
     public bool ServerDisconnectionExpected { get; set; }
     public NetStatistics Statistics { get; }
 
-    public PacketsTable PacketsTable { get; private set; }
     public virtual bool IsConnected { get; protected set; }
     public virtual bool IsWebSocket { get; protected set; }
     public abstract uint LocalIP { get; }
@@ -36,7 +35,6 @@ internal abstract class NetClient
     protected NetClient()
     {
         Statistics = new NetStatistics(this);
-        PacketsTable = null!;
     }
 
     public abstract Span<byte> CollectAvailableData();
@@ -96,7 +94,6 @@ internal abstract class NetClient
 
     public virtual EncryptionType Load(ClientVersion clientVersion, EncryptionType encryption)
     {
-        PacketsTable = new PacketsTable(clientVersion);
         _clientVersion = clientVersion;
         EncryptionType = encryption;
 

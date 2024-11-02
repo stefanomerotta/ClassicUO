@@ -1222,7 +1222,7 @@ internal static class OutgoingPackets
     }
 
     // 0xBF
-    public static void Send_PartyDecline(this NetClient socket, Serial serial)
+    public static void SendPartyDecline(this NetClient socket, Serial serial)
     {
         using FixedSpanWriter writer = new(0xBF, stackalloc byte[3 + 7], true);
         writer.WriteUInt16BE(0x06);
