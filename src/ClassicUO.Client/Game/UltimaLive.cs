@@ -80,8 +80,8 @@ namespace ClassicUO.Game
         public static unsafe void Enable()
         {
             Log.Trace("Setup packet for UltimaLive");
-            IncomingPackets.Handler.Add(0x3F, &OnUltimaLivePacket);
-            IncomingPackets.Handler.Add(0x40, &OnUpdateTerrainPacket);
+            IncomingPackets.Instance.Add(0x3F, &OnUltimaLivePacket);
+            IncomingPackets.Instance.Add(0x40, &OnUpdateTerrainPacket);
         }
 
         //The UltimaLive packets could be also used for other things than maps and statics

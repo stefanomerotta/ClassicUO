@@ -3316,7 +3316,7 @@ internal sealed partial class IncomingPackets
 
                 if (!world.HouseManager.TryGetHouse(serial, out House house) || !house.IsCustom || house.Revision != revision)
                 {
-                    Handler._customHouseRequests.Add(serial);
+                    OutgoingPackets.AddHouseClilocRequest(serial);
                 }
                 else
                 {

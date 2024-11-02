@@ -24,18 +24,20 @@
 
 using ClassicUO.Game;
 using ClassicUO.IO.Buffers;
+using System.Runtime.InteropServices;
 
 namespace ClassicUO.Network.Packets;
 
 #nullable enable
 
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 internal readonly unsafe struct PacketHandlerData
 {
     public readonly byte Id;
-    public readonly short Length;
+    public readonly byte Length;
     public readonly delegate*<World, ref SpanReader, void> Handler;
 
-    public PacketHandlerData(byte id, short length, delegate*<World, ref SpanReader, void> handler)
+    public PacketHandlerData(byte id, byte length, delegate*<World, ref SpanReader, void> handler)
     {
         Id = id;
         Handler = handler;

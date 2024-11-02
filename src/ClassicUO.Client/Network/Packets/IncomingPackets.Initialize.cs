@@ -31,199 +31,192 @@ namespace ClassicUO.Network.Packets;
 
 internal sealed partial class IncomingPackets
 {
-    public static IncomingPackets Handler { get; } = new();
+    public static IncomingPackets Instance { get; } = new();
+
+    private unsafe IncomingPackets()
+    {
+        Add(0x03, &ClientTalk);
+        Add(0x0B, &Damage, 7);
+        Add(0x11, &CharacterStatus);
+        Add(0x15, &FollowR, 9);
+        Add(0x16, &NewHealthbarUpdate);
+        Add(0x17, &NewHealthbarUpdate);
+        Add(0x1A, &UpdateItem);
+        Add(0x1B, &EnterWorld, 37);
+        Add(0x1C, &Talk);
+        Add(0x1D, &DeleteObject, 5);
+        Add(0x20, &UpdatePlayer, 19);
+        Add(0x21, &DenyWalk, 8);
+        Add(0x22, &ConfirmWalk, 3);
+        Add(0x23, &DragAnimation, 26);
+        Add(0x24, &OpenContainer, 9);
+        Add(0x25, &UpdateContainedItem, 21);
+        Add(0x27, &DenyMoveItem, 2);
+        Add(0x28, &EndDraggingItem, 5);
+        Add(0x29, &DropItemAccepted, 1);
+        Add(0x2C, &DeathScreen, 2);
+        Add(0x2D, &MobileAttributes, 17);
+        Add(0x2E, &EquipItem, 15);
+        Add(0x2F, &Swing, 10);
+        SetNoOp(0x32, 2);
+        Add(0x38, &Pathfinding, 7);
+        Add(0x3A, &UpdateSkills);
+        Add(0x3B, &CloseVendorInterface);
+        Add(0x3C, &UpdateContainedItems);
+        Add(0x4E, &PersonalLightLevel, 6);
+        Add(0x4F, &LightLevel, 2);
+        Add(0x54, &PlaySoundEffect, 12);
+        Add(0x55, &LoginComplete, 1);
+        Add(0x56, &MapData, 11);
+        SetNoOp(0x5B, 4);
+        Add(0x65, &SetWeather, 4);
+        Add(0x66, &BookData);
+        Add(0x6C, &TargetCursor, 19);
+        Add(0x6D, &PlayMusic, 3);
+        Add(0x6E, &CharacterAnimation, 14);
+        Add(0x6F, &SecureTrading);
+        Add(0x70, &GraphicEffect70, 28);
+        Add(0x71, &BulletinBoardData);
+        Add(0x72, &Warmode, 5);
+        Add(0x73, &Ping, 2);
+        Add(0x74, &BuyList);
+        SetNoOp(0x76, 16);
+        Add(0x77, &UpdateCharacter, 17);
+        Add(0x78, &UpdateObject);
+        Add(0x7C, &OpenMenu);
+        Add(0x88, &OpenPaperdoll, 66);
+        Add(0x89, &CorpseEquipment);
+        Add(0x90, &DisplayMap90, 19);
+        Add(0x93, &OpenBook93, 99);
+        Add(0x95, &DyeData, 9);
+        Add(0x97, &MovePlayer, 2);
+        Add(0x98, &UpdateName);
+        Add(0x99, &MultiPlacement, 30);
+        Add(0x9A, &ASCIIPrompt);
+        Add(0x9E, &SellList);
+        Add(0xA1, &UpdateHitpoints, 9);
+        Add(0xA2, &UpdateMana, 9);
+        Add(0xA3, &UpdateStamina, 9);
+        Add(0xA5, &OpenUrl);
+        Add(0xA6, &TipWindow);
+        Add(0xAA, &AttackCharacter, 5);
+        Add(0xAB, &TextEntryDialog);
+        Add(0xAE, &UnicodeTalk);
+        Add(0xAF, &DisplayDeath, 13);
+        Add(0xB0, &OpenGump);
+        Add(0xB2, &ChatMessage);
+        SetNoOp(0xB7);
+        Add(0xB8, &CharacterProfile);
+        Add(0xB9, &EnableLockedFeatures, 5);
+        Add(0xBA, &DisplayQuestArrow, 10);
+        SetNoOp(0xBB, 9);
+        Add(0xBC, &Season, 3);
+        Add(0xBD, &SendClientVersion);
+        SetNoOp(0xBE);
+        Add(0xBF, &ExtendedCommand);
+        Add(0xC0, &GraphicEffectC0, 36);
+        Add(0xC1, &DisplayClilocString);
+        Add(0xC2, &UnicodePrompt);
+        SetNoOp(0xC4, 6);
+        SetNoOp(0xC6, 1);
+        Add(0xC7, &GraphicEffectC7, 49);
+        Add(0xC8, &ClientViewRange, 2);
+        SetNoOp(0xCA, 6);
+        SetNoOp(0xCB, 7);
+        Add(0xCC, &DisplayClilocString);
+        SetNoOp(0xD0);
+        Add(0xD1, &Logout, 2);
+        Add(0xD2, &UpdateCharacter, 25);
+        Add(0xD3, &UpdateObject);
+        Add(0xD4, &OpenBookD4);
+        Add(0xD6, &MegaCliloc);
+        SetNoOp(0xD7);
+        Add(0xD8, &CustomHouse);
+        SetNoOp(0xDB);
+        Add(0xDC, &OPLInfo, 9);
+        Add(0xDD, &OpenCompressedGump);
+        Add(0xDE, &UpdateMobileStatus);
+        Add(0xDF, &BuffDebuff);
+        Add(0xE2, &NewCharacterAnimation, 10);
+        Add(0xE3, &NotSupported);
+        Add(0xE5, &DisplayWaypoint);
+        SetNoOp(0xE6, 5);
+        Add(0xF0, &KrriosClientSpecial);
+        SetNoOp(0xF1, 9);
+        Add(0xF3, &UpdateItemSA, 26);
+        Add(0xF5, &DisplayMapF5, 21);
+        Add(0xF6, &BoatMoving);
+        Add(0xF7, &PacketList);
+
+        // login          
+        Add(0x53, &ReceiveLoginRejection, 2);
+        Add(0x82, &ReceiveLoginRejection, 2);
+        Add(0x85, &ReceiveLoginRejection, 2);
+        Add(0x86, &UpdateCharacterList);
+        Add(0x8C, &ReceiveServerRelay, 11);
+        Add(0xA8, &ServerListReceived);
+        Add(0xA9, &ReceiveCharacterList);
+        Add(0xFD, &LoginDelay, 2);
+    }
 
     public static unsafe void Configure(ClientVersion version)
     {
-        Prepopulate();
-
         if (version < ClientVersion.CV_7010400)
-            Handler.SetNotSupported(0xFD);
+            Instance.SetNotSupported(0xFD);
 
         if (version < ClientVersion.CV_7090)
         {
-            Handler.AdjustLength(0x24, 7);
-            Handler.AdjustLength(0x99, 26);
-            Handler.AdjustLength(0xBA, 6);
-            Handler.AdjustLength(0xF3, 24);
+            Instance.AdjustLength(0x24, 7);
+            Instance.AdjustLength(0x99, 26);
+            Instance.AdjustLength(0xBA, 6);
+            Instance.AdjustLength(0xF3, 24);
         }
 
         if (version < ClientVersion.CV_60142)
-            Handler.Add(0xB9, 3, &EnableLockedFeatures);
+            Instance.Add(0xB9, &EnableLockedFeatures, 3);
 
         if (version < ClientVersion.CV_6060)
-            Handler.SetNotSupported(0xF1);
+            Instance.SetNotSupported(0xF1);
 
         if (version < ClientVersion.CV_6017)
-            Handler.AdjustLength(0x25, 20);
+            Instance.AdjustLength(0x25, 20);
 
         if (version < ClientVersion.CV_6013)
         {
-            Handler.Add(0xE3, 77, &NoOp);
-            Handler.SetNotSupported(0xE6);
+            Instance.SetNoOp(0xE3, 77);
+            Instance.SetNotSupported(0xE6);
         }
 
         if (version < ClientVersion.CV_500A)
-            Handler.AdjustLength(0x16, 1);
+            Instance.AdjustLength(0x16, 1);
     }
 
-    public unsafe void Add(byte id, short length, delegate*<World, ref SpanReader, void> handler)
+    public unsafe void Add(byte id, delegate*<World, ref SpanReader, void> handler, byte length = 0)
     {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(length);
-
         _handlers[id] = new(id, length, handler);
     }
 
-    public unsafe void Add(byte id, delegate*<World, ref SpanReader, void> handler)
+    public unsafe void AdjustLength(byte packetId, byte length = 0)
     {
-        _handlers[id] = new(id, -1, handler);
-    }
-
-    public unsafe void AdjustLength(byte packetId, short length = 0)
-    {
-        if (length == 0)
-            length = -1;
-
         PacketHandlerData old = _handlers[packetId];
         _handlers[packetId] = new(packetId, length, old.Handler);
     }
 
     public unsafe void SetNotSupported(byte packetId)
     {
-        _handlers[packetId] = new(packetId, -1, &NotSupported);
+        _handlers[packetId] = new(packetId, 0, &NotSupported);
+    }
+
+    public unsafe void SetNoOp(byte packetId, byte length = 0)
+    {
+        _handlers[packetId] = new(packetId, length, &NoOp);
+    }
+
+    private static void NotSupported(World world, ref SpanReader p)
+    {
+        throw new Exception($"Packet {p[0]} is not supported with selected client version");
     }
 
     private static void NoOp(World world, ref SpanReader p)
     { }
-
-    private static void NotSupported(World world, ref SpanReader p)
-    {
-        throw new Exception();
-    }
-
-    private static unsafe void Prepopulate()
-    {
-        Handler.Add(0x03, &ClientTalk);
-        Handler.Add(0x0B, 7, &Damage);
-        Handler.Add(0x11, &CharacterStatus);
-        Handler.Add(0x15, 9, &FollowR);
-        Handler.Add(0x16, &NewHealthbarUpdate);
-        Handler.Add(0x17, &NewHealthbarUpdate);
-        Handler.Add(0x1A, &UpdateItem);
-        Handler.Add(0x1B, 37, &EnterWorld);
-        Handler.Add(0x1C, &Talk);
-        Handler.Add(0x1D, 5, &DeleteObject);
-        Handler.Add(0x20, 19, &UpdatePlayer);
-        Handler.Add(0x21, 8, &DenyWalk);
-        Handler.Add(0x22, 3, &ConfirmWalk);
-        Handler.Add(0x23, 26, &DragAnimation);
-        Handler.Add(0x24, 9, &OpenContainer);
-        Handler.Add(0x25, 21, &UpdateContainedItem);
-        Handler.Add(0x27, 2, &DenyMoveItem);
-        Handler.Add(0x28, 5, &EndDraggingItem);
-        Handler.Add(0x29, 1, &DropItemAccepted);
-        Handler.Add(0x2C, 2, &DeathScreen);
-        Handler.Add(0x2D, 17, &MobileAttributes);
-        Handler.Add(0x2E, 15, &EquipItem);
-        Handler.Add(0x2F, 10, &Swing);
-        Handler.Add(0x32, 2, &NoOp);
-        Handler.Add(0x38, 7, &Pathfinding);
-        Handler.Add(0x3A, &UpdateSkills);
-        Handler.Add(0x3B, &CloseVendorInterface);
-        Handler.Add(0x3C, &UpdateContainedItems);
-        Handler.Add(0x4E, 6, &PersonalLightLevel);
-        Handler.Add(0x4F, 2, &LightLevel);
-        Handler.Add(0x54, 12, &PlaySoundEffect);
-        Handler.Add(0x55, 1, &LoginComplete);
-        Handler.Add(0x56, 11, &MapData);
-        Handler.Add(0x5B, 4, &NoOp);
-        Handler.Add(0x65, 4, &SetWeather);
-        Handler.Add(0x66, &BookData);
-        Handler.Add(0x6C, 19, &TargetCursor);
-        Handler.Add(0x6D, 3, &PlayMusic);
-        Handler.Add(0x6E, 14, &CharacterAnimation);
-        Handler.Add(0x6F, &SecureTrading);
-        Handler.Add(0x70, 28, &GraphicEffect70);
-        Handler.Add(0x71, &BulletinBoardData);
-        Handler.Add(0x72, 5, &Warmode);
-        Handler.Add(0x73, 2, &Ping);
-        Handler.Add(0x74, &BuyList);
-        Handler.Add(0x76, 16, &NoOp);
-        Handler.Add(0x77, 17, &UpdateCharacter);
-        Handler.Add(0x78, &UpdateObject);
-        Handler.Add(0x7C, &OpenMenu);
-        Handler.Add(0x88, 66, &OpenPaperdoll);
-        Handler.Add(0x89, &CorpseEquipment);
-        Handler.Add(0x90, 19, &DisplayMap90);
-        Handler.Add(0x93, 99, &OpenBook93);
-        Handler.Add(0x95, 9, &DyeData);
-        Handler.Add(0x97, 2, &MovePlayer);
-        Handler.Add(0x98, &UpdateName);
-        Handler.Add(0x99, 30, &MultiPlacement);
-        Handler.Add(0x9A, &ASCIIPrompt);
-        Handler.Add(0x9E, &SellList);
-        Handler.Add(0xA1, 9, &UpdateHitpoints);
-        Handler.Add(0xA2, 9, &UpdateMana);
-        Handler.Add(0xA3, 9, &UpdateStamina);
-        Handler.Add(0xA5, &OpenUrl);
-        Handler.Add(0xA6, &TipWindow);
-        Handler.Add(0xAA, 5, &AttackCharacter);
-        Handler.Add(0xAB, &TextEntryDialog);
-        Handler.Add(0xAE, &UnicodeTalk);
-        Handler.Add(0xAF, 13, &DisplayDeath);
-        Handler.Add(0xB0, &OpenGump);
-        Handler.Add(0xB2, &ChatMessage);
-        Handler.Add(0xB7, &NoOp);
-        Handler.Add(0xB8, &CharacterProfile);
-        Handler.Add(0xB9, 5, &EnableLockedFeatures);
-        Handler.Add(0xBA, 10, &DisplayQuestArrow);
-        Handler.Add(0xBB, 9, &NoOp);
-        Handler.Add(0xBC, 3, &Season);
-        Handler.Add(0xBD, &SendClientVersion);
-        Handler.Add(0xBE, &NoOp);
-        Handler.Add(0xBF, &ExtendedCommand);
-        Handler.Add(0xC0, 36, &GraphicEffectC0);
-        Handler.Add(0xC1, &DisplayClilocString);
-        Handler.Add(0xC2, &UnicodePrompt);
-        Handler.Add(0xC4, 6, &NoOp);
-        Handler.Add(0xC6, 1, &NoOp);
-        Handler.Add(0xC7, 49, &GraphicEffectC7);
-        Handler.Add(0xC8, 2, &ClientViewRange);
-        Handler.Add(0xCA, 6, &NoOp);
-        Handler.Add(0xCB, 7, &NoOp);
-        Handler.Add(0xCC, &DisplayClilocString);
-        Handler.Add(0xD0, &NoOp);
-        Handler.Add(0xD1, 2, &Logout);
-        Handler.Add(0xD2, 25, &UpdateCharacter);
-        Handler.Add(0xD3, &UpdateObject);
-        Handler.Add(0xD4, &OpenBookD4);
-        Handler.Add(0xD6, &MegaCliloc);
-        Handler.Add(0xD7, &NoOp);
-        Handler.Add(0xD8, &CustomHouse);
-        Handler.Add(0xDB, &NoOp);
-        Handler.Add(0xDC, 9, &OPLInfo);
-        Handler.Add(0xDD, &OpenCompressedGump);
-        Handler.Add(0xDE, &UpdateMobileStatus);
-        Handler.Add(0xDF, &BuffDebuff);
-        Handler.Add(0xE2, 10, &NewCharacterAnimation);
-        Handler.Add(0xE3, &NotSupported);
-        Handler.Add(0xE5, &DisplayWaypoint);
-        Handler.Add(0xE6, 5, &NoOp);
-        Handler.Add(0xF0, &KrriosClientSpecial);
-        Handler.Add(0xF1, 9, &NoOp);
-        Handler.Add(0xF3, 26, &UpdateItemSA);
-        Handler.Add(0xF5, 21, &DisplayMapF5);
-        Handler.Add(0xF6, &BoatMoving);
-        Handler.Add(0xF7, &PacketList);
-
-        // login          
-        Handler.Add(0x53, 2, &ReceiveLoginRejection);
-        Handler.Add(0x82, 2, &ReceiveLoginRejection);
-        Handler.Add(0x85, 2, &ReceiveLoginRejection);
-        Handler.Add(0x86, &UpdateCharacterList);
-        Handler.Add(0x8C, 11, &ReceiveServerRelay);
-        Handler.Add(0xA8, &ServerListReceived);
-        Handler.Add(0xA9, &ReceiveCharacterList);
-        Handler.Add(0xFD, 2, &LoginDelay);
-    }
 }

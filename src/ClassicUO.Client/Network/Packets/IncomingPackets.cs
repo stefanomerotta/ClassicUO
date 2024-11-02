@@ -53,8 +53,6 @@ internal sealed partial class IncomingPackets
     private static readonly TextFileParser _cmdparser = new(string.Empty, [' ', ','], [], ['@', '@']);
 
     private readonly PacketHandlerData[] _handlers = new PacketHandlerData[0x100];
-    private readonly List<Serial> _clilocRequests = [];
-    private readonly List<Serial> _customHouseRequests = [];
     private readonly PacketLogger _packetLogger = new();
     private readonly CircularBuffer _buffer = new();
     private readonly CircularBuffer _pluginsBuffer = new();
@@ -97,14 +95,14 @@ internal sealed partial class IncomingPackets
                 // TODO: the pluging function should allow Span<byte> or unsafe type only.
                 // The current one is a bad style decision.
                 // It will be fixed once the new plugin system is done.
-                if (!allowPlugins || Plugin.ProcessRecvPacket(packetBuffer, ref packetlength))
-                {
-                    SpanReader reader = new(packetBuffer.AsSpan(0, packetlength));
-                    reader.Skip(dynamicLength ? 3 : 1);
+                if (allowPlugins && !Plugin.ProcessRecvPacket(packetBuffer, ref packetlength))
+                    continue;
+                
+                SpanReader reader = new(packetBuffer.AsSpan(0, packetlength));
+                reader.Skip(dynamicLength ? 3 : 1);
 
-                    handler(world, ref reader);
-                    packetsCount++;
-                }
+                handler(world, ref reader);
+                packetsCount++;
             }
         }
 
@@ -119,28 +117,28 @@ internal sealed partial class IncomingPackets
         _pluginsBuffer.Enqueue(data);
     }
 
-    private unsafe bool GetPacketInfo(CircularBuffer buffer, out int packetLength, out bool dynamicLength, 
+    private unsafe bool GetPacketInfo(CircularBuffer buffer, out int packetLength, out bool dynamicLength,
         out delegate*<World, ref SpanReader, void> handler)
     {
         packetLength = 0;
         dynamicLength = false;
-        handler = &NoOp;
+        handler = default;
 
         if (buffer.Length <= 0)
             return false;
 
         int packetId = buffer[0];
-        ref PacketHandlerData handlerData = ref _handlers[packetId];
+        ref readonly PacketHandlerData handlerData = ref _handlers[packetId];
 
-        packetLength = handlerData.Length;
-
-        if(packetLength == 0)
+        if (handlerData.Handler is null)
         {
             Log.Warn($"Invalid packet ID: {packetId:X2} | stream.pos: {buffer.Length}");
             return false;
         }
 
-        if (packetLength == -1)
+        packetLength = handlerData.Length;
+
+        if (packetLength == 0)
         {
             dynamicLength = true;
 
@@ -564,7 +562,7 @@ internal sealed partial class IncomingPackets
 
         if (serial != player)
             return;
-        
+
         world.RangeSize.X = x;
         world.RangeSize.Y = y;
 

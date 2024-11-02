@@ -1926,6 +1926,17 @@ internal static class OutgoingPackets
         _clilocRequests.Add(serial);
     }
 
+    public static void AddHouseClilocRequest(Serial serial)
+    {
+        foreach (Serial s in _customHouseRequests)
+        {
+            if (s == serial)
+                return;
+        }
+
+        _customHouseRequests.Add(serial);
+    }
+
     private static void SendMegaClilocRequest(this NetClient client, List<Serial> clilocRequests)
     {
         if (clilocRequests.Count == 0)
