@@ -35,6 +35,7 @@ using ClassicUO.Game.UI.Controls;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.IO.Buffers;
 using ClassicUO.IO.Encoders;
+using ClassicUO.Modules.Gumps;
 using ClassicUO.Renderer;
 using ClassicUO.Resources;
 using ClassicUO.Utility;
@@ -42,6 +43,7 @@ using ClassicUO.Utility.Logging;
 using ClassicUO.Utility.Platforms;
 using Microsoft.Xna.Framework;
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Text;
 
@@ -584,7 +586,7 @@ internal sealed partial class IncomingPackets
         Direction direction = (Direction)p.ReadUInt8();
         sbyte z = p.ReadInt8();
 
-        UpdatePlayer(world, serial, graphic, graphicInc, hue, flags, x, y, z, direction);
+        UpdatePlayer(world, serial, graphic, hue, flags, x, y, z, direction);
     }
 
     // 0x21
@@ -1429,6 +1431,7 @@ internal sealed partial class IncomingPackets
 
         world.Weather.Generate(type, count, temp);
     }
+
     // 0x66
     private static void BookData(World world, ref SpanReader p)
     {
@@ -2668,8 +2671,9 @@ internal sealed partial class IncomingPackets
         int x = (int)p.ReadUInt32BE();
         int y = (int)p.ReadUInt32BE();
 
-        ushort cmdLen = p.ReadUInt16BE();
-        string cmd = p.ReadFixedString<ASCIICP1215>(cmdLen);
+        ushort layoutLength = p.ReadUInt16BE();
+        ReadOnlySpan<byte> layout = p.Buffer.Slice(p.Position, layoutLength);
+        p.Skip(layoutLength);
 
         ushort textLinesCount = p.ReadUInt16BE();
 
@@ -2678,14 +2682,10 @@ internal sealed partial class IncomingPackets
         for (int i = 0; i < textLinesCount; i++)
         {
             int length = p.ReadUInt16BE();
-
-            if (length > 0)
-                lines[i] = p.ReadFixedString<UnicodeBE>(length);
-            else
-                lines[i] = "";
+            lines[i] = p.ReadFixedString<UnicodeBE>(length);
         }
 
-        CreateGump(world, sender, gumpId, x, y, cmd, lines);
+        GumpCreator.CreateGump(world, sender, gumpId, x, y, layout, lines);
     }
 
     // 0xB2
@@ -3374,7 +3374,7 @@ internal sealed partial class IncomingPackets
         {
             if (g.IsDisposed || !g.IsVisible || g is not UseSpellButtonGump spellButton || spellButton.SpellID != spell)
                 continue;
-            
+
             if (active)
             {
                 spellButton.Hue = 38;
@@ -3422,7 +3422,7 @@ internal sealed partial class IncomingPackets
         {
             if ((m.Serial.Value & 0xFFFF) != serial.Value)
                 continue;
-            
+
             m.SetAnimation(animId);
             m.AnimIndex = frameCount;
             m.ExecuteAnimation = false;
@@ -3874,43 +3874,36 @@ internal sealed partial class IncomingPackets
         Serial gumpId = p.ReadSerial();
         uint x = p.ReadUInt32BE();
         uint y = p.ReadUInt32BE();
-        uint clen = p.ReadUInt32BE() - 4;
-        int dlen = (int)p.ReadUInt32BE();
+        uint compressedLength = p.ReadUInt32BE() - 4;
+        int decompressedLength = (int)p.ReadUInt32BE();
 
-        byte[] decData = System.Buffers.ArrayPool<byte>.Shared.Rent(dlen);
-        string layout;
-
-        try
-        {
-            ZLib.Decompress(p.Buffer.Slice(p.Position, (int)clen), decData.AsSpan(0, dlen));
-            layout = Encoding.UTF8.GetString(decData.AsSpan(0, dlen));
-        }
-        finally
-        {
-            System.Buffers.ArrayPool<byte>.Shared.Return(decData);
-        }
-
-        p.Skip((int)clen);
-
-        uint linesNum = p.ReadUInt32BE();
-        string[] lines = new string[linesNum];
-
-        if (linesNum == 0)
-        {
-            CreateGump(world, sender, gumpId, (int)x, (int)y, layout, lines);
-            return;
-        }
-
-        clen = p.ReadUInt32BE() - 4;
-        dlen = (int)p.ReadUInt32BE();
-        decData = System.Buffers.ArrayPool<byte>.Shared.Rent(dlen);
+        byte[] layoutBuffer = ArrayPool<byte>.Shared.Rent(decompressedLength);
+        byte[]? stringsBuffer = null;
 
         try
         {
-            ZLib.Decompress(p.Buffer.Slice(p.Position, (int)clen), decData.AsSpan(0, dlen));
-            p.Skip((int)clen);
+            ZLib.Decompress(p.Buffer.Slice(p.Position, (int)compressedLength), layoutBuffer.AsSpan(0, decompressedLength));
+            Span<byte> layout = layoutBuffer.AsSpan(0, decompressedLength);
 
-            SpanReader reader = new(decData.AsSpan(0, dlen));
+            p.Skip((int)compressedLength);
+
+            uint linesNum = p.ReadUInt32BE();
+            string[] lines = new string[linesNum];
+
+            if (linesNum == 0)
+            {
+                GumpCreator.CreateGump(world, sender, gumpId, (int)x, (int)y, layout, lines);
+                return;
+            }
+
+            compressedLength = p.ReadUInt32BE() - 4;
+            decompressedLength = (int)p.ReadUInt32BE();
+            stringsBuffer = ArrayPool<byte>.Shared.Rent(decompressedLength);
+
+            ZLib.Decompress(p.Buffer.Slice(p.Position, (int)compressedLength), stringsBuffer.AsSpan(0, decompressedLength));
+            p.Skip((int)compressedLength);
+
+            SpanReader reader = new(stringsBuffer.AsSpan(0, decompressedLength));
 
             for (int i = 0; i < linesNum; i++)
             {
@@ -3926,13 +3919,16 @@ internal sealed partial class IncomingPackets
                     lines[i] = "";
                 }
             }
+
+            GumpCreator.CreateGump(world, sender, gumpId, (int)x, (int)y, layout, lines);
         }
         finally
         {
-            System.Buffers.ArrayPool<byte>.Shared.Return(decData);
-        }
+            ArrayPool<byte>.Shared.Return(layoutBuffer);
 
-        CreateGump(world, sender, gumpId, (int)x, (int)y, layout, lines);
+            if (stringsBuffer is not null)
+                ArrayPool<byte>.Shared.Return(stringsBuffer);
+        }
     }
 
     // 0xDE
@@ -4140,7 +4136,7 @@ internal sealed partial class IncomingPackets
         }
         else if (p[0] == 0xF7)
         {
-            UpdatePlayer(world, serial, graphic, graphicInc, hue, flags, x, y, z, dir);
+            UpdatePlayer(world, serial, graphic, hue, flags, x, y, z, dir);
         }
     }
 
@@ -4232,7 +4228,7 @@ internal sealed partial class IncomingPackets
 
             if (cSerial == world.Player)
             {
-                UpdatePlayer(world, cSerial, ent.Graphic, 0, ent.Hue, ent.Flags, cx, cy, (sbyte)cz, world.Player.Direction);
+                UpdatePlayer(world, cSerial, ent.Graphic, ent.Hue, ent.Flags, cx, cy, (sbyte)cz, world.Player.Direction);
                 return;
             }
 

@@ -592,7 +592,7 @@ namespace ClassicUO.Game.UI.Gumps
                     50,
                     320,
                     0x0386,
-                    TEXT_ALIGN_TYPE.TS_CENTER
+                    TextAlignType.Center
                 );
 
 
@@ -776,7 +776,7 @@ namespace ClassicUO.Game.UI.Gumps
                     xOffset,
                     70,
                     textWidth,
-                    alignment: TEXT_ALIGN_TYPE.TS_CENTER
+                    alignment: TextAlignType.Center
                 );
 
                 AddStatTextLabel
@@ -786,7 +786,7 @@ namespace ClassicUO.Game.UI.Gumps
                     xOffset,
                     83,
                     textWidth,
-                    alignment: TEXT_ALIGN_TYPE.TS_CENTER
+                    alignment: TextAlignType.Center
                 );
 
                 AddStatTextLabel
@@ -796,7 +796,7 @@ namespace ClassicUO.Game.UI.Gumps
                     xOffset,
                     98,
                     textWidth,
-                    alignment: TEXT_ALIGN_TYPE.TS_CENTER
+                    alignment: TextAlignType.Center
                 );
 
                 AddStatTextLabel
@@ -806,7 +806,7 @@ namespace ClassicUO.Game.UI.Gumps
                     xOffset,
                     111,
                     textWidth,
-                    alignment: TEXT_ALIGN_TYPE.TS_CENTER
+                    alignment: TextAlignType.Center
                 );
 
                 AddStatTextLabel
@@ -816,7 +816,7 @@ namespace ClassicUO.Game.UI.Gumps
                     xOffset,
                     126,
                     textWidth,
-                    alignment: TEXT_ALIGN_TYPE.TS_CENTER
+                    alignment: TextAlignType.Center
                 );
 
                 AddStatTextLabel
@@ -826,7 +826,7 @@ namespace ClassicUO.Game.UI.Gumps
                     xOffset,
                     139,
                     textWidth,
-                    alignment: TEXT_ALIGN_TYPE.TS_CENTER
+                    alignment: TextAlignType.Center
                 );
 
                 xOffset += 5;
@@ -942,7 +942,7 @@ namespace ClassicUO.Game.UI.Gumps
                     xOffset,
                     126,
                     textWidth,
-                    alignment: TEXT_ALIGN_TYPE.TS_CENTER
+                    alignment: TextAlignType.Center
                 );
 
                 int lineX = Client.Game.UO.FileManager.Gumps.UseUOPGumps ? 236 : 216;
@@ -966,7 +966,7 @@ namespace ClassicUO.Game.UI.Gumps
                     xOffset,
                     139,
                     textWidth,
-                    alignment: TEXT_ALIGN_TYPE.TS_CENTER
+                    alignment: TextAlignType.Center
                 );
 
                 xOffset = Client.Game.UO.FileManager.Gumps.UseUOPGumps ? 205 : 188;
@@ -1355,7 +1355,7 @@ namespace ClassicUO.Game.UI.Gumps
             int y,
             int maxWidth = 0,
             ushort hue = 0x0386,
-            TEXT_ALIGN_TYPE alignment = TEXT_ALIGN_TYPE.TS_LEFT
+            TextAlignType alignment = TextAlignType.Left
         )
         {
             Label label = new Label

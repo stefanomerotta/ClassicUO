@@ -2,7 +2,7 @@
 
 // Copyright (c) 2024, andreakarasho
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
 // 1. Redistributions of source code must retain the above copyright
@@ -16,7 +16,7 @@
 // 4. Neither the name of the copyright holder nor the
 //    names of its contributors may be used to endorse or promote products
 //    derived from this software without specific prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ''AS IS'' AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -30,93 +30,71 @@
 
 #endregion
 
-using ClassicUO.Assets;
-using ClassicUO.Renderer;
-using Microsoft.Xna.Framework;
+using System;
 
 namespace ClassicUO.Game.UI.Controls
 {
-    internal class HoveredLabel : Label
+    internal abstract class GumpPicBase : Control
     {
-        private readonly ushort _overHue, _normalHue, _selectedHue;
+        private ushort _graphic;
 
-        public HoveredLabel
-        (
-            string text,
-            bool isunicode,
-            ushort hue,
-            ushort overHue,
-            ushort selectedHue,
-            int maxwidth = 0,
-            byte font = 255,
-            FontStyle style = FontStyle.None,
-            TextAlignType align = TextAlignType.Left
-        ) : base
-        (
-            $" {text}",
-            isunicode,
-            hue,
-            maxwidth,
-            font,
-            style,
-            align
-        )
+        protected GumpPicBase()
         {
-            _overHue = overHue;
-            _normalHue = hue;
-            _selectedHue = selectedHue;
+            CanMove = true;
             AcceptMouseInput = true;
         }
 
-        public bool DrawBackgroundCurrentIndex;
-        public bool IsSelected, ForceHover;
-
-        public override void Update()
+        public ushort Graphic
         {
-            if (IsSelected)
+            get => _graphic;
+            set
             {
-                if (Hue != _selectedHue)
-                {
-                    Hue = _selectedHue;
-                }
-            }
-            else if (MouseIsOver || ForceHover)
-            {
-                if (Hue != _overHue)
-                {
-                    Hue = _overHue;
-                }
-            }
-            else if (Hue != _normalHue)
-            {
-                Hue = _normalHue;
-            }
+                _graphic = value;
 
+                ref readonly var gumpInfo = ref Client.Game.UO.Gumps.GetGump(_graphic);
 
-            base.Update();
+                if (gumpInfo.Texture == null)
+                {
+                    Dispose();
+
+                    return;
+                }
+
+                Width = gumpInfo.UV.Width;
+                Height = gumpInfo.UV.Height;
+            }
         }
 
-        public override bool Draw(UltimaBatcher2D batcher, int x, int y)
-        {
-            if (DrawBackgroundCurrentIndex && MouseIsOver && !string.IsNullOrWhiteSpace(Text))
-            {
-                Vector3 hueVector = ShaderHueTranslator.GetHueVector(0);
+        public ushort Hue { get; set; }
 
-                batcher.Draw
-                (
-                    SolidColorTextureCache.GetTexture(Color.Gray),
-                    new Rectangle
-                    (
-                        x,
-                        y + 2,
-                        Width - 4,
-                        Height - 4
-                    ),
-                    hueVector
-                );
+        public override bool Contains(int x, int y)
+        {
+            ref readonly var gumpInfo = ref Client.Game.UO.Gumps.GetGump(_graphic);
+
+            if (gumpInfo.Texture == null)
+            {
+                return false;
             }
 
-            return base.Draw(batcher, x, y);
+            if (Client.Game.UO.Gumps.PixelCheck(Graphic, x - Offset.X, y - Offset.Y))
+            {
+                return true;
+            }
+
+            ReadOnlySpan<Control> children = Children;
+
+            for (int i = 0; i < children.Length; i++)
+            {
+                Control c = children[i];
+
+                // might be wrong x, y. They should be calculated by position
+                if (c.Contains(x, y))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

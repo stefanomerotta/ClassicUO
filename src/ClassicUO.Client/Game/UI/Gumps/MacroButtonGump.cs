@@ -86,7 +86,7 @@ namespace ClassicUO.Game.UI.Gumps
                 Width,
                 255,
                 FontStyle.BlackBorder,
-                TEXT_ALIGN_TYPE.TS_CENTER
+                TextAlignType.Center
             )
             {
                 X = 0,

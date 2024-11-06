@@ -1,9 +1,5 @@
-﻿using System;
+﻿using ClassicUO.Utility;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ClassicUO.Utility;
 using Xunit;
 
 namespace ClassicUO.UnitTests.Utility
@@ -20,7 +16,7 @@ namespace ClassicUO.UnitTests.Utility
             bool trim = true;
 
 
-            ClassicUO.Utility.TextFileParser parser = new TextFileParser(s, delimiters, comments, quotes);
+            TextFileParser parser = new TextFileParser(s, delimiters, comments, quotes);
 
             List<string> tokens = parser.ReadTokens(trim);
 

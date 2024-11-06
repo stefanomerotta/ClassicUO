@@ -143,11 +143,11 @@ namespace ClassicUO.Game.UI.Controls
 
             if (_up.IsClicked)
             {
-                i += _up.ButtonID;
+                i += _up.ButtonId;
             }
             else
             {
-                i += _down.ButtonID;
+                i += _down.ButtonId;
             }
 
             ValidateValue(i);

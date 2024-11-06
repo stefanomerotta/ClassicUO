@@ -22,34 +22,18 @@
 //  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 //  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES
 
-using ClassicUO.Renderer;
-using Microsoft.Xna.Framework;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 
-namespace ClassicUO.Game.UI.Controls;
+namespace ClassicUO.Extensions;
 
 #nullable enable
 
-internal sealed class CheckerTrans : Control
+public static class SpanExtensions
 {
-    public CheckerTrans(List<string> parts)
+    public static void T()
     {
-        X = int.Parse(parts[1]);
-        Y = int.Parse(parts[2]);
-        Width = int.Parse(parts[3]);
-        Height = int.Parse(parts[4]);
-        AcceptMouseInput = false;
-        IsFromServer = true;
-    }
 
-    public CheckerTrans()
-    { }
-
-    public override bool Draw(UltimaBatcher2D batcher, int x, int y)
-    {
-        Vector3 hueVector = ShaderHueTranslator.GetHueVector(0, false, 0.5f);
-        batcher.Draw(SolidColorTextureCache.GetTexture(Color.Black), new Rectangle(x, y, Width, Height), hueVector);
-
-        return true;
     }
 }

@@ -30,14 +30,15 @@
 
 #endregion
 
-using System.Collections.Generic;
 using ClassicUO.Game.Scenes;
 using ClassicUO.Input;
-using ClassicUO.Assets;
+using ClassicUO.Modules.Gumps;
 using ClassicUO.Renderer;
 using ClassicUO.Utility;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using System;
+using System.Collections.Generic;
 
 namespace ClassicUO.Game.UI.Controls
 {
@@ -51,34 +52,25 @@ namespace ClassicUO.Game.UI.Controls
     internal class Button : Control
     {
         private readonly string _caption;
-        private bool _entered;
         private readonly RenderedText[] _fontTexture;
-        private ushort _normal,
-            _pressed,
-            _over;
+        private bool _entered;
+        private ushort _normal;
+        private ushort _pressed;
+        private ushort _over;
 
-        public Button(
-            int buttonID,
-            ushort normal,
-            ushort pressed,
-            ushort over = 0,
-            string caption = "",
-            byte font = 0,
-            bool isunicode = true,
-            ushort normalHue = ushort.MaxValue,
-            ushort hoverHue = ushort.MaxValue
-        )
+        public Button(int buttonId, ushort normal, ushort pressed, ushort over = 0, string caption = "",
+            byte font = 0, bool isunicode = true, ushort normalHue = ushort.MaxValue, ushort hoverHue = ushort.MaxValue)
         {
-            ButtonID = buttonID;
+            ButtonId = buttonId;
             _normal = normal;
             _pressed = pressed;
             _over = over;
 
-            ref readonly var gumpInfo = ref Client.Game.UO.Gumps.GetGump(normal);
-            if (gumpInfo.Texture == null)
+            ref readonly SpriteInfo gumpInfo = ref Client.Game.UO.Gumps.GetGump(normal);
+
+            if (gumpInfo.Texture is null)
             {
                 Dispose();
-
                 return;
             }
 
@@ -90,29 +82,20 @@ namespace ClassicUO.Game.UI.Controls
             if (!string.IsNullOrEmpty(caption) && normalHue != ushort.MaxValue)
             {
                 _fontTexture = new RenderedText[2];
-
                 _caption = caption;
-
                 _fontTexture[0] = RenderedText.Create(caption, FontHue, font, isunicode);
 
                 if (hoverHue != ushort.MaxValue)
-                {
                     _fontTexture[1] = RenderedText.Create(caption, HueHover, font, isunicode);
-                }
             }
 
             CanMove = false;
             AcceptMouseInput = true;
-            //CanCloseWithRightClick = false;
             CanCloseWithEsc = false;
         }
 
         public Button(List<string> parts)
-            : this(
-                parts.Count >= 8 ? int.Parse(parts[7]) : 0,
-                UInt16Converter.Parse(parts[3]),
-                UInt16Converter.Parse(parts[4])
-            )
+            : this(parts.Count >= 8 ? int.Parse(parts[7]) : 0, UInt16Converter.Parse(parts[3]), UInt16Converter.Parse(parts[4]))
         {
             X = int.Parse(parts[1]);
             Y = int.Parse(parts[2]);
@@ -120,7 +103,6 @@ namespace ClassicUO.Game.UI.Controls
             if (parts.Count >= 6)
             {
                 int action = int.Parse(parts[5]);
-
                 ButtonAction = action == 0 ? ButtonAction.SwitchPage : ButtonAction.Activate;
             }
 
@@ -132,7 +114,7 @@ namespace ClassicUO.Game.UI.Controls
 
         public bool IsClicked { get; set; }
 
-        public int ButtonID { get; }
+        public int ButtonId { get; }
 
         public ButtonAction ButtonAction { get; set; }
 
@@ -291,7 +273,7 @@ namespace ClassicUO.Game.UI.Controls
                             break;
 
                         case ButtonAction.Activate:
-                            OnButtonClick(ButtonID);
+                            OnButtonClick(ButtonId);
 
                             break;
                     }

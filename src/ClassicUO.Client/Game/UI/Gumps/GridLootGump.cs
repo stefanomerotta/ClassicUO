@@ -154,7 +154,7 @@ namespace ClassicUO.Game.UI.Gumps
             Add(_buttonNext);
 
             Add(
-                _currentPageLabel = new Label("1", true, 999, align: TEXT_ALIGN_TYPE.TS_CENTER)
+                _currentPageLabel = new Label("1", true, 999, align: TextAlignType.Center)
                 {
                     X = Width / 2 - 5,
                     Y = Height - 20
@@ -166,7 +166,7 @@ namespace ClassicUO.Game.UI.Gumps
                     GetCorpseName(),
                     true,
                     0x0481,
-                    align: TEXT_ALIGN_TYPE.TS_CENTER,
+                    align: TextAlignType.Center,
                     maxwidth: 300
                 )
                 {

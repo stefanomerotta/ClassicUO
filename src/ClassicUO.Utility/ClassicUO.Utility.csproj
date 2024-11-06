@@ -8,6 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\external\FNA\FNA.Core.csproj" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" />
+    <PackageReference Include="System.IO.Hashing" Version="8.0.0" />
   </ItemGroup>
 
 </Project>

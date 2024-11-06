@@ -81,7 +81,7 @@ namespace ClassicUO.Game.UI.Controls
                     150,
                     1,
                     FontStyle.None,
-                    TEXT_ALIGN_TYPE.TS_CENTER
+                    TextAlignType.Center
                 )
                 {
                     Y = 5

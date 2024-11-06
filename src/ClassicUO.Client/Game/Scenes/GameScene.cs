@@ -1319,7 +1319,7 @@ namespace ClassicUO.Game.Scenes
             3,
             false,
             FontStyle.BlackBorder,
-            TEXT_ALIGN_TYPE.TS_LEFT
+            TextAlignType.Left
         );
 
         private bool CheckDeathScreen(UltimaBatcher2D batcher)

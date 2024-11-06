@@ -80,7 +80,7 @@ namespace ClassicUO.Game.UI.Gumps
                 345,
                 2,
                 FontStyle.None,
-                TEXT_ALIGN_TYPE.TS_CENTER
+                TextAlignType.Center
             )
             {
                 Y = startY
@@ -141,7 +141,7 @@ namespace ClassicUO.Game.UI.Gumps
                 345,
                 2,
                 FontStyle.None,
-                TEXT_ALIGN_TYPE.TS_CENTER
+                TextAlignType.Center
             )
             {
                 Y = startY
@@ -159,7 +159,7 @@ namespace ClassicUO.Game.UI.Gumps
                 345,
                 2,
                 FontStyle.None,
-                TEXT_ALIGN_TYPE.TS_CENTER
+                TextAlignType.Center
             )
             {
                 Y = startY

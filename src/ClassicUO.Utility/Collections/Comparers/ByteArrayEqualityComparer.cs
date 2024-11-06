@@ -22,34 +22,47 @@
 //  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 //  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES
 
-using ClassicUO.Renderer;
-using Microsoft.Xna.Framework;
+using System;
 using System.Collections.Generic;
+using System.IO.Hashing;
+using System.Linq;
 
-namespace ClassicUO.Game.UI.Controls;
+namespace ClassicUO.Utility.Collections.Comparers;
 
 #nullable enable
 
-internal sealed class CheckerTrans : Control
+public sealed class ByteArrayEqualityComparer : IEqualityComparer<byte[]>, IAlternateEqualityComparer<ReadOnlySpan<byte>, byte[]>
 {
-    public CheckerTrans(List<string> parts)
+    public static readonly ByteArrayEqualityComparer Instance = new();
+
+    public bool Equals(byte[]? x, byte[]? y)
     {
-        X = int.Parse(parts[1]);
-        Y = int.Parse(parts[2]);
-        Width = int.Parse(parts[3]);
-        Height = int.Parse(parts[4]);
-        AcceptMouseInput = false;
-        IsFromServer = true;
+        if (x is null)
+            return y is null;
+
+        if (y is null)
+            return x is null;
+
+        return x.AsSpan().SequenceEqual(y);
     }
 
-    public CheckerTrans()
-    { }
-
-    public override bool Draw(UltimaBatcher2D batcher, int x, int y)
+    public int GetHashCode(byte[] obj)
     {
-        Vector3 hueVector = ShaderHueTranslator.GetHueVector(0, false, 0.5f);
-        batcher.Draw(SolidColorTextureCache.GetTexture(Color.Black), new Rectangle(x, y, Width, Height), hueVector);
+        return GetHashCode(obj.AsSpan());
+    }
 
-        return true;
+    public byte[] Create(ReadOnlySpan<byte> alternate)
+    {
+        return alternate.ToArray();
+    }
+
+    public bool Equals(ReadOnlySpan<byte> alternate, byte[] other)
+    {
+        return other.AsSpan().SequenceEqual(alternate);
+    }
+
+    public int GetHashCode(ReadOnlySpan<byte> alternate)
+    {
+        return unchecked((int)XxHash32.HashToUInt32(alternate));
     }
 }

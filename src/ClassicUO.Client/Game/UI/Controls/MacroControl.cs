@@ -81,7 +81,7 @@ namespace ClassicUO.Game.UI.Controls
                     ButtonAction.Activate,
                     ResGumps.CreateMacroButton,
                     0,
-                    TEXT_ALIGN_TYPE.TS_LEFT
+                    TextAlignType.Left
                 ) { ButtonParameter = (int)buttonsOption.CreateNewMacro, IsSelectable = false }
             );
 
@@ -112,7 +112,7 @@ namespace ClassicUO.Game.UI.Controls
                         ButtonAction.Activate,
                         ResGumps.Remove,
                         0,
-                        TEXT_ALIGN_TYPE.TS_LEFT
+                        TextAlignType.Left
                     )
                     { ButtonParameter = (int)buttonsOption.RemoveBtn, IsSelectable = false }
                 );

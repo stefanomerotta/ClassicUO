@@ -22,34 +22,31 @@
 //  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 //  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES
 
-using ClassicUO.Renderer;
-using Microsoft.Xna.Framework;
 using System.Collections.Generic;
+using ClassicUO.Input;
+using ClassicUO.Network;
+using ClassicUO.Network.Packets;
 
 namespace ClassicUO.Game.UI.Controls;
 
-#nullable enable
-
-internal sealed class CheckerTrans : Control
+internal class VirtueGumpPic : GumpPic
 {
-    public CheckerTrans(List<string> parts)
+    private readonly World _world;
+
+    public VirtueGumpPic(World world, List<string> parts) : base(parts)
     {
-        X = int.Parse(parts[1]);
-        Y = int.Parse(parts[2]);
-        Width = int.Parse(parts[3]);
-        Height = int.Parse(parts[4]);
-        AcceptMouseInput = false;
-        IsFromServer = true;
+        _world = world;
     }
 
-    public CheckerTrans()
-    { }
-
-    public override bool Draw(UltimaBatcher2D batcher, int x, int y)
+    protected override bool OnMouseDoubleClick(int x, int y, MouseButtonType button)
     {
-        Vector3 hueVector = ShaderHueTranslator.GetHueVector(0, false, 0.5f);
-        batcher.Draw(SolidColorTextureCache.GetTexture(Color.Black), new Rectangle(x, y, Width, Height), hueVector);
+        if (button == MouseButtonType.Left)
+        {
+            NetClient.Socket.SendVirtueGumpResponse(_world.Player, Graphic);
 
-        return true;
+            return true;
+        }
+
+        return base.OnMouseDoubleClick(x, y, button);
     }
 }

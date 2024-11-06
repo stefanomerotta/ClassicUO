@@ -53,7 +53,7 @@ namespace ClassicUO.Game.UI.Controls
             ButtonAction action,
             string text,
             int groupnumber = 0,
-            TEXT_ALIGN_TYPE align = TEXT_ALIGN_TYPE.TS_CENTER,
+            TextAlignType align = TextAlignType.Center,
             ushort hue = 0xFFFF,
             bool unicode = true,
             byte font = 0xFF

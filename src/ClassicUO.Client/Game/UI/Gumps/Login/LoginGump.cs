@@ -614,7 +614,7 @@ namespace ClassicUO.Game.UI.Gumps.Login
                 bool isunicode = true,
                 FontStyle style = FontStyle.None,
                 ushort hue = 0,
-                TEXT_ALIGN_TYPE align = TEXT_ALIGN_TYPE.TS_LEFT
+                TextAlignType align = TextAlignType.Left
             ) : base
             (
                 font,

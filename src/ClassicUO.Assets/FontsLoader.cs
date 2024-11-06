@@ -364,7 +364,7 @@ namespace ClassicUO.Assets
             byte font,
             string text,
             int maxwidth,
-            TEXT_ALIGN_TYPE align,
+            TextAlignType align,
             ushort flags
         )
         {
@@ -410,7 +410,7 @@ namespace ClassicUO.Assets
             byte font,
             string str,
             int width,
-            TEXT_ALIGN_TYPE align,
+            TextAlignType align,
             ushort flags
         )
         {
@@ -460,7 +460,7 @@ namespace ClassicUO.Assets
             string str,
             ushort color,
             int width,
-            TEXT_ALIGN_TYPE align,
+            TextAlignType align,
             ushort flags,
             bool saveHitmap,
             int height
@@ -541,7 +541,7 @@ namespace ClassicUO.Assets
             string str,
             int width,
             bool isCropped,
-            TEXT_ALIGN_TYPE align,
+            TextAlignType align,
             ushort flags
         )
         {
@@ -614,7 +614,7 @@ namespace ClassicUO.Assets
             string str,
             ushort color,
             int width,
-            TEXT_ALIGN_TYPE align,
+            TextAlignType align,
             ushort flags,
             bool saveHitmap
         )
@@ -685,7 +685,7 @@ namespace ClassicUO.Assets
 
                     switch (ptr.Align)
                     {
-                        case TEXT_ALIGN_TYPE.TS_CENTER:
+                        case TextAlignType.Center:
                             {
                                 w = (width - ptr.Width) >> 1;
 
@@ -697,7 +697,7 @@ namespace ClassicUO.Assets
                                 break;
                             }
 
-                        case TEXT_ALIGN_TYPE.TS_RIGHT:
+                        case TextAlignType.Right:
                             {
                                 w = width - 10 - ptr.Width;
 
@@ -709,7 +709,7 @@ namespace ClassicUO.Assets
                                 break;
                             }
 
-                        case TEXT_ALIGN_TYPE.TS_LEFT when (flags & UOFONT_INDENTION) != 0:
+                        case TextAlignType.Left when (flags & UOFONT_INDENTION) != 0:
                             w = ptr.IndentionOffset;
 
                             break;
@@ -833,7 +833,7 @@ namespace ClassicUO.Assets
             byte font,
             string str,
             int len,
-            TEXT_ALIGN_TYPE align,
+            TextAlignType align,
             ushort flags,
             int width,
             bool countret = false,
@@ -946,7 +946,7 @@ namespace ClassicUO.Assets
                         lastSpace = i - 1;
                         charCount = 0;
 
-                        if (ptr.Align == TEXT_ALIGN_TYPE.TS_LEFT && (flags & UOFONT_INDENTION) != 0)
+                        if (ptr.Align == TextAlignType.Left && (flags & UOFONT_INDENTION) != 0)
                         {
                             indentionOffset = 14;
                         }
@@ -1012,7 +1012,7 @@ namespace ClassicUO.Assets
                         ptr.Align = align;
                         ptr.CharStart = i;
 
-                        if (ptr.Align == TEXT_ALIGN_TYPE.TS_LEFT && (flags & UOFONT_INDENTION) != 0)
+                        if (ptr.Align == TextAlignType.Left && (flags & UOFONT_INDENTION) != 0)
                         {
                             indentionOffset = 14;
                         }
@@ -1083,7 +1083,7 @@ namespace ClassicUO.Assets
             ushort color,
             byte cell,
             int width,
-            TEXT_ALIGN_TYPE align,
+            TextAlignType align,
             ushort flags,
             bool saveHitmap,
             int height
@@ -1165,7 +1165,7 @@ namespace ClassicUO.Assets
             ReadOnlySpan<char> str,
             int width,
             bool isCropped,
-            TEXT_ALIGN_TYPE align,
+            TextAlignType align,
             ushort flags
         )
         {
@@ -1321,7 +1321,7 @@ namespace ClassicUO.Assets
             byte font,
             string text,
             int maxwidth,
-            TEXT_ALIGN_TYPE align,
+            TextAlignType align,
             ushort flags
         )
         {
@@ -1363,7 +1363,7 @@ namespace ClassicUO.Assets
             byte font,
             string str,
             int len,
-            TEXT_ALIGN_TYPE align,
+            TextAlignType align,
             ushort flags,
             int width,
             bool countret = false,
@@ -1398,7 +1398,7 @@ namespace ClassicUO.Assets
             int extraheight = (flags & UOFONT_EXTRAHEIGHT) != 0 ? 4 : 0;
             bool isFixed = (flags & UOFONT_FIXED) != 0;
             bool isCropped = (flags & UOFONT_CROPPED) != 0;
-            TEXT_ALIGN_TYPE current_align = align;
+            TextAlignType current_align = align;
             ushort current_flags = flags;
             byte current_font = font;
             uint charcolor = 0xFFFFFFFF;
@@ -1504,7 +1504,7 @@ namespace ClassicUO.Assets
                         charCount = 0;
 
                         if (
-                            ptr.Align == TEXT_ALIGN_TYPE.TS_LEFT
+                            ptr.Align == TextAlignType.Left
                             && (current_flags & UOFONT_INDENTION) != 0
                         )
                         {
@@ -1577,7 +1577,7 @@ namespace ClassicUO.Assets
                         charCount = 0;
 
                         if (
-                            ptr.Align == TEXT_ALIGN_TYPE.TS_LEFT
+                            ptr.Align == TextAlignType.Left
                             && (current_flags & UOFONT_INDENTION) != 0
                         )
                         {
@@ -1649,7 +1649,7 @@ namespace ClassicUO.Assets
             ushort color,
             byte cell,
             int width,
-            TEXT_ALIGN_TYPE align,
+            TextAlignType align,
             ushort flags,
             bool saveHitmap
         )
@@ -1782,7 +1782,7 @@ namespace ClassicUO.Assets
 
                     switch (ptr.Align)
                     {
-                        case TEXT_ALIGN_TYPE.TS_CENTER:
+                        case TextAlignType.Center:
                             {
                                 w += (width - 8) / 2 - ptr.Width / 2;
 
@@ -1794,7 +1794,7 @@ namespace ClassicUO.Assets
                                 break;
                             }
 
-                        case TEXT_ALIGN_TYPE.TS_RIGHT:
+                        case TextAlignType.Right:
                             {
                                 w += width - 10 - ptr.Width;
 
@@ -1806,7 +1806,7 @@ namespace ClassicUO.Assets
                                 break;
                             }
 
-                        case TEXT_ALIGN_TYPE.TS_LEFT when (flags & UOFONT_INDENTION) != 0:
+                        case TextAlignType.Left when (flags & UOFONT_INDENTION) != 0:
                             w += ptr.IndentionOffset;
 
                             break;
@@ -2284,7 +2284,7 @@ namespace ClassicUO.Assets
             byte font,
             string str,
             int len,
-            TEXT_ALIGN_TYPE align,
+            TextAlignType align,
             ushort flags,
             int width
         )
@@ -2414,7 +2414,7 @@ namespace ClassicUO.Assets
                         charCount = 0;
 
                         if (
-                            ptr.Align == TEXT_ALIGN_TYPE.TS_LEFT
+                            ptr.Align == TextAlignType.Left
                             && (htmlData[i].Flags & UOFONT_INDENTION) != 0
                         )
                         {
@@ -2479,7 +2479,7 @@ namespace ClassicUO.Assets
                         ptr.CharStart = i;
 
                         if (
-                            ptr.Align == TEXT_ALIGN_TYPE.TS_LEFT
+                            ptr.Align == TextAlignType.Left
                             && (htmlData[i].Flags & UOFONT_INDENTION) != 0
                         )
                         {
@@ -2525,7 +2525,7 @@ namespace ClassicUO.Assets
             byte font,
             ReadOnlySpan<char> str,
             ref int len,
-            TEXT_ALIGN_TYPE align,
+            TextAlignType align,
             ushort flags
         )
         {
@@ -2556,7 +2556,7 @@ namespace ClassicUO.Assets
                     HTMLDataInfo newInfo = new HTMLDataInfo
                     {
                         Tag = HTML_TAG_TYPE.HTT_NONE,
-                        Align = TEXT_ALIGN_TYPE.TS_LEFT,
+                        Align = TextAlignType.Left,
                         Flags = 0,
                         Font = 0xFF,
                         Color = 0,
@@ -2672,7 +2672,7 @@ namespace ClassicUO.Assets
         private void GetCurrentHTMLInfo(ref FastList<HTMLDataInfo> list, ref HTMLDataInfo info)
         {
             info.Tag = HTML_TAG_TYPE.HTT_NONE;
-            info.Align = TEXT_ALIGN_TYPE.TS_LEFT;
+            info.Align = TextAlignType.Left;
             info.Flags = 0;
             info.Font = 0xFF;
             info.Color = 0;
@@ -3177,15 +3177,15 @@ namespace ClassicUO.Assets
                         {
                             if (MemoryExtensions.Equals(value, "left", StringComparison.InvariantCultureIgnoreCase))
                             {
-                                info.Align = TEXT_ALIGN_TYPE.TS_LEFT;
+                                info.Align = TextAlignType.Left;
                             }
                             else if (MemoryExtensions.Equals(value, "center", StringComparison.InvariantCultureIgnoreCase))
                             {
-                                info.Align = TEXT_ALIGN_TYPE.TS_CENTER;
+                                info.Align = TextAlignType.Center;
                             }
                             else if (MemoryExtensions.Equals(value, "right", StringComparison.InvariantCultureIgnoreCase))
                             {
-                                info.Align = TEXT_ALIGN_TYPE.TS_RIGHT;
+                                info.Align = TextAlignType.Right;
                             }
                         }
 
@@ -3349,7 +3349,7 @@ namespace ClassicUO.Assets
         private void GetHTMLInfoFromTag(HTML_TAG_TYPE tag, ref HTMLDataInfo info)
         {
             info.Tag = tag;
-            info.Align = TEXT_ALIGN_TYPE.TS_LEFT;
+            info.Align = TextAlignType.Left;
             info.Flags = 0;
             info.Font = 0xFF;
             info.Color = 0;
@@ -3428,17 +3428,17 @@ namespace ClassicUO.Assets
                     break;
 
                 case HTML_TAG_TYPE.HTT_LEFT:
-                    info.Align = TEXT_ALIGN_TYPE.TS_LEFT;
+                    info.Align = TextAlignType.Left;
 
                     break;
 
                 case HTML_TAG_TYPE.HTT_CENTER:
-                    info.Align = TEXT_ALIGN_TYPE.TS_CENTER;
+                    info.Align = TextAlignType.Center;
 
                     break;
 
                 case HTML_TAG_TYPE.HTT_RIGHT:
-                    info.Align = TEXT_ALIGN_TYPE.TS_RIGHT;
+                    info.Align = TextAlignType.Right;
 
                     break;
             }
@@ -3467,7 +3467,7 @@ namespace ClassicUO.Assets
             byte font,
             string str,
             int width,
-            TEXT_ALIGN_TYPE align,
+            TextAlignType align,
             ushort flags
         )
         {
@@ -3510,7 +3510,7 @@ namespace ClassicUO.Assets
             string str,
             int pos,
             int width,
-            TEXT_ALIGN_TYPE align,
+            TextAlignType align,
             ushort flags
         )
         {
@@ -3519,12 +3519,12 @@ namespace ClassicUO.Assets
 
             switch (align)
             {
-                case TEXT_ALIGN_TYPE.TS_CENTER:
+                case TextAlignType.Center:
                     x = width >> 1;
 
                     break;
 
-                case TEXT_ALIGN_TYPE.TS_RIGHT:
+                case TextAlignType.Right:
                     x = width;
 
                     break;
@@ -3551,7 +3551,7 @@ namespace ClassicUO.Assets
             {
                 switch (info.Align)
                 {
-                    case TEXT_ALIGN_TYPE.TS_CENTER:
+                    case TextAlignType.Center:
                         x = (width - info.Width) >> 1;
 
                         if (x < 0)
@@ -3561,7 +3561,7 @@ namespace ClassicUO.Assets
 
                         break;
 
-                    case TEXT_ALIGN_TYPE.TS_RIGHT:
+                    case TextAlignType.Right:
                         x = width;
 
                         break;
@@ -3624,7 +3624,7 @@ namespace ClassicUO.Assets
             string str,
             int pos,
             int width,
-            TEXT_ALIGN_TYPE align,
+            TextAlignType align,
             ushort flags
         )
         {
@@ -3633,12 +3633,12 @@ namespace ClassicUO.Assets
 
             switch (align)
             {
-                case TEXT_ALIGN_TYPE.TS_CENTER:
+                case TextAlignType.Center:
                     x = width >> 1;
 
                     break;
 
-                case TEXT_ALIGN_TYPE.TS_RIGHT:
+                case TextAlignType.Right:
                     x = width;
 
                     break;
@@ -3665,7 +3665,7 @@ namespace ClassicUO.Assets
             {
                 switch (info.Align)
                 {
-                    case TEXT_ALIGN_TYPE.TS_CENTER:
+                    case TextAlignType.Center:
                         x = (width - info.Width) >> 1;
 
                         if (x < 0)
@@ -3675,7 +3675,7 @@ namespace ClassicUO.Assets
 
                         break;
 
-                    case TEXT_ALIGN_TYPE.TS_RIGHT:
+                    case TextAlignType.Right:
                         x = width;
 
                         break;
@@ -3725,11 +3725,11 @@ namespace ClassicUO.Assets
         }
     }
 
-    public enum TEXT_ALIGN_TYPE
+    public enum TextAlignType
     {
-        TS_LEFT = 0,
-        TS_CENTER,
-        TS_RIGHT
+        Left = 0,
+        Center,
+        Right
     }
 
     public enum HTML_TAG_TYPE
@@ -3797,7 +3797,7 @@ namespace ClassicUO.Assets
 
     public sealed class MultilinesFontInfo
     {
-        public TEXT_ALIGN_TYPE Align;
+        public TextAlignType Align;
         public int CharCount;
         public int CharStart;
         public FastList<MultilinesFontData> Data = new FastList<MultilinesFontData>();
@@ -3813,7 +3813,7 @@ namespace ClassicUO.Assets
             MaxHeight = 0;
             CharStart = 0;
             CharCount = 0;
-            Align = TEXT_ALIGN_TYPE.TS_LEFT;
+            Align = TextAlignType.Left;
             Next = null;
         }
     }
@@ -3853,7 +3853,7 @@ namespace ClassicUO.Assets
     {
         public char Char;
         public byte Font;
-        public TEXT_ALIGN_TYPE Align;
+        public TextAlignType Align;
         public ushort Flags;
         public uint Color;
         public ushort LinkID;
@@ -3862,7 +3862,7 @@ namespace ClassicUO.Assets
     public struct HTMLDataInfo
     {
         public HTML_TAG_TYPE Tag;
-        public TEXT_ALIGN_TYPE Align;
+        public TextAlignType Align;
         public ushort Flags;
         public byte Font;
         public uint Color;

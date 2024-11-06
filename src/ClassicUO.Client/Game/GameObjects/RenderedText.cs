@@ -91,7 +91,7 @@ namespace ClassicUO.Game
             }
         }
 
-        public TEXT_ALIGN_TYPE Align { get; set; }
+        public TextAlignType Align { get; set; }
 
         public int MaxWidth { get; set; }
 
@@ -190,7 +190,7 @@ namespace ClassicUO.Game
             byte font = 0xFF,
             bool isunicode = true,
             FontStyle style = 0,
-            TEXT_ALIGN_TYPE align = 0,
+            TextAlignType align = 0,
             int maxWidth = 0,
             byte cell = 30,
             bool isHTML = false,
@@ -305,13 +305,13 @@ namespace ClassicUO.Game
 
             switch (Align)
             {
-                case TEXT_ALIGN_TYPE.TS_LEFT:
+                case TextAlignType.Left:
                     r.x0 = 0;
                     r.x1 = Width;
 
                     break;
 
-                case TEXT_ALIGN_TYPE.TS_CENTER:
+                case TextAlignType.Center:
                     r.x0 = (Width - info.Width) >> 1;
 
                     if (r.x0 < 0)
@@ -323,7 +323,7 @@ namespace ClassicUO.Game
 
                     break;
 
-                case TEXT_ALIGN_TYPE.TS_RIGHT:
+                case TextAlignType.Right:
                     r.x0 = Width;
 
                     // TODO: r.x1 ???  i don't know atm :D

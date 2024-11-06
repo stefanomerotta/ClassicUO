@@ -38,6 +38,7 @@ using ClassicUO.Configuration;
 using ClassicUO.Assets;
 using ClassicUO.Renderer;
 using ClassicUO.Utility;
+using ClassicUO.Modules.Gumps;
 
 namespace ClassicUO.Game.Data
 {

@@ -30,13 +30,12 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
-using ClassicUO.Assets;
 using ClassicUO.Renderer;
 using ClassicUO.Utility;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using System;
+using System.Collections.Generic;
 
 namespace ClassicUO.Game.UI.Controls
 {

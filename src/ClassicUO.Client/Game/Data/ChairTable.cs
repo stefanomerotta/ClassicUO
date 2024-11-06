@@ -1,4 +1,5 @@
-﻿using ClassicUO.Utility;
+﻿using ClassicUO.Modules.Gumps;
+using ClassicUO.Utility;
 using System.Collections.Generic;
 using System.IO;
 using static ClassicUO.Assets.AnimationsLoader;

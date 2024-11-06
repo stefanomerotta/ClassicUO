@@ -237,7 +237,7 @@ internal sealed class BuffGump : Gump
             Icon = icon;
             _alpha = 0xFF;
             _decreaseAlpha = true;
-            _gText = RenderedText.Create("", 0xFFFF, 2, true, FontStyle.Fixed | FontStyle.BlackBorder, TEXT_ALIGN_TYPE.TS_CENTER, Width);
+            _gText = RenderedText.Create("", 0xFFFF, 2, true, FontStyle.Fixed | FontStyle.BlackBorder, TextAlignType.Center, Width);
 
             AcceptMouseInput = true;
             WantUpdateSize = false;

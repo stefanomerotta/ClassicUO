@@ -22,34 +22,72 @@
 //  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 //  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES
 
-using ClassicUO.Renderer;
-using Microsoft.Xna.Framework;
-using System.Collections.Generic;
+using System;
 
-namespace ClassicUO.Game.UI.Controls;
+namespace ClassicUO.Modules.Gumps;
 
 #nullable enable
-
-internal sealed class CheckerTrans : Control
+public ref struct GumpLayoutEnumerator
 {
-    public CheckerTrans(List<string> parts)
+    private const byte OPEN = (byte)'{';
+    private const byte CLOSE = (byte)'}';
+    private const byte SPACE = (byte)' ';
+    private const byte TAG = (byte)'@';
+
+    private ReadOnlySpan<byte> _buffer;
+
+    public ReadOnlySpan<byte> Current { get; private set; }
+
+    public GumpLayoutEnumerator(ReadOnlySpan<byte> buffer)
     {
-        X = int.Parse(parts[1]);
-        Y = int.Parse(parts[2]);
-        Width = int.Parse(parts[3]);
-        Height = int.Parse(parts[4]);
-        AcceptMouseInput = false;
-        IsFromServer = true;
+        _buffer = buffer;
     }
 
-    public CheckerTrans()
-    { }
-
-    public override bool Draw(UltimaBatcher2D batcher, int x, int y)
+    public bool MoveNext()
     {
-        Vector3 hueVector = ShaderHueTranslator.GetHueVector(0, false, 0.5f);
-        batcher.Draw(SolidColorTextureCache.GetTexture(Color.Black), new Rectangle(x, y, Width, Height), hueVector);
+        int start = _buffer.IndexOf(OPEN);
+        if (start == -1)
+        {
+            _buffer = [];
+            return false;
+        }
 
+        _buffer = _buffer[start..];
+
+        int end = _buffer.IndexOfAny(CLOSE, TAG);
+        if (end == -1)
+        {
+            _buffer = [];
+            return false;
+        }
+
+        if (_buffer[end] == TAG)
+        {
+            end++;
+
+            int tagEnd = _buffer[end..].IndexOf(TAG);
+            if (tagEnd == -1)
+            {
+                _buffer = [];
+                return false;
+            }
+
+            end += tagEnd + 1;
+
+            int close = _buffer[end..].IndexOf(CLOSE);
+            if (close == -1)
+            {
+                _buffer = [];
+                return false;
+            }
+
+            end += close;
+        }
+
+        Current = _buffer[1..end].Trim(SPACE);
+        _buffer = _buffer[end..];
         return true;
     }
+
+    public readonly GumpLayoutEnumerator GetEnumerator() => this;
 }

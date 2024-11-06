@@ -67,7 +67,7 @@ namespace ClassicUO.Game.UI.Gumps
                 1,
                 170,
                 1,
-                align: TEXT_ALIGN_TYPE.TS_CENTER
+                align: TextAlignType.Center
             )
             {
                 X = 159,
@@ -395,7 +395,7 @@ namespace ClassicUO.Game.UI.Gumps
                     1,
                     _textBox.Text,
                     220,
-                    TEXT_ALIGN_TYPE.TS_LEFT,
+                    TextAlignType.Left,
                     0x0
                 ) + 5,
                 20

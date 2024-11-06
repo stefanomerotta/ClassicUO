@@ -675,7 +675,7 @@ namespace ClassicUO.Game.UI.Gumps
                         110,
                         1,
                         FontStyle.None,
-                        TEXT_ALIGN_TYPE.TS_LEFT,
+                        TextAlignType.Left,
                         true
                     )
                     {
@@ -699,7 +699,7 @@ namespace ClassicUO.Game.UI.Gumps
                         35,
                         1,
                         FontStyle.None,
-                        TEXT_ALIGN_TYPE.TS_RIGHT
+                        TextAlignType.Right
                     )
                     {
                         X = 168,
@@ -908,7 +908,7 @@ namespace ClassicUO.Game.UI.Gumps
                         140,
                         1,
                         FontStyle.None,
-                        TEXT_ALIGN_TYPE.TS_LEFT,
+                        TextAlignType.Left,
                         true
                     )
                     {
@@ -925,7 +925,7 @@ namespace ClassicUO.Game.UI.Gumps
                         35,
                         1,
                         FontStyle.None,
-                        TEXT_ALIGN_TYPE.TS_RIGHT
+                        TextAlignType.Right
                     )
                     {
                         X = 10,

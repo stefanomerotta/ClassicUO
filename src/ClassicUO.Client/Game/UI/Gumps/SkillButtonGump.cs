@@ -99,7 +99,7 @@ namespace ClassicUO.Game.UI.Gumps
                     Width - 8,
                     1,
                     FontStyle.None,
-                    TEXT_ALIGN_TYPE.TS_CENTER
+                    TextAlignType.Center
                 )
                 {
                     X = 4,

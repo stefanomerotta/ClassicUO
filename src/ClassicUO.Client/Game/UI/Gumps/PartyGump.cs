@@ -150,7 +150,7 @@ namespace ClassicUO.Game.UI.Gumps
                         0x0386,
                         font: 2,
                         maxwidth: 250,
-                        align: TEXT_ALIGN_TYPE.TS_CENTER
+                        align: TextAlignType.Center
                     )
                     {
                         X = 140,

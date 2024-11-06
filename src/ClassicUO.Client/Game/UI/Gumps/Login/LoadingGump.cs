@@ -72,7 +72,7 @@ namespace ClassicUO.Game.UI.Gumps.Login
                 hue,
                 326,
                 font,
-                align: TEXT_ALIGN_TYPE.TS_CENTER
+                align: TextAlignType.Center
             )
             {
                 X = 162,

@@ -80,7 +80,7 @@ namespace ClassicUO.Game.UI.Gumps
                 0xFF,
                 true,
                 FontStyle.BlackBorder,
-                TEXT_ALIGN_TYPE.TS_CENTER,
+                TextAlignType.Center,
                 100,
                 30,
                 true
@@ -141,7 +141,7 @@ namespace ClassicUO.Game.UI.Gumps
                         t.AsSpan(),
                         Constants.OBJECT_HANDLES_GUMP_WIDTH,
                         true,
-                        TEXT_ALIGN_TYPE.TS_CENTER,
+                        TextAlignType.Center,
                         (ushort)FontStyle.BlackBorder
                     );
 
@@ -175,7 +175,7 @@ namespace ClassicUO.Game.UI.Gumps
                         t.AsSpan(),
                         Constants.OBJECT_HANDLES_GUMP_WIDTH,
                         true,
-                        TEXT_ALIGN_TYPE.TS_CENTER,
+                        TextAlignType.Center,
                         (ushort)FontStyle.BlackBorder
                     );
 

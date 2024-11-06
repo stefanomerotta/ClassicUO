@@ -744,7 +744,7 @@ namespace ClassicUO.Game.UI.Gumps
                             true,
                             FontStyle.Cropped | FontStyle.BlackBorder,
                             Notoriety.GetHue(World.Player.NotorietyFlag),
-                            TEXT_ALIGN_TYPE.TS_CENTER
+                            TextAlignType.Center
                         )
                         {
                             X = 0,
@@ -767,7 +767,7 @@ namespace ClassicUO.Game.UI.Gumps
                             true,
                             FontStyle.Cropped | FontStyle.BlackBorder,
                             Notoriety.GetHue((entity as Mobile)?.NotorietyFlag ?? NotorietyFlag.Gray),
-                            TEXT_ALIGN_TYPE.TS_CENTER
+                            TextAlignType.Center
                         )
                         {
                             X = 0,
@@ -934,7 +934,7 @@ namespace ClassicUO.Game.UI.Gumps
                             style: FontStyle.Cropped | FontStyle.BlackBorder,
                             hue: Notoriety.GetHue((entity as Mobile)?.NotorietyFlag ?? NotorietyFlag.Gray),
                             maxWidth: Width,
-                            align: TEXT_ALIGN_TYPE.TS_CENTER
+                            align: TextAlignType.Center
                         )
                         {
                             X = 0,
@@ -1192,7 +1192,7 @@ namespace ClassicUO.Game.UI.Gumps
                             true,
                             hue: Notoriety.GetHue((entity as Mobile)?.NotorietyFlag ?? NotorietyFlag.Gray),
                             style: FontStyle.Cropped | FontStyle.BlackBorder,
-                            align: TEXT_ALIGN_TYPE.TS_CENTER
+                            align: TextAlignType.Center
                         )
                         {
                             X = 0,

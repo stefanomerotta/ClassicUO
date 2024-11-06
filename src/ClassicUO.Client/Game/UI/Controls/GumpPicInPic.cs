@@ -22,34 +22,76 @@
 //  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 //  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES
 
-using ClassicUO.Renderer;
-using Microsoft.Xna.Framework;
 using System.Collections.Generic;
+using ClassicUO.Renderer;
+using ClassicUO.Utility;
+using Microsoft.Xna.Framework;
 
 namespace ClassicUO.Game.UI.Controls;
 
-#nullable enable
-
-internal sealed class CheckerTrans : Control
+internal class GumpPicInPic : GumpPicBase
 {
-    public CheckerTrans(List<string> parts)
+    private readonly Rectangle _picInPicBounds;
+
+    public GumpPicInPic(
+        int x,
+        int y,
+        ushort graphic,
+        ushort sx,
+        ushort sy,
+        ushort width,
+        ushort height
+    )
     {
-        X = int.Parse(parts[1]);
-        Y = int.Parse(parts[2]);
-        Width = int.Parse(parts[3]);
-        Height = int.Parse(parts[4]);
-        AcceptMouseInput = false;
+        X = x;
+        Y = y;
+        Graphic = graphic;
+        Width = width;
+        Height = height;
+        _picInPicBounds = new Rectangle(sx, sy, Width, Height);
         IsFromServer = true;
     }
 
-    public CheckerTrans()
+    public GumpPicInPic(List<string> parts)
+        : this(
+            int.Parse(parts[1]),
+            int.Parse(parts[2]),
+            UInt16Converter.Parse(parts[3]),
+            UInt16Converter.Parse(parts[4]),
+            UInt16Converter.Parse(parts[5]),
+            UInt16Converter.Parse(parts[6]),
+            UInt16Converter.Parse(parts[7])
+        )
     { }
+
+    public override bool Contains(int x, int y)
+    {
+        return true;
+    }
 
     public override bool Draw(UltimaBatcher2D batcher, int x, int y)
     {
-        Vector3 hueVector = ShaderHueTranslator.GetHueVector(0, false, 0.5f);
-        batcher.Draw(SolidColorTextureCache.GetTexture(Color.Black), new Rectangle(x, y, Width, Height), hueVector);
+        if (IsDisposed)
+        {
+            return false;
+        }
 
-        return true;
+        Vector3 hueVector = ShaderHueTranslator.GetHueVector(Hue, false, Alpha, true);
+
+        ref readonly var gumpInfo = ref Client.Game.UO.Gumps.GetGump(Graphic);
+
+        var sourceBounds = new Rectangle(gumpInfo.UV.X + _picInPicBounds.X, gumpInfo.UV.Y + _picInPicBounds.Y, _picInPicBounds.Width, _picInPicBounds.Height);
+
+        if (gumpInfo.Texture != null)
+        {
+            batcher.Draw(
+                gumpInfo.Texture,
+                new Rectangle(x, y, Width, Height),
+                sourceBounds,
+                hueVector
+            );
+        }
+
+        return base.Draw(batcher, x, y);
     }
 }

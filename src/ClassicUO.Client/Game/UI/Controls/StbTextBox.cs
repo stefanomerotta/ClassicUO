@@ -58,12 +58,12 @@ namespace ClassicUO.Game.UI.Controls
         public StbTextBox
         (
             byte font,
-            int max_char_count = -1,
+            int maxCharCount = -1,
             int maxWidth = 0,
             bool isunicode = true,
             FontStyle style = FontStyle.None,
             ushort hue = 0,
-            TEXT_ALIGN_TYPE align = 0
+            TextAlignType align = 0
         )
         {
             AcceptKeyboardInput = true;
@@ -71,7 +71,7 @@ namespace ClassicUO.Game.UI.Controls
             CanMove = false;
             IsEditable = true;
 
-            _maxCharCount = max_char_count;
+            _maxCharCount = maxCharCount;
 
             Stb = new TextEdit(this);
             Stb.SingleLine = true;
@@ -916,7 +916,7 @@ namespace ClassicUO.Game.UI.Controls
 
                 int drawY = 1;
                 int start = 0;
-                int diffX = _rendererText.Align != TEXT_ALIGN_TYPE.TS_LEFT ? _rendererText.GetCaretPosition(0).X - 1 : 0;
+                int diffX = _rendererText.Align != TextAlignType.Left ? _rendererText.GetCaretPosition(0).X - 1 : 0;
 
                 while (info != null && selectStart < selectEnd)
                 {

@@ -3157,7 +3157,7 @@ namespace ClassicUO.Game.UI.Gumps
                 ButtonAction.Activate,
                 ResGumps.AddItem,
                 0,
-                TEXT_ALIGN_TYPE.TS_LEFT
+                TextAlignType.Left
             )
             {
                 ButtonParameter = -1,

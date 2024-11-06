@@ -217,7 +217,7 @@ internal sealed class MessageManager
                     font,
                     msg,
                     200,
-                    TEXT_ALIGN_TYPE.TS_LEFT,
+                    TextAlignType.Left,
                     (ushort)FontStyle.BlackBorder
                 ) :
                 Client.Game.UO.FileManager.Fonts.GetWidthExASCII
@@ -225,7 +225,7 @@ internal sealed class MessageManager
                     font,
                     msg,
                     200,
-                    TEXT_ALIGN_TYPE.TS_LEFT,
+                    TextAlignType.Left,
                     (ushort)FontStyle.BlackBorder
                 );
         }
@@ -269,7 +269,7 @@ internal sealed class MessageManager
             font,
             isunicode,
             FontStyle.BlackBorder,
-            TEXT_ALIGN_TYPE.TS_LEFT,
+            TextAlignType.Left,
             width,
             30,
             false,

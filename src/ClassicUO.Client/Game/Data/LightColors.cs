@@ -30,6 +30,7 @@
 
 #endregion
 
+using ClassicUO.Modules.Gumps;
 using ClassicUO.Utility;
 using System;
 using System.Collections.Generic;

@@ -112,7 +112,7 @@ namespace ClassicUO.Game.UI
                     style: FontStyle.BlackBorder,
                     cell: 5,
                     isHTML: true,
-                    align: TEXT_ALIGN_TYPE.TS_CENTER,
+                    align: TextAlignType.Center,
                     recalculateWidthByInfo: true,
                     hue: hue
                 );
@@ -134,7 +134,7 @@ namespace ClassicUO.Game.UI
                         font,
                         Text,
                         width,
-                        TEXT_ALIGN_TYPE.TS_CENTER,
+                        TextAlignType.Center,
                         (ushort) FontStyle.BlackBorder
                     );
 
