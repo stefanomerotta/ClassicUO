@@ -222,7 +222,7 @@ namespace ClassicUO
             if (id > byte.MaxValue)
                 return -1;
 
-            short length = IncomingPackets.Instance.GetPacketLength((byte)id);
+            short length = IncomingPackets.GetPacketLength((byte)id);
             if (length == 0)
                 return -1;
 

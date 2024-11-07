@@ -29,11 +29,9 @@ using System;
 
 namespace ClassicUO.Network.Packets;
 
-internal sealed partial class IncomingPackets
+internal static partial class IncomingPackets
 {
-    public static IncomingPackets Instance { get; } = new();
-
-    private unsafe IncomingPackets()
+    static unsafe IncomingPackets()
     {
         Add(0x03, &ClientTalk);
         Add(0x0B, &Damage, 7);
@@ -184,57 +182,57 @@ internal sealed partial class IncomingPackets
     public static unsafe void Configure(ClientVersion version)
     {
         if (version < ClientVersion.CV_7010400)
-            Instance.SetNotSupported(0xFD);
+            SetNotSupported(0xFD);
 
         if (version < ClientVersion.CV_7090)
         {
-            Instance.AdjustLength(0x24, 7);
-            Instance.AdjustLength(0x99, 26);
-            Instance.AdjustLength(0xBA, 6);
-            Instance.AdjustLength(0xF3, 24);
+            AdjustLength(0x24, 7);
+            AdjustLength(0x99, 26);
+            AdjustLength(0xBA, 6);
+            AdjustLength(0xF3, 24);
         }
 
         if (version < ClientVersion.CV_60142)
-            Instance.Add(0xB9, &EnableLockedFeatures, 3);
+            Add(0xB9, &EnableLockedFeatures, 3);
 
         if (version < ClientVersion.CV_6060)
-            Instance.SetNotSupported(0xF1);
+            SetNotSupported(0xF1);
 
         if (version < ClientVersion.CV_6017)
-            Instance.AdjustLength(0x25, 20);
+            AdjustLength(0x25, 20);
 
         if (version < ClientVersion.CV_6013)
         {
-            Instance.SetNoOp(0xE3, 77);
-            Instance.SetNotSupported(0xE6);
+            SetNoOp(0xE3, 77);
+            SetNotSupported(0xE6);
         }
 
         if (version < ClientVersion.CV_500A)
-            Instance.AdjustLength(0x16, 1);
+            AdjustLength(0x16, 1);
     }
 
-    public unsafe void Add(byte id, delegate*<World, ref SpanReader, void> handler, byte length = 0)
+    public static unsafe void Add(byte id, delegate*<World, ref SpanReader, void> handler, byte length = 0)
     {
         _handlers[id] = new(length, handler);
     }
 
-    public unsafe void AdjustLength(byte packetId, byte length = 0)
+    public static unsafe void AdjustLength(byte packetId, byte length = 0)
     {
         PacketHandlerData old = _handlers[packetId];
         _handlers[packetId] = new(length, old.Handler);
     }
 
-    public unsafe void SetNotSupported(byte packetId)
+    public static unsafe void SetNotSupported(byte packetId)
     {
         _handlers[packetId] = new(0, &NotSupported);
     }
 
-    public unsafe void SetNoOp(byte packetId, byte length = 0)
+    public static unsafe void SetNoOp(byte packetId, byte length = 0)
     {
         _handlers[packetId] = new(length, &NoOp);
     }
 
-    public unsafe void AddExtended(byte extId, delegate*<World, ref SpanReader, void> handler)
+    public static unsafe void AddExtended(byte extId, delegate*<World, ref SpanReader, void> handler)
     {
         _extendedHandlers[extId] = new(handler);
     }

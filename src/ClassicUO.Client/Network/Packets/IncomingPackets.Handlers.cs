@@ -45,13 +45,12 @@ using Microsoft.Xna.Framework;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Text;
 
 namespace ClassicUO.Network.Packets;
 
 #nullable enable
 
-internal sealed partial class IncomingPackets
+internal static partial class IncomingPackets
 {
     private static readonly ushort[] _gumpTranscodes =
     [
@@ -2958,7 +2957,7 @@ internal sealed partial class IncomingPackets
         p.Skip(1);
         byte extId = p.ReadUInt8();
 
-        delegate*<World, ref SpanReader, void> handler = Instance._extendedHandlers[extId].Handler;
+        delegate*<World, ref SpanReader, void> handler = _extendedHandlers[extId].Handler;
         if (handler is null)
         {
             Log.Warn($"Unhandled 0xBF - sub: {extId:X2}");

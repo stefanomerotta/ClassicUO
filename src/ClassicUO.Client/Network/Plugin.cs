@@ -786,7 +786,7 @@ namespace ClassicUO.Network
             if (id > byte.MaxValue)
                 return -1;
 
-            short length = IncomingPackets.Instance.GetPacketLength((byte)id);
+            short length = IncomingPackets.GetPacketLength((byte)id);
             if (length == 0)
                 return -1;
 
@@ -795,20 +795,14 @@ namespace ClassicUO.Network
 
         internal static bool OnPluginRecv(ref byte[] data, ref int length)
         {
-            lock (IncomingPackets.Instance)
-            {
-                IncomingPackets.Instance.Append(data.AsSpan(0, length));
-            }
-
+            IncomingPackets.Append(data.AsSpan(0, length));
             return true;
         }
 
         internal static bool OnPluginSend(ref byte[] data, ref int length)
         {
             if (NetClient.Socket.IsConnected)
-            {
                 NetClient.Socket.Send(data.AsSpan(0, length), true);
-            }
 
             return true;
         }
@@ -816,12 +810,7 @@ namespace ClassicUO.Network
         internal static bool OnPluginRecv_new(IntPtr buffer, ref int length)
         {
             if (buffer != IntPtr.Zero && length > 0)
-            {
-                lock (IncomingPackets.Instance)
-                {
-                    IncomingPackets.Instance.Append(new Span<byte>(buffer.ToPointer(), length));
-                }
-            }
+                IncomingPackets.Append(new Span<byte>(buffer.ToPointer(), length));
 
             return true;
         }
@@ -1408,7 +1397,7 @@ namespace ClassicUO.Network
             int cliloc,
             [MarshalAs(UnmanagedType.LPStr)] string args,
             bool capitalize,
-            [Out] [MarshalAs(UnmanagedType.LPStr)] out string buffer
+            [Out][MarshalAs(UnmanagedType.LPStr)] out string buffer
         );
 
         private struct PluginHeader

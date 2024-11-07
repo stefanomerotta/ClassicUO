@@ -36,26 +36,28 @@ using ClassicUO.Utility;
 using ClassicUO.Utility.Logging;
 using System;
 using System.Buffers;
+using Lock = System.Threading.Lock;
 
 namespace ClassicUO.Network.Packets;
 
 #nullable enable
 
-internal sealed partial class IncomingPackets
+internal static partial class IncomingPackets
 {
     private static Serial _requestedGridLoot;
 
-    private static readonly TextFileParser _parser = new(string.Empty, [' '], [], ['{', '}']);
-    private static readonly TextFileParser _cmdparser = new(string.Empty, [' ', ','], [], ['@', '@']);
+    //private static readonly TextFileParser _parser = new(string.Empty, [' '], [], ['{', '}']);
+    //private static readonly TextFileParser _cmdparser = new(string.Empty, [' ', ','], [], ['@', '@']);
 
-    private readonly PacketHandlerData[] _handlers = new PacketHandlerData[0x100];
-    private readonly ExtendedPacketHandlerData[] _extendedHandlers = new ExtendedPacketHandlerData[0x100];
-    private readonly PacketLogger _packetLogger = new();
-    private readonly CircularBuffer _buffer = new();
-    private readonly CircularBuffer _pluginsBuffer = new();
-    private byte[] _readingBuffer = new byte[4096];
+    private static readonly PacketHandlerData[] _handlers = new PacketHandlerData[0x100];
+    private static readonly ExtendedPacketHandlerData[] _extendedHandlers = new ExtendedPacketHandlerData[0x100];
+    private static readonly PacketLogger _packetLogger = new();
+    private static readonly CircularBuffer _buffer = new();
+    private static readonly CircularBuffer _pluginsBuffer = new();
+    private static byte[] _readingBuffer = new byte[4096];
+    private static readonly Lock _pluginLock = new();
 
-    public int ParsePackets(NetClient socket, World world)
+    public static int ParsePackets(NetClient socket, World world)
     {
         Span<byte> data = socket.CollectAvailableData();
         if (!data.IsEmpty)
@@ -67,7 +69,7 @@ internal sealed partial class IncomingPackets
         return ParsePackets(world, _buffer, true) + ParsePackets(world, _pluginsBuffer, false);
     }
 
-    private unsafe int ParsePackets(World world, CircularBuffer stream, bool allowPlugins)
+    private static unsafe int ParsePackets(World world, CircularBuffer stream, bool allowPlugins)
     {
         int packetsCount = 0;
 
@@ -106,20 +108,23 @@ internal sealed partial class IncomingPackets
         return packetsCount;
     }
 
-    public void Append(Span<byte> data)
+    public static void Append(Span<byte> data)
     {
         if (data.IsEmpty)
             return;
 
-        _pluginsBuffer.Enqueue(data);
+        lock (_pluginLock)
+        {
+            _pluginsBuffer.Enqueue(data);
+        }
     }
 
-    public unsafe short GetPacketLength(byte id)
+    public static unsafe short GetPacketLength(byte id)
     {
         return _handlers[id].Length;
     }
 
-    private unsafe bool GetPacketInfo(CircularBuffer buffer, out int packetLength, out bool dynamicLength,
+    private static unsafe bool GetPacketInfo(CircularBuffer buffer, out int packetLength, out bool dynamicLength,
         out delegate*<World, ref SpanReader, void> handler)
     {
         packetLength = 0;
