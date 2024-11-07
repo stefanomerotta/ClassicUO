@@ -88,8 +88,6 @@ internal static class GumpCreator
 
         GumpData data = new(world, gump, lines);
 
-        Log.Info(Encoding.ASCII.GetString(layout));
-
         foreach (ReadOnlySpan<byte> token in new GumpLayoutEnumerator(layout))
         {
             GumpArgumentsReader reader = new(token);
