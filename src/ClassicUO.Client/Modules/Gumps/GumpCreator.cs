@@ -46,7 +46,7 @@ internal static class GumpCreator
 {
     private static readonly FrozenDictionary<byte[], BuildControlDelegate>.AlternateLookup<ReadOnlySpan<byte>> activators;
 
-    public static Gump? CreateGump(World world, Serial sender, Serial gumpId, int x, int y, ReadOnlySpan<byte> layout, string[] lines)
+    public static Gump? CreateGump(World world, Serial sender, Serial gumpId, int x, int y, ReadOnlySpan<byte> layout, in GumpTextArray lines)
     {
         Gump? gump = null;
         bool mustBeAdded = true;
@@ -248,11 +248,11 @@ internal static class GumpCreator
         int width = reader.ReadInteger<int>();
         int height = reader.ReadInteger<int>();
         ushort hue = reader.ReadInteger<ushort>();
-        int stringIndex = reader.ReadInteger<int>();
+        int textIndex = reader.ReadInteger<int>();
 
         CroppedText control = new
         (
-            text: stringIndex >= 0 && stringIndex < data.Lines.Length ? data.Lines[stringIndex] : "",
+            text: data.GetTextOrEmpty(textIndex),
             hue: (ushort)(hue + 1),
             maxWidth: width
         )
@@ -351,9 +351,7 @@ internal static class GumpCreator
         bool hasBackground = reader.ReadBool();
         bool hasScrollbar = reader.ReadBool();
 
-        string text = textIndex >= 0 && textIndex <= data.Lines.Length ? data.Lines[textIndex] : "";
-
-        HtmlControl control = new(x, y, width, height, hasBackground, hasScrollbar, false, text, ishtml: true)
+        HtmlControl control = new(x, y, width, height, hasBackground, hasScrollbar, false, data.GetTextOrEmpty(textIndex), ishtml: true)
         {
             IsFromServer = true
         };
@@ -486,8 +484,7 @@ internal static class GumpCreator
             Multiline = false,
         };
 
-        if (textIndex >= 0 && textIndex < data.Lines.Length)
-            control.SetText(data.Lines[textIndex]);
+        control.SetText(data.GetTextOrEmpty(textIndex));
 
         if (!data.TextFocused)
         {
@@ -526,8 +523,7 @@ internal static class GumpCreator
             Multiline = false,
         };
 
-        if (textIndex >= 0 && textIndex <= data.Lines.Length)
-            control.SetText(data.Lines[textIndex]);
+        control.SetText(data.GetTextOrEmpty(textIndex));
 
         if (!data.TextFocused)
         {
@@ -561,9 +557,8 @@ internal static class GumpCreator
         int y = reader.ReadInteger<int>();
         ushort hue = reader.ReadInteger<ushort>();
         int textIndex = reader.ReadInteger<int>();
-        string text = textIndex >= 0 && textIndex <= data.Lines.Length ? data.Lines[textIndex] : "";
 
-        Label control = new(text, true, (ushort)(hue + 1), style: FontStyle.BlackBorder)
+        Label control = new(data.GetTextOrEmpty(textIndex), true, (ushort)(hue + 1), style: FontStyle.BlackBorder)
         {
             X = x,
             Y = y,
@@ -735,23 +730,32 @@ internal static class GumpCreator
 
     private ref struct GumpData
     {
-        public readonly string[] Lines;
+        private readonly GumpTextArray _lines;
+
         public readonly Gump Gump;
         public readonly World World;
         public int Page;
         public int Group;
         public bool TextFocused;
 
-        public GumpData(World world, Gump gump, string[] lines)
+        public GumpData(World world, Gump gump, GumpTextArray lines)
         {
             World = world;
             Gump = gump;
-            Lines = lines;
+            _lines = lines;
         }
 
         public readonly void Add(Control control)
         {
             Gump.Add(control, Page);
+        }
+
+        public readonly string GetTextOrEmpty(int index)
+        {
+            if (index >= 0 && index < _lines.Length)
+                return _lines[index];
+
+            return "";
         }
     }
 }

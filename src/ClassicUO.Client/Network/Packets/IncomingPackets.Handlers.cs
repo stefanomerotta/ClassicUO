@@ -2676,16 +2676,14 @@ internal sealed partial class IncomingPackets
         p.Skip(layoutLength);
 
         ushort textLinesCount = p.ReadUInt16BE();
-
-        string[] lines = new string[textLinesCount];
-
-        for (int i = 0; i < textLinesCount; i++)
+        if(textLinesCount == 0)
         {
-            int length = p.ReadUInt16BE();
-            lines[i] = p.ReadFixedString<UnicodeBE>(length);
+            GumpCreator.CreateGump(world, sender, gumpId, x, y, layout, default);
+            return;
         }
 
-        GumpCreator.CreateGump(world, sender, gumpId, x, y, layout, lines);
+        GumpTextArray lines = new(p.Buffer, stackalloc Range[textLinesCount]);
+        GumpCreator.CreateGump(world, sender, gumpId, x, y, layout, in lines);
     }
 
     // 0xB2
@@ -3888,11 +3886,9 @@ internal sealed partial class IncomingPackets
             p.Skip((int)compressedLength);
 
             uint linesNum = p.ReadUInt32BE();
-            string[] lines = new string[linesNum];
-
             if (linesNum == 0)
             {
-                GumpCreator.CreateGump(world, sender, gumpId, (int)x, (int)y, layout, lines);
+                GumpCreator.CreateGump(world, sender, gumpId, (int)x, (int)y, layout, default);
                 return;
             }
 
@@ -3903,24 +3899,8 @@ internal sealed partial class IncomingPackets
             ZLib.Decompress(p.Buffer.Slice(p.Position, (int)compressedLength), stringsBuffer.AsSpan(0, decompressedLength));
             p.Skip((int)compressedLength);
 
-            SpanReader reader = new(stringsBuffer.AsSpan(0, decompressedLength));
-
-            for (int i = 0; i < linesNum; i++)
-            {
-                int remaining = reader.Remaining;
-
-                if (remaining >= 2)
-                {
-                    int length = reader.ReadUInt16BE();
-                    lines[i] = reader.ReadFixedString<UnicodeBE>(length);
-                }
-                else
-                {
-                    lines[i] = "";
-                }
-            }
-
-            GumpCreator.CreateGump(world, sender, gumpId, (int)x, (int)y, layout, lines);
+            GumpTextArray lines = new(stringsBuffer.AsSpan(0, decompressedLength), stackalloc Range[(int)linesNum]);
+            GumpCreator.CreateGump(world, sender, gumpId, (int)x, (int)y, layout, in lines);
         }
         finally
         {
