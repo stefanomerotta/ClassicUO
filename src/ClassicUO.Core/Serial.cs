@@ -167,12 +167,12 @@ public readonly struct Serial : IComparable<Serial>, IComparable<uint>, IEquatab
 
     public static Serial Parse(ReadOnlySpan<char> span)
     {
-        return new(uint.Parse(span, NumberStyles.HexNumber));
+        return new(uint.Parse(span[2..], NumberStyles.HexNumber));
     }
 
     public static bool TryParse(ReadOnlySpan<char> span, out Serial result)
     {
-        if (uint.TryParse(span, NumberStyles.HexNumber, null, out uint raw))
+        if (uint.TryParse(span[2..], NumberStyles.HexNumber, null, out uint raw))
         {
             result = new(raw);
             return true;

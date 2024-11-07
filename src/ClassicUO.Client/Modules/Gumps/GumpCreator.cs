@@ -42,7 +42,7 @@ namespace ClassicUO.Modules.Gumps;
 
 #nullable enable
 
-internal static partial class GumpCreator
+internal static class GumpCreator
 {
     private static readonly FrozenDictionary<byte[], BuildControlDelegate>.AlternateLookup<ReadOnlySpan<byte>> activators;
 
@@ -87,6 +87,8 @@ internal static partial class GumpCreator
         };
 
         GumpData data = new(world, gump, lines);
+
+        Log.Info(Encoding.ASCII.GetString(layout));
 
         foreach (ReadOnlySpan<byte> token in new GumpLayoutEnumerator(layout))
         {
@@ -165,6 +167,7 @@ internal static partial class GumpCreator
             ["gumppichued"u8.ToArray()] = CreateGumpPicHued,
             ["gumppicphued"u8.ToArray()] = CreateGumpPicHued,
             ["togglelimitgumpscale"u8.ToArray()] = NoOp,
+            ["text"u8.ToArray()] = CreateLabelEntry,
         }
         .ToFrozenDictionary(ByteArrayEqualityComparer.Instance)
         .GetAlternateLookup<ReadOnlySpan<byte>>();
@@ -388,7 +391,10 @@ internal static partial class GumpCreator
         int rawHasScrollbar = reader.ReadInteger<byte>();
         int hue = reader.ReadInteger<int>();
 
-        HtmlControl control = new(x, y, width, height, hasBackground, rawHasScrollbar == 0,
+        if (hue == 0x7FFF)
+            hue = 0x00FFFFFF;
+
+        HtmlControl control = new(x, y, width, height, hasBackground, rawHasScrollbar != 0,
             hasBackground && rawHasScrollbar == 2, Client.Game.UO.FileManager.Clilocs.GetString(cliloc), hue, true)
         {
             IsFromServer = true
@@ -419,7 +425,7 @@ internal static partial class GumpCreator
         else
             args = Client.Game.UO.FileManager.Clilocs.Translate(cliloc, Encoding.ASCII.GetString(tags));
 
-        HtmlControl control = new(x, y, width, height, hasBackground, rawHasScrollbar == 0,
+        HtmlControl control = new(x, y, width, height, hasBackground, rawHasScrollbar != 0,
             hasBackground && rawHasScrollbar == 2, args, hue, true)
         {
             IsFromServer = true
@@ -540,6 +546,24 @@ internal static partial class GumpCreator
         ushort hue = reader.ReadOptionalInteger<ushort>();
 
         StaticPic control = new(graphic, hue)
+        {
+            X = x,
+            Y = y,
+            IsFromServer = true
+        };
+
+        data.Add(control);
+    }
+
+    private static void CreateLabelEntry(ref GumpData data, ref GumpArgumentsReader reader)
+    {
+        int x = reader.ReadInteger<int>();
+        int y = reader.ReadInteger<int>();
+        ushort hue = reader.ReadInteger<ushort>();
+        int textIndex = reader.ReadInteger<int>();
+        string text = textIndex >= 0 && textIndex <= data.Lines.Length ? data.Lines[textIndex] : "";
+
+        Label control = new(text, true, (ushort)(hue + 1), style: FontStyle.BlackBorder)
         {
             X = x,
             Y = y,
