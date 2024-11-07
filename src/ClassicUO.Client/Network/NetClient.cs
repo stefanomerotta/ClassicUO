@@ -1,6 +1,7 @@
 ﻿using ClassicUO.IO.Buffers;
 using ClassicUO.Network.Clients;
 using ClassicUO.Network.Encryptions;
+using ClassicUO.Network.Packets;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Logging;
 using System;
