@@ -47,95 +47,46 @@ namespace ClassicUO.Network;
 
 internal unsafe partial class Plugin
 {
-    [MarshalAs(UnmanagedType.FunctionPtr)]
-    private OnCastSpell _castSpell;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnCastSpell _castSpell;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnDrawCmdList _draw_cmd_list;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnGetCliloc _get_cliloc;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnGetStaticData _get_static_data;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnGetTileData _get_tile_data;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnGetPacketLength _getPacketLength;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnGetPlayerPosition _getPlayerPosition;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnGetStaticImage _getStaticImage;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnGetUOFilePath _getUoFilePath;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnWndProc _on_wnd_proc;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnClientClose _onClientClose;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnConnected _onConnected;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnDisconnected _onDisconnected;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnFocusGained _onFocusGained;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnFocusLost _onFocusLost;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnHotkey _onHotkeyPressed;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnInitialize _onInitialize;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnMouse _onMouse;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnPacketSendRecv_new _onRecv_new;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnPacketSendRecv_new _onSend_new;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnUpdatePlayerPosition _onUpdatePlayerPosition;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnPacketSendRecv _recv;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnPacketSendRecv _send;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnPacketSendRecv _onRecv;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnPacketSendRecv _onSend;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnPacketSendRecv_new_intptr _recv_new, _send_new;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private RequestMove _requestMove;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnSetTitle _setTitle;
+    [MarshalAs(UnmanagedType.FunctionPtr)] private OnTick _tick;
 
-    [MarshalAs(UnmanagedType.FunctionPtr)]
-    private OnDrawCmdList _draw_cmd_list;
+    private static readonly List<Plugin> _plugins = [];
 
-    [MarshalAs(UnmanagedType.FunctionPtr)]
-    private OnGetCliloc _get_cliloc;
-
-    [MarshalAs(UnmanagedType.FunctionPtr)]
-    private OnGetStaticData _get_static_data;
-
-    [MarshalAs(UnmanagedType.FunctionPtr)]
-    private OnGetTileData _get_tile_data;
-
-    [MarshalAs(UnmanagedType.FunctionPtr)]
-    private OnGetPacketLength _getPacketLength;
-
-    [MarshalAs(UnmanagedType.FunctionPtr)]
-    private OnGetPlayerPosition _getPlayerPosition;
-
-    [MarshalAs(UnmanagedType.FunctionPtr)]
-    private OnGetStaticImage _getStaticImage;
-
-    [MarshalAs(UnmanagedType.FunctionPtr)]
-    private OnGetUOFilePath _getUoFilePath;
-
-    [MarshalAs(UnmanagedType.FunctionPtr)]
-    private OnWndProc _on_wnd_proc;
-
-    [MarshalAs(UnmanagedType.FunctionPtr)]
-    private OnClientClose _onClientClose;
-
-    [MarshalAs(UnmanagedType.FunctionPtr)]
-    private OnConnected _onConnected;
-
-    [MarshalAs(UnmanagedType.FunctionPtr)]
-    private OnDisconnected _onDisconnected;
-
-    [MarshalAs(UnmanagedType.FunctionPtr)]
-    private OnFocusGained _onFocusGained;
-
-    [MarshalAs(UnmanagedType.FunctionPtr)]
-    private OnFocusLost _onFocusLost;
-
-    [MarshalAs(UnmanagedType.FunctionPtr)]
-    private OnHotkey _onHotkeyPressed;
-
-    [MarshalAs(UnmanagedType.FunctionPtr)]
-    private OnInitialize _onInitialize;
-
-    [MarshalAs(UnmanagedType.FunctionPtr)]
-    private OnMouse _onMouse;
-
-    [MarshalAs(UnmanagedType.FunctionPtr)]
-    private OnPacketSendRecv_new _onRecv_new,
-        _onSend_new;
-
-    [MarshalAs(UnmanagedType.FunctionPtr)]
-    private OnUpdatePlayerPosition _onUpdatePlayerPosition;
-
-    [MarshalAs(UnmanagedType.FunctionPtr)]
-    private OnPacketSendRecv _recv,
-        _send,
-        _onRecv,
-        _onSend;
-
-    [MarshalAs(UnmanagedType.FunctionPtr)]
-    private OnPacketSendRecv_new_intptr _recv_new,
-        _send_new;
-
-    [MarshalAs(UnmanagedType.FunctionPtr)]
-    private RequestMove _requestMove;
     private readonly Dictionary<IntPtr, GraphicsResource> _resources = [];
-
-    [MarshalAs(UnmanagedType.FunctionPtr)]
-    private OnSetTitle _setTitle;
-
-    [MarshalAs(UnmanagedType.FunctionPtr)]
-    private OnTick _tick;
+    private readonly string _pluginPath;
+    private bool _isValid;
 
     private Plugin(string path)
     {
-        PluginPath = path;
+        _pluginPath = path;
     }
-
-    public static List<Plugin> Plugins { get; } = [];
-    public string PluginPath { get; }
-    public bool IsValid { get; private set; }
 
     [LibraryImport("kernel32", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -156,14 +107,14 @@ internal unsafe partial class Plugin
         Plugin p = new(path);
         p.Load();
 
-        if (!p.IsValid)
+        if (!p._isValid)
         {
             Log.Warn($"Invalid plugin: {path}");
             return null;
         }
 
         Log.Trace($"Plugin: {path} loaded.");
-        Plugins.Add(p);
+        _plugins.Add(p);
 
         return p;
     }
@@ -194,7 +145,7 @@ internal unsafe partial class Plugin
         if (info.subsystem == SDL.SDL_SYSWM_TYPE.SDL_SYSWM_WINDOWS)
             hwnd = info.info.win.window;
 
-        PluginHeader header = new PluginHeader
+        PluginHeader header = new()
         {
             ClientVersion = (int)Client.Game.UO.Version,
             Recv = Marshal.GetFunctionPointerForDelegate(_recv),
@@ -218,11 +169,11 @@ internal unsafe partial class Plugin
         void* func = &header;
 
         if (Environment.OSVersion.Platform is not PlatformID.Unix and not PlatformID.MacOSX)
-            UnblockPath(Path.GetDirectoryName(PluginPath));
+            UnblockPath(Path.GetDirectoryName(_pluginPath));
 
         try
         {
-            nint assptr = Native.LoadLibrary(PluginPath);
+            nint assptr = Native.LoadLibrary(_pluginPath);
 
             Log.Trace($"assembly: {assptr}");
 
@@ -253,7 +204,7 @@ internal unsafe partial class Plugin
         {
             try
             {
-                Client.Game.PluginHost?.LoadPlugin(PluginPath);
+                Client.Game.PluginHost?.LoadPlugin(_pluginPath);
             }
             catch (Exception err)
             {
@@ -310,7 +261,7 @@ internal unsafe partial class Plugin
         if (header.OnWndProc != IntPtr.Zero)
             _on_wnd_proc = Marshal.GetDelegateForFunctionPointer<OnWndProc>(header.OnWndProc);
 
-        IsValid = true;
+        _isValid = true;
 
         if (_onInitialize is not null)
             _onInitialize();
@@ -326,17 +277,8 @@ internal unsafe partial class Plugin
         Client.Game.SetWindowTitle(str);
     }
 
-    private static bool GetStaticData(
-        int index,
-        ref ulong flags,
-        ref byte weight,
-        ref byte layer,
-        ref int count,
-        ref ushort animid,
-        ref ushort lightidx,
-        ref byte height,
-        ref string name
-    )
+    private static bool GetStaticData(int index, ref ulong flags, ref byte weight, ref byte layer,
+        ref int count, ref ushort animid, ref ushort lightidx, ref byte height, ref string name)
     {
         if (index < 0 || index >= ArtLoader.MAX_STATIC_DATA_INDEX_COUNT)
             return false;
@@ -355,12 +297,7 @@ internal unsafe partial class Plugin
         return true;
     }
 
-    private static bool GetTileData(
-        int index,
-        ref ulong flags,
-        ref ushort textid,
-        ref string name
-    )
+    private static bool GetTileData(int index, ref ulong flags, ref ushort textid, ref string name)
     {
         if (index < 0 || index >= ArtLoader.MAX_STATIC_DATA_INDEX_COUNT)
             return false;
@@ -395,11 +332,11 @@ internal unsafe partial class Plugin
 
     internal static bool GetPlayerPosition(out int x, out int y, out int z)
     {
-        if (Client.Game.UO.World.Player != null)
+        if (Client.Game.UO.World.Player is { } player)
         {
-            x = Client.Game.UO.World.Player.X;
-            y = Client.Game.UO.World.Player.Y;
-            z = Client.Game.UO.World.Player.Z;
+            x = player.X;
+            y = player.Y;
+            z = player.Z;
 
             return true;
         }
@@ -413,12 +350,9 @@ internal unsafe partial class Plugin
     {
         Client.Game.PluginHost?.Tick();
 
-        foreach (Plugin t in Plugins)
+        foreach (Plugin t in _plugins)
         {
-            if (t._tick != null)
-            {
-                t._tick();
-            }
+            t._tick?.Invoke();
         }
     }
 
@@ -426,29 +360,25 @@ internal unsafe partial class Plugin
     {
         bool result = Client.Game.PluginHost?.PacketIn(new ArraySegment<byte>(data, 0, length)) ?? true;
 
-        foreach (Plugin plugin in Plugins)
+        foreach (Plugin plugin in _plugins)
         {
-            if (plugin._onRecv_new != null)
+            if (plugin._onRecv_new is not null)
             {
                 byte[] tmp = new byte[length];
                 Array.Copy(data, tmp, length);
 
                 if (!plugin._onRecv_new(tmp, ref length))
-                {
                     result = false;
-                }
 
                 Array.Copy(tmp, data, length);
             }
-            else if (plugin._onRecv != null)
+            else if (plugin._onRecv is not null)
             {
                 byte[] tmp = new byte[length];
                 Array.Copy(data, tmp, length);
 
                 if (!plugin._onRecv(ref tmp, ref length))
-                {
                     result = false;
-                }
 
                 Array.Copy(tmp, data, length);
             }
@@ -461,32 +391,28 @@ internal unsafe partial class Plugin
     {
         bool result = Client.Game.PluginHost?.PacketOut(message) ?? true;
 
-        foreach (Plugin plugin in Plugins)
+        foreach (Plugin plugin in _plugins)
         {
-            if (plugin._onSend_new != null)
+            if (plugin._onSend_new is not null)
             {
-                var tmp = message.ToArray();
-                var length = tmp.Length;
+                byte[] tmp = message.ToArray();
+                int length = tmp.Length;
 
                 if (!plugin._onSend_new(tmp, ref length))
-                {
                     result = false;
-                }
 
-                message = message.Slice(0, length);
+                message = message[..length];
                 tmp.AsSpan(0, length).CopyTo(message);
             }
-            else if (plugin._onSend != null)
+            else if (plugin._onSend is not null)
             {
-                var tmp = message.ToArray();
-                var length = tmp.Length;
+                byte[] tmp = message.ToArray();
+                int length = tmp.Length;
 
                 if (!plugin._onSend(ref tmp, ref length))
-                {
                     result = false;
-                }
 
-                message = message.Slice(0, length);
+                message = message[..length];
                 tmp.AsSpan(0, length).CopyTo(message);
             }
         }
@@ -498,27 +424,21 @@ internal unsafe partial class Plugin
     {
         Client.Game.PluginHost?.Closing();
 
-        for (int i = 0; i < Plugins.Count; i++)
+        for (int i = 0; i < _plugins.Count; i++)
         {
-            if (Plugins[i]._onClientClose != null)
-            {
-                Plugins[i]._onClientClose();
-            }
+            _plugins[i]._onClientClose?.Invoke();
         }
 
-        Plugins.Clear();
+        _plugins.Clear();
     }
 
     internal static void OnFocusGained()
     {
         Client.Game.PluginHost?.FocusGained();
 
-        foreach (Plugin t in Plugins)
+        foreach (Plugin t in _plugins)
         {
-            if (t._onFocusGained != null)
-            {
-                t._onFocusGained();
-            }
+            t._onFocusGained?.Invoke();
         }
     }
 
@@ -526,12 +446,9 @@ internal unsafe partial class Plugin
     {
         Client.Game.PluginHost?.FocusLost();
 
-        foreach (Plugin t in Plugins)
+        foreach (Plugin t in _plugins)
         {
-            if (t._onFocusLost != null)
-            {
-                t._onFocusLost();
-            }
+            t._onFocusLost?.Invoke();
         }
     }
 
@@ -539,12 +456,9 @@ internal unsafe partial class Plugin
     {
         Client.Game.PluginHost?.Connected();
 
-        foreach (Plugin t in Plugins)
+        foreach (Plugin t in _plugins)
         {
-            if (t._onConnected != null)
-            {
-                t._onConnected();
-            }
+            t._onConnected?.Invoke();
         }
     }
 
@@ -552,40 +466,29 @@ internal unsafe partial class Plugin
     {
         Client.Game.PluginHost?.Disconnected();
 
-        foreach (Plugin t in Plugins)
+        foreach (Plugin t in _plugins)
         {
-            if (t._onDisconnected != null)
-            {
-                t._onDisconnected();
-            }
+            t._onDisconnected?.Invoke();
         }
     }
 
     internal static bool ProcessHotkeys(int key, int mod, bool ispressed)
     {
-        if ((!Client.Game.UO.World?.InGame ?? false) || UIManager.SystemChat != null && (
-                    ProfileManager.CurrentProfile != null
-                        && ProfileManager.CurrentProfile.ActivateChatAfterEnter
-                        && UIManager.SystemChat.IsActive
-                    || UIManager.KeyboardFocusControl != UIManager.SystemChat.TextBoxControl
-                )
-        )
+        if (Client.Game.UO.World is not { InGame: true } || UIManager.SystemChat is { } chat
+            && (ProfileManager.CurrentProfile is { ActivateChatAfterEnter: true } && chat.IsActive
+                || UIManager.KeyboardFocusControl != UIManager.SystemChat.TextBoxControl)
+            )
         {
             return true;
         }
 
-        var ok = Client.Game.PluginHost?.Hotkey(key, mod, ispressed);
-
+        bool? ok = Client.Game.PluginHost?.Hotkey(key, mod, ispressed);
         bool result = ok ?? true;
 
-        foreach (Plugin plugin in Plugins)
+        foreach (Plugin plugin in _plugins)
         {
-            if (
-                plugin._onHotkeyPressed != null && !plugin._onHotkeyPressed(key, mod, ispressed)
-            )
-            {
+            if (plugin._onHotkeyPressed is { } @delegate && !@delegate.Invoke(key, mod, ispressed))
                 result = false;
-            }
         }
 
         return result;
@@ -595,7 +498,7 @@ internal unsafe partial class Plugin
     {
         Client.Game.PluginHost?.Mouse(button, wheel);
 
-        foreach (Plugin plugin in Plugins)
+        foreach (Plugin plugin in _plugins)
         {
             plugin._onMouse?.Invoke(button, wheel);
         }
@@ -603,39 +506,40 @@ internal unsafe partial class Plugin
 
     internal static void ProcessDrawCmdList(GraphicsDevice device)
     {
-        IntPtr cmdList = IntPtr.Zero;
-        var len = 0;
-        Client.Game.PluginHost?.GetCommandList(out cmdList, out len);
-        if (Client.Game.PluginHost != null && len != 0 && cmdList != IntPtr.Zero)
+        IntPtr cmdList;
+        int len = 0;
+
+        if (Client.Game.PluginHost is { } host)
         {
-            HandleCmdList(device, cmdList, len, Client.Game.PluginHost.GfxResources);
+            host.GetCommandList(out cmdList, out len);
+
+            if (len != 0 && cmdList != IntPtr.Zero)
+                HandleCmdList(device, cmdList, len, host.GfxResources);
         }
 
-        foreach (Plugin plugin in Plugins)
+        foreach (Plugin plugin in _plugins)
         {
-            if (plugin._draw_cmd_list != null)
-            {
-                len = 0;
-                plugin._draw_cmd_list.Invoke(out cmdList, ref len);
+            if (plugin._draw_cmd_list is null)
+                continue;
 
-                if (len != 0 && cmdList != IntPtr.Zero)
-                {
-                    HandleCmdList(device, cmdList, len, plugin._resources);
-                }
+            len = 0;
+            plugin._draw_cmd_list.Invoke(out cmdList, ref len);
+
+            if (len != 0 && cmdList != IntPtr.Zero)
+            {
+                HandleCmdList(device, cmdList, len, plugin._resources);
             }
         }
     }
 
     internal static int ProcessWndProc(SDL.SDL_Event* e)
     {
-        var result = Client.Game.PluginHost?.SdlEvent(e) ?? 0;
+        int result = Client.Game.PluginHost?.SdlEvent(e) ?? 0;
 
-        foreach (Plugin plugin in Plugins)
+        foreach (Plugin plugin in _plugins)
         {
-            if (plugin._on_wnd_proc != null)
-            {
+            if (plugin._on_wnd_proc is not null)
                 result |= plugin._on_wnd_proc(e);
-            }
         }
 
         return result;
@@ -645,17 +549,14 @@ internal unsafe partial class Plugin
     {
         Client.Game.PluginHost?.UpdatePlayerPosition(x, y, z);
 
-        foreach (Plugin plugin in Plugins)
+        foreach (Plugin plugin in _plugins)
         {
             try
             {
                 // TODO: need fixed on razor side
                 // if you quick entry (0.5-1 sec after start, without razor window loaded) - breaks CUO.
                 // With this fix - the razor does not work, but client does not crashed.
-                if (plugin._onUpdatePlayerPosition != null)
-                {
-                    plugin._onUpdatePlayerPosition(x, y, z);
-                }
+                plugin._onUpdatePlayerPosition?.Invoke(x, y, z);
             }
             catch
             {
@@ -701,9 +602,7 @@ internal unsafe partial class Plugin
     internal static bool OnPluginSend_new(IntPtr buffer, ref int length)
     {
         if (buffer != IntPtr.Zero && length > 0)
-        {
             NetClient.Socket.Send(new Span<byte>((void*)buffer, length), true);
-        }
 
         return true;
     }
@@ -717,9 +616,7 @@ internal unsafe partial class Plugin
         foreach (string file in files)
         {
             if (file.EndsWith("dll") || file.EndsWith("exe"))
-            {
                 UnblockFile(file);
-            }
         }
 
         foreach (string dir in dirs)
@@ -733,17 +630,10 @@ internal unsafe partial class Plugin
         return DeleteFile(fileName + ":Zone.Identifier");
     }
 
-    private static void HandleCmdList(
-        GraphicsDevice device,
-        IntPtr ptr,
-        int length,
-        IDictionary<IntPtr, GraphicsResource> resources
-    )
+    private static void HandleCmdList(GraphicsDevice device, IntPtr ptr, int length, Dictionary<IntPtr, GraphicsResource> resources)
     {
         if (ptr == IntPtr.Zero || length <= 0)
-        {
             return;
-        }
 
         const int CMD_VIEWPORT = 0;
         const int CMD_SCISSOR = 1;
@@ -769,7 +659,7 @@ internal unsafe partial class Plugin
         const int CMD_NEW_STENCIL_STATE = 21;
         const int CMD_NEW_SAMPLER_STATE = 22;
 
-        Effect current_effect = null;
+        Effect? current_effect = null;
 
         Viewport lastViewport = device.Viewport;
         Rectangle lastScissorBox = device.ScissorRectangle;
@@ -779,44 +669,6 @@ internal unsafe partial class Plugin
         RasterizerState lastRasterizeState = device.RasterizerState;
         DepthStencilState lastDepthStencilState = device.DepthStencilState;
         SamplerState lastsampler = device.SamplerStates[0];
-
-        //var blend_snap_AlphaBlendFunction = device.BlendState.AlphaBlendFunction;
-        //var blend_snap_AlphaDestinationBlend = device.BlendState.AlphaDestinationBlend;
-        //var blend_snap_AlphaSourceBlend = device.BlendState.AlphaSourceBlend;
-        //var blend_snap_ColorBlendFunction = device.BlendState.ColorBlendFunction;
-        //var blend_snap_ColorDestinationBlend = device.BlendState.ColorDestinationBlend;
-        //var blend_snap_ColorSourceBlend = device.BlendState.ColorSourceBlend;
-        //var blend_snap_ColorWriteChannels = device.BlendState.ColorWriteChannels;
-        //var blend_snap_ColorWriteChannels1 = device.BlendState.ColorWriteChannels1;
-        //var blend_snap_ColorWriteChannels2 = device.BlendState.ColorWriteChannels2;
-        //var blend_snap_ColorWriteChannels3 = device.BlendState.ColorWriteChannels3;
-        //var blend_snap_BlendFactor = device.BlendState.BlendFactor;
-        //var blend_snap_MultiSampleMask = device.BlendState.MultiSampleMask;
-
-        //var rasterize_snap_CullMode = device.RasterizerState.CullMode;
-        //var rasterize_snap_DepthBias = device.RasterizerState.DepthBias;
-        //var rasterize_snap_FillMode = device.RasterizerState.FillMode;
-        //var rasterize_snap_MultiSampleAntiAlias = device.RasterizerState.MultiSampleAntiAlias;
-        //var rasterize_snap_ScissorTestEnable = device.RasterizerState.ScissorTestEnable;
-        //var rasterize_snap_SlopeScaleDepthBias = device.RasterizerState.SlopeScaleDepthBias;
-
-        //var stencil_snap_DepthBufferEnable = device.DepthStencilState.DepthBufferEnable;
-        //var stencil_snap_DepthBufferWriteEnable = device.DepthStencilState.DepthBufferWriteEnable;
-        //var stencil_snap_DepthBufferFunction = device.DepthStencilState.DepthBufferFunction;
-        //var stencil_snap_StencilEnable = device.DepthStencilState.StencilEnable;
-        //var stencil_snap_StencilFunction = device.DepthStencilState.StencilFunction;
-        //var stencil_snap_StencilPass = device.DepthStencilState.StencilPass;
-        //var stencil_snap_StencilFail = device.DepthStencilState.StencilFail;
-        //var stencil_snap_StencilDepthBufferFail = device.DepthStencilState.StencilDepthBufferFail;
-        //var stencil_snap_TwoSidedStencilMode = device.DepthStencilState.TwoSidedStencilMode;
-        //var stencil_snap_CounterClockwiseStencilFunction = device.DepthStencilState.CounterClockwiseStencilFunction;
-        //var stencil_snap_CounterClockwiseStencilFail = device.DepthStencilState.CounterClockwiseStencilFail;
-        //var stencil_snap_CounterClockwiseStencilPass = device.DepthStencilState.CounterClockwiseStencilPass;
-        //var stencil_snap_CounterClockwiseStencilDepthBufferFail = device.DepthStencilState.CounterClockwiseStencilDepthBufferFail;
-        //var stencil_snap_StencilMask = device.DepthStencilState.StencilMask;
-        //var stencil_snap_StencilWriteMask = device.DepthStencilState.StencilWriteMask;
-        //var stencil_snap_ReferenceStencil = device.DepthStencilState.ReferenceStencil;
-
 
         for (int i = 0; i < length; i++)
         {
@@ -850,16 +702,14 @@ internal unsafe partial class Plugin
 
                 case CMD_BLEND_FACTOR:
 
-                    ref BlendFactorCommand blendFactorCommand =
-                        ref command.NewBlendFactorCommand;
+                    ref BlendFactorCommand blendFactorCommand = ref command.NewBlendFactorCommand;
 
                     device.BlendFactor = blendFactorCommand.color;
 
                     break;
 
                 case CMD_NEW_BLEND_STATE:
-                    ref CreateBlendStateCommand createBlend =
-                        ref command.NewCreateBlendStateCommand;
+                    ref CreateBlendStateCommand createBlend = ref command.NewCreateBlendStateCommand;
 
                     resources[createBlend.id] = new BlendState
                     {
@@ -881,8 +731,7 @@ internal unsafe partial class Plugin
 
                 case CMD_NEW_RASTERIZE_STATE:
 
-                    ref CreateRasterizerStateCommand rasterize =
-                        ref command.NewRasterizeStateCommand;
+                    ref CreateRasterizerStateCommand rasterize = ref command.NewRasterizeStateCommand;
 
                     resources[rasterize.id] = new RasterizerState
                     {
@@ -898,8 +747,7 @@ internal unsafe partial class Plugin
 
                 case CMD_NEW_STENCIL_STATE:
 
-                    ref CreateStencilStateCommand createStencil =
-                        ref command.NewCreateStencilStateCommand;
+                    ref CreateStencilStateCommand createStencil = ref command.NewCreateStencilStateCommand;
 
                     resources[createStencil.id] = new DepthStencilState
                     {
@@ -927,8 +775,7 @@ internal unsafe partial class Plugin
 
                 case CMD_NEW_SAMPLER_STATE:
 
-                    ref CreateSamplerStateCommand createSampler =
-                        ref command.NewCreateSamplerStateCommand;
+                    ref CreateSamplerStateCommand createSampler = ref command.NewCreateSamplerStateCommand;
 
                     resources[createSampler.id] = new SamplerState
                     {
@@ -945,39 +792,28 @@ internal unsafe partial class Plugin
 
                 case CMD_BLEND_STATE:
 
-                    device.BlendState =
-                        resources[command.SetBlendStateCommand.id] as BlendState;
-
+                    device.BlendState = resources[command.SetBlendStateCommand.id] as BlendState;
                     break;
 
                 case CMD_RASTERIZE_STATE:
 
-                    device.RasterizerState =
-                        resources[command.SetRasterizerStateCommand.id] as RasterizerState;
-
+                    device.RasterizerState = resources[command.SetRasterizerStateCommand.id] as RasterizerState;
                     break;
 
                 case CMD_STENCIL_STATE:
 
-                    device.DepthStencilState =
-                        resources[command.SetStencilStateCommand.id] as DepthStencilState;
-
+                    device.DepthStencilState = resources[command.SetStencilStateCommand.id] as DepthStencilState;
                     break;
 
                 case CMD_SAMPLER_STATE:
 
-                    device.SamplerStates[command.SetSamplerStateCommand.index] =
-                        resources[command.SetSamplerStateCommand.id] as SamplerState;
-
+                    device.SamplerStates[command.SetSamplerStateCommand.index] = resources[command.SetSamplerStateCommand.id] as SamplerState;
                     break;
 
                 case CMD_SET_VERTEX_DATA:
 
-                    ref SetVertexDataCommand setVertexDataCommand =
-                        ref command.SetVertexDataCommand;
-
-                    VertexBuffer vertex_buffer =
-                        resources[setVertexDataCommand.id] as VertexBuffer;
+                    ref SetVertexDataCommand setVertexDataCommand = ref command.SetVertexDataCommand;
+                    VertexBuffer? vertex_buffer = resources[setVertexDataCommand.id] as VertexBuffer;
 
                     vertex_buffer?.SetDataPointerEXT(
                         0,
@@ -990,12 +826,10 @@ internal unsafe partial class Plugin
 
                 case CMD_SET_INDEX_DATA:
 
-                    ref SetIndexDataCommand setIndexDataCommand =
-                        ref command.SetIndexDataCommand;
+                    ref SetIndexDataCommand setIndexDataCommand = ref command.SetIndexDataCommand;
+                    IndexBuffer? indexBuffer = resources[setIndexDataCommand.id] as IndexBuffer;
 
-                    IndexBuffer index_buffer = resources[setIndexDataCommand.id] as IndexBuffer;
-
-                    index_buffer?.SetDataPointerEXT(
+                    indexBuffer?.SetDataPointerEXT(
                         0,
                         setIndexDataCommand.indices_buffer_ptr,
                         setIndexDataCommand.indices_buffer_length,
@@ -1006,21 +840,15 @@ internal unsafe partial class Plugin
 
                 case CMD_CREATE_VERTEX_BUFFER:
 
-                    ref CreateVertexBufferCommand createVertexBufferCommand =
-                        ref command.CreateVertexBufferCommand;
-
-                    VertexElement[] elements = new VertexElement[
-                        createVertexBufferCommand.DeclarationCount
-                    ];
+                    ref CreateVertexBufferCommand createVertexBufferCommand = ref command.CreateVertexBufferCommand;
+                    VertexElement[] elements = new VertexElement[createVertexBufferCommand.DeclarationCount];
 
                     for (int j = 0; j < elements.Length; j++)
                     {
-                        elements[j] = ((VertexElement*)createVertexBufferCommand.Declarations)[
-                            j
-                        ];
+                        elements[j] = ((VertexElement*)createVertexBufferCommand.Declarations)[j];
                     }
 
-                    VertexBuffer vb = createVertexBufferCommand.IsDynamic
+                    VertexBuffer? vb = createVertexBufferCommand.IsDynamic
                         ? new DynamicVertexBuffer(
                             device,
                             new VertexDeclaration(createVertexBufferCommand.Size, elements),
@@ -1040,10 +868,9 @@ internal unsafe partial class Plugin
 
                 case CMD_CREATE_INDEX_BUFFER:
 
-                    ref CreateIndexBufferCommand createIndexBufferCommand =
-                        ref command.CreateIndexBufferCommand;
+                    ref CreateIndexBufferCommand createIndexBufferCommand = ref command.CreateIndexBufferCommand;
 
-                    IndexBuffer ib = createIndexBufferCommand.IsDynamic
+                    IndexBuffer? ib = createIndexBufferCommand.IsDynamic
                         ? new DynamicIndexBuffer(
                             device,
                             createIndexBufferCommand.IndexElementSize,
@@ -1063,9 +890,7 @@ internal unsafe partial class Plugin
 
                 case CMD_SET_VERTEX_BUFFER:
 
-                    ref SetVertexBufferCommand setVertexBufferCommand =
-                        ref command.SetVertexBufferCommand;
-
+                    ref SetVertexBufferCommand setVertexBufferCommand = ref command.SetVertexBufferCommand;
                     vb = resources[setVertexBufferCommand.id] as VertexBuffer;
 
                     device.SetVertexBuffer(vb);
@@ -1074,9 +899,7 @@ internal unsafe partial class Plugin
 
                 case CMD_SET_INDEX_BUFFER:
 
-                    ref SetIndexBufferCommand setIndexBufferCommand =
-                        ref command.SetIndexBufferCommand;
-
+                    ref SetIndexBufferCommand setIndexBufferCommand = ref command.SetIndexBufferCommand;
                     ib = resources[setIndexBufferCommand.id] as IndexBuffer;
 
                     device.Indices = ib;
@@ -1085,29 +908,21 @@ internal unsafe partial class Plugin
 
                 case CMD_CREATE_EFFECT:
 
-                    ref CreateEffectCommand createEffectCommand =
-                        ref command.CreateEffectCommand;
-
+                    ref CreateEffectCommand createEffectCommand = ref command.CreateEffectCommand;
                     break;
 
                 case CMD_CREATE_BASIC_EFFECT:
 
-                    ref CreateBasicEffectCommand createBasicEffectCommand =
-                        ref command.CreateBasicEffectCommand;
+                    ref CreateBasicEffectCommand createBasicEffectCommand = ref command.CreateBasicEffectCommand;
 
-                    if (
-                        !resources.TryGetValue(
-                            createBasicEffectCommand.id,
-                            out GraphicsResource res
-                        )
-                    )
+                    if (!resources.TryGetValue(createBasicEffectCommand.id, out GraphicsResource? res))
                     {
                         res = new BasicEffect(device);
                         resources[createBasicEffectCommand.id] = res;
                     }
                     else
                     {
-                        BasicEffect be = res as BasicEffect;
+                        BasicEffect? be = res as BasicEffect;
                         be.World = createBasicEffectCommand.world;
                         be.View = createBasicEffectCommand.view;
                         be.Projection = createBasicEffectCommand.projection;
@@ -1123,10 +938,9 @@ internal unsafe partial class Plugin
 
                 case CMD_CREATE_TEXTURE_2D:
 
-                    ref CreateTexture2DCommand createTexture2DCommand =
-                        ref command.CreateTexture2DCommand;
+                    ref CreateTexture2DCommand createTexture2DCommand = ref command.CreateTexture2DCommand;
 
-                    Texture2D texture;
+                    Texture2D? texture;
 
                     if (createTexture2DCommand.IsRenderTarget)
                     {
@@ -1156,9 +970,7 @@ internal unsafe partial class Plugin
 
                 case CMD_SET_TEXTURE_DATA_2D:
 
-                    ref SetTexture2DDataCommand setTexture2DDataCommand =
-                        ref command.SetTexture2DDataCommand;
-
+                    ref SetTexture2DDataCommand setTexture2DDataCommand = ref command.SetTexture2DDataCommand;
                     texture = resources[setTexture2DDataCommand.id] as Texture2D;
 
                     texture?.SetDataPointerEXT(
@@ -1177,12 +989,9 @@ internal unsafe partial class Plugin
 
                 case CMD_INDEXED_PRIMITIVE_DATA:
 
-                    ref IndexedPrimitiveDataCommand indexedPrimitiveDataCommand =
-                        ref command.IndexedPrimitiveDataCommand;
+                    ref IndexedPrimitiveDataCommand indexedPrimitiveDataCommand = ref command.IndexedPrimitiveDataCommand;
 
-                    //device.Textures[0] = resources[indexedPrimitiveDataCommand.texture_id] as Texture;
-
-                    if (current_effect != null)
+                    if (current_effect is not null)
                     {
                         foreach (EffectPass pass in current_effect.CurrentTechnique.Passes)
                         {
@@ -1214,11 +1023,9 @@ internal unsafe partial class Plugin
 
                 case CMD_DESTROY_RESOURCE:
 
-                    ref DestroyResourceCommand destroyResourceCommand =
-                        ref command.DestroyResourceCommand;
+                    ref DestroyResourceCommand destroyResourceCommand = ref command.DestroyResourceCommand;
 
                     resources[destroyResourceCommand.id]?.Dispose();
-
                     resources.Remove(destroyResourceCommand.id);
 
                     break;
@@ -1280,7 +1087,7 @@ internal unsafe partial class Plugin
         int cliloc,
         [MarshalAs(UnmanagedType.LPStr)] string args,
         bool capitalize,
-        [Out][MarshalAs(UnmanagedType.LPStr)] out string buffer
+        [Out][MarshalAs(UnmanagedType.LPStr)] out string? buffer
     );
 
     private struct PluginHeader
@@ -1308,12 +1115,10 @@ internal unsafe partial class Plugin
         public IntPtr Tick;
         public IntPtr RequestMove;
         public IntPtr SetTitle;
-
-        public IntPtr OnRecv_new,
-            OnSend_new,
-            Recv_new,
-            Send_new;
-
+        public IntPtr OnRecv_new;
+        public IntPtr OnSend_new;
+        public IntPtr Recv_new;
+        public IntPtr Send_new;
         public IntPtr OnDrawCmdList;
         public IntPtr SDL_Window;
         public IntPtr OnWndProc;

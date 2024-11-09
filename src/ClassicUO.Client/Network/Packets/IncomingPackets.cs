@@ -46,9 +46,6 @@ internal static partial class IncomingPackets
 {
     private static Serial _requestedGridLoot;
 
-    //private static readonly TextFileParser _parser = new(string.Empty, [' '], [], ['{', '}']);
-    //private static readonly TextFileParser _cmdparser = new(string.Empty, [' ', ','], [], ['@', '@']);
-
     private static readonly PacketHandlerData[] _handlers = new PacketHandlerData[0x100];
     private static readonly ExtendedPacketHandlerData[] _extendedHandlers = new ExtendedPacketHandlerData[0x100];
     private static readonly PacketLogger _packetLogger = new();
@@ -68,6 +65,44 @@ internal static partial class IncomingPackets
 
         return ParsePackets(world, _buffer, true) + ParsePackets(world, _pluginsBuffer, false);
     }
+
+    //private static unsafe int ParsePacketsNew(World world, NetClient socket)
+    //{
+    //    int packetsCount = 0;
+
+    //    Span<byte> data = socket.CollectAvailableData();
+    //    if (data.IsEmpty)
+    //        return 0;
+
+    //    while (buffer.Length > 0)
+    //    {
+    //        if (!GetPacketInfo(buffer, out int packetlength, out bool dynamicLength, out delegate*<World, ref SpanReader, void> handler))
+    //            break;
+
+    //        while (packetlength > packetBuffer.Length)
+    //        {
+    //            Array.Resize(ref packetBuffer, packetBuffer.Length * 2);
+    //        }
+
+    //        _ = buffer.Dequeue(packetBuffer, 0, packetlength);
+
+    //        PacketLogger.Default?.Log(packetBuffer.AsSpan(0, packetlength), false);
+
+    //        // TODO: the pluging function should allow Span<byte> or unsafe type only.
+    //        // The current one is a bad style decision.
+    //        // It will be fixed once the new plugin system is done.
+    //        if (allowPlugins && !Plugin.ProcessRecvPacket(packetBuffer, ref packetlength))
+    //            continue;
+
+    //        SpanReader reader = new(packetBuffer.AsSpan(0, packetlength));
+    //        reader.Skip(dynamicLength ? 3 : 1);
+
+    //        handler(world, ref reader);
+    //        packetsCount++;
+    //    }
+
+    //    return packetsCount;
+    //}
 
     private static unsafe int ParsePackets(World world, CircularBuffer stream, bool allowPlugins)
     {
@@ -627,436 +662,6 @@ internal static partial class IncomingPackets
 
         container.Items = remove_unequipped ? new_first : null;
     }
-
-    //private static Gump? CreateGump(World world, Serial sender, Serial gumpId, int x, int y, string layout, string[] lines)
-    //{
-    //    List<string> cmdlist = _parser.GetTokens(layout);
-    //    int cmdlen = cmdlist.Count;
-
-    //    if (cmdlen <= 0)
-    //        return null;
-
-    //    Gump? gump = null;
-    //    bool mustBeAdded = true;
-
-    //    if (UIManager.GetGumpCachePosition(gumpId, out Point pos))
-    //    {
-    //        x = pos.X;
-    //        y = pos.Y;
-
-    //        for (LinkedListNode<Gump>? last = UIManager.Gumps.Last; last is not null; last = last.Previous)
-    //        {
-    //            Control g = last.Value;
-
-    //            if (g.IsDisposed || g.LocalSerial != sender || g.ServerSerial != gumpId)
-    //                continue;
-
-    //            g.Clear();
-    //            gump = g as Gump;
-    //            mustBeAdded = false;
-
-    //            break;
-    //        }
-    //    }
-    //    else
-    //    {
-    //        UIManager.SavePosition(gumpId, new Point(x, y));
-    //    }
-
-    //    gump ??= new Gump(world, sender, gumpId)
-    //    {
-    //        X = x,
-    //        Y = y,
-    //        CanMove = true,
-    //        CanCloseWithRightClick = true,
-    //        CanCloseWithEsc = true,
-    //        InvalidateContents = false,
-    //        IsFromServer = true
-    //    };
-
-    //    int group = 0;
-    //    int page = 0;
-
-    //    bool textBoxFocused = false;
-
-    //    for (int cnt = 0; cnt < cmdlen; cnt++)
-    //    {
-    //        List<string> gparams = _cmdparser.GetTokens(cmdlist[cnt], false);
-
-    //        if (gparams.Count == 0)
-    //            continue;
-
-    //        string entry = gparams[0];
-
-    //        if (entry.InvariantEqualsIgnoreCase("button"))
-    //        {
-    //            gump.Add(new Button(gparams), page);
-    //        }
-    //        else if (entry.InvariantEqualsIgnoreCase("buttontileart"))
-    //        {
-    //            gump.Add(new ButtonTileArt(gparams), page);
-    //        }
-    //        else if (entry.InvariantEqualsIgnoreCase("checkertrans"))
-    //        {
-    //            CheckerTrans checkerTrans = new(gparams);
-    //            gump.Add(checkerTrans, page);
-    //            ApplyTrans(gump, page, checkerTrans.X, checkerTrans.Y, checkerTrans.Width, checkerTrans.Height);
-    //        }
-    //        else if (entry.InvariantEqualsIgnoreCase("croppedtext"))
-    //        {
-    //            gump.Add(new CroppedText(gparams, lines), page);
-    //        }
-    //        else if (entry.InvariantEqualsIgnoreCase("gumppic"))
-    //        {
-    //            GumpPic pic;
-    //            bool isVirtue = gparams.Count >= 6 && gparams[5].Contains("virtuegumpitem", StringComparison.InvariantCultureIgnoreCase);
-
-    //            if (isVirtue)
-    //            {
-    //                pic = new VirtueGumpPic(world, gparams)
-    //                {
-    //                    ContainsByBounds = true
-    //                };
-
-    //                string lvl;
-
-    //                switch (pic.Hue)
-    //                {
-    //                    case 2403: lvl = ""; break;
-    //                    case 1154:
-    //                    case 1547:
-    //                    case 2213:
-    //                    case 235:
-    //                    case 18:
-    //                    case 2210:
-    //                    case 1348: lvl = "Seeker of "; break;
-    //                    case 2404:
-    //                    case 1552:
-    //                    case 2216:
-    //                    case 2302:
-    //                    case 2118:
-    //                    case 618:
-    //                    case 2212:
-    //                    case 1352: lvl = "Follower of "; break;
-    //                    case 43:
-    //                    case 53:
-    //                    case 1153:
-    //                    case 33:
-    //                    case 318:
-    //                    case 67:
-    //                    case 98: lvl = "Knight of "; break;
-    //                    case 2406:
-    //                        if (pic.Graphic == 0x6F)
-    //                            lvl = "Seeker of ";
-    //                        else
-    //                            lvl = "Knight of ";
-
-    //                        break;
-
-    //                    default: lvl = ""; break;
-    //                }
-
-    //                string? s = pic.Graphic switch
-    //                {
-    //                    0x69 => Client.Game.UO.FileManager.Clilocs.GetString(1051000 + 2),
-    //                    0x6A => Client.Game.UO.FileManager.Clilocs.GetString(1051000 + 7),
-    //                    0x6B => Client.Game.UO.FileManager.Clilocs.GetString(1051000 + 5),
-    //                    0x6D => Client.Game.UO.FileManager.Clilocs.GetString(1051000 + 6),
-    //                    0x6E => Client.Game.UO.FileManager.Clilocs.GetString(1051000 + 1),
-    //                    0x6F => Client.Game.UO.FileManager.Clilocs.GetString(1051000 + 3),
-    //                    0x70 => Client.Game.UO.FileManager.Clilocs.GetString(1051000 + 4),
-    //                    _ => Client.Game.UO.FileManager.Clilocs.GetString(1051000),
-    //                };
-
-    //                if (string.IsNullOrEmpty(s))
-    //                    s = "Unknown virtue";
-
-    //                pic.SetTooltip(lvl + s, 100);
-    //            }
-    //            else
-    //            {
-    //                pic = new GumpPic(gparams);
-    //            }
-
-    //            gump.Add(pic, page);
-    //        }
-    //        else if (entry.InvariantEqualsIgnoreCase("gumppictiled"))
-    //        {
-    //            gump.Add(new GumpPicTiled(gparams), page);
-    //        }
-    //        else if (entry.InvariantEqualsIgnoreCase("htmlgump"))
-    //        {
-    //            gump.Add(new HtmlControl(gparams, lines), page);
-    //        }
-    //        else if (entry.InvariantEqualsIgnoreCase("xmfhtmlgump"))
-    //        {
-    //            gump.Add(new HtmlControl(
-    //                    int.Parse(gparams[1]),
-    //                    int.Parse(gparams[2]),
-    //                    int.Parse(gparams[3]),
-    //                    int.Parse(gparams[4]),
-    //                    int.Parse(gparams[6]) == 1,
-    //                    int.Parse(gparams[7]) != 0,
-    //                    gparams[6] != "0" && gparams[7] == "2",
-    //                    Client.Game.UO.FileManager.Clilocs.GetString(int.Parse(gparams[5].Replace("#", ""))),
-    //                    0,
-    //                    true
-    //                )
-    //            {
-    //                IsFromServer = true
-    //            },
-    //                page
-    //            );
-    //        }
-    //        else if (entry.InvariantEqualsIgnoreCase("xmfhtmlgumpcolor"))
-    //        {
-    //            int color = int.Parse(gparams[8]);
-
-    //            if (color == 0x7FFF)
-    //                color = 0x00FFFFFF;
-
-    //            gump.Add(new HtmlControl(
-    //                    int.Parse(gparams[1]),
-    //                    int.Parse(gparams[2]),
-    //                    int.Parse(gparams[3]),
-    //                    int.Parse(gparams[4]),
-    //                    int.Parse(gparams[6]) == 1,
-    //                    int.Parse(gparams[7]) != 0,
-    //                    gparams[6] != "0" && gparams[7] == "2",
-    //                    Client.Game.UO.FileManager.Clilocs.GetString(int.Parse(gparams[5].Replace("#", ""))),
-    //                    color,
-    //                    true
-    //                )
-    //            {
-    //                IsFromServer = true
-    //            },
-    //                page
-    //            );
-    //        }
-    //        else if (entry.InvariantEqualsIgnoreCase("xmfhtmltok"))
-    //        {
-    //            int color = int.Parse(gparams[7]);
-    //            if (color == 0x7FFF)
-    //                color = 0x00FFFFFF;
-
-    //            StringBuilder? sb = null;
-
-    //            if (gparams.Count >= 9)
-    //            {
-    //                sb = new StringBuilder();
-
-    //                for (int i = 9; i < gparams.Count; i++)
-    //                {
-    //                    sb.Append('\t');
-    //                    sb.Append(gparams[i]);
-    //                }
-    //            }
-
-    //            gump.Add(new HtmlControl(
-    //                    int.Parse(gparams[1]),
-    //                    int.Parse(gparams[2]),
-    //                    int.Parse(gparams[3]),
-    //                    int.Parse(gparams[4]),
-    //                    int.Parse(gparams[5]) == 1,
-    //                    int.Parse(gparams[6]) != 0,
-    //                    gparams[5] != "0" && gparams[6] == "2",
-    //                    sb == null
-    //                        ? Client.Game.UO.FileManager.Clilocs.GetString(
-    //                            int.Parse(gparams[8].Replace("#", ""))
-    //                        )
-    //                        : Client.Game.UO.FileManager.Clilocs.Translate(
-    //                            int.Parse(gparams[8].Replace("#", "")),
-    //                            sb.ToString().Trim('@').Replace('@', '\t')
-    //                        ),
-    //                    color,
-    //                    true
-    //                )
-    //            {
-    //                IsFromServer = true
-    //            },
-    //                page
-    //            );
-    //        }
-    //        else if (entry.InvariantEqualsIgnoreCase("page"))
-    //        {
-    //            if (gparams.Count >= 2)
-    //                page = int.Parse(gparams[1]);
-    //        }
-    //        else if (entry.InvariantEqualsIgnoreCase("resizepic"))
-    //        {
-    //            gump.Add(new ResizePic(gparams), page);
-    //        }
-    //        else if (entry.InvariantEqualsIgnoreCase("text"))
-    //        {
-    //            if (gparams.Count >= 5)
-    //                gump.Add(new Label(gparams, lines), page);
-    //        }
-    //        else if (string.Equals(entry, "textentrylimited", StringComparison.InvariantCultureIgnoreCase)
-    //            || string.Equals(entry, "textentry", StringComparison.InvariantCultureIgnoreCase))
-    //        {
-    //            StbTextBox textBox = new(gparams, lines);
-
-    //            if (!textBoxFocused)
-    //            {
-    //                textBox.SetKeyboardFocus();
-    //                textBoxFocused = true;
-    //            }
-
-    //            gump.Add(textBox, page);
-    //        }
-    //        else if (string.Equals(entry, "tilepichue", StringComparison.InvariantCultureIgnoreCase)
-    //            || string.Equals(entry, "tilepic", StringComparison.InvariantCultureIgnoreCase))
-    //        {
-    //            gump.Add(new StaticPic(gparams), page);
-    //        }
-    //        else if (entry.InvariantEqualsIgnoreCase("noclose"))
-    //        {
-    //            gump.CanCloseWithRightClick = false;
-    //        }
-    //        else if (entry.InvariantEqualsIgnoreCase("nodispose"))
-    //        {
-    //            gump.CanCloseWithEsc = false;
-    //        }
-    //        else if (entry.InvariantEqualsIgnoreCase("nomove"))
-    //        {
-    //            gump.CanMove = false;
-    //        }
-    //        else if (string.Equals(entry, "group", StringComparison.InvariantCultureIgnoreCase)
-    //            || string.Equals(entry, "endgroup", StringComparison.InvariantCultureIgnoreCase))
-    //        {
-    //            group++;
-    //        }
-    //        else if (entry.InvariantEqualsIgnoreCase("radio"))
-    //        {
-    //            gump.Add(new RadioButton(group, gparams, lines), page);
-    //        }
-    //        else if (entry.InvariantEqualsIgnoreCase("checkbox"))
-    //        {
-    //            gump.Add(new Checkbox(gparams, lines), page);
-    //        }
-    //        else if (entry.InvariantEqualsIgnoreCase("tooltip"))
-    //        {
-    //            string? text;
-
-    //            if (gparams.Count > 2 && gparams[2].Length != 0)
-    //            {
-    //                string args = gparams[2];
-
-    //                for (int i = 3; i < gparams.Count; i++)
-    //                {
-    //                    args += '\t' + gparams[i];
-    //                }
-
-    //                if (args.Length == 0)
-    //                {
-    //                    text = Client.Game.UO.FileManager.Clilocs.GetString(int.Parse(gparams[1]));
-    //                    Log.Error($"String '{args}' too short, something wrong with gump tooltip: {text}");
-    //                }
-    //                else
-    //                {
-    //                    text = Client.Game.UO.FileManager.Clilocs.Translate(int.Parse(gparams[1]), args, false);
-    //                }
-    //            }
-    //            else
-    //            {
-    //                text = Client.Game.UO.FileManager.Clilocs.GetString(int.Parse(gparams[1]));
-    //            }
-
-    //            ReadOnlySpan<Control> children = gump.Children;
-    //            Control? last = !children.IsEmpty ? children[^1] : null;
-
-    //            if (last is not null)
-    //            {
-    //                if (last.HasTooltip)
-    //                {
-    //                    if (last.Tooltip is string s)
-    //                    {
-    //                        s += '\n' + text;
-    //                        last.SetTooltip(s);
-    //                    }
-    //                }
-    //                else
-    //                {
-    //                    last.SetTooltip(text);
-    //                }
-
-    //                last.Priority = ClickPriority.High;
-    //                last.AcceptMouseInput = true;
-    //            }
-    //        }
-    //        else if (entry.InvariantEqualsIgnoreCase("itemproperty"))
-    //        {
-    //            ReadOnlySpan<Control> children = gump.Children;
-    //            if (world.ClientFeatures.TooltipsEnabled && !children.IsEmpty)
-    //            {
-    //                children[^1].SetTooltip(Serial.Parse(gparams[1]));
-
-    //                if (Serial.TryParse(gparams[1], out Serial s) && (!world.OPL.TryGetRevision(s, out uint rev) || rev == 0))
-    //                    OutgoingPackets.AddMegaClilocRequest(s);
-    //            }
-    //        }
-    //        else if (entry.InvariantEqualsIgnoreCase("noresize"))
-    //        { }
-    //        else if (entry.InvariantEqualsIgnoreCase("mastergump"))
-    //        {
-    //            gump.MasterGumpSerial = gparams.Count > 0 ? Serial.Parse(gparams[1]) : Serial.Zero;
-    //        }
-    //        else if (entry.InvariantEqualsIgnoreCase("picinpic"))
-    //        {
-    //            if (gparams.Count > 7)
-    //                gump.Add(new GumpPicInPic(gparams), page);
-    //        }
-    //        else if (entry.InvariantEqualsIgnoreCase("\0"))
-    //        {
-    //            //This gump is null terminated: Breaking
-    //            break;
-    //        }
-    //        else if (string.Equals(entry, "gumppichued", StringComparison.InvariantCultureIgnoreCase)
-    //            || string.Equals(entry, "gumppicphued", StringComparison.InvariantCultureIgnoreCase))
-    //        {
-    //            if (gparams.Count >= 3)
-    //                gump.Add(new GumpPic(gparams));
-    //        }
-    //        else if (entry.InvariantEqualsIgnoreCase("togglelimitgumpscale"))
-    //        {
-    //            // ??
-    //        }
-    //        else
-    //        {
-    //            Log.Warn($"Invalid Gump Command: \"{gparams[0]}\"");
-    //        }
-    //    }
-
-    //    if (mustBeAdded)
-    //        UIManager.Add(gump);
-
-    //    gump.Update();
-    //    gump.SetInScreen();
-
-    //    return gump;
-    //}
-
-    //private static void ApplyTrans(Gump gump, int current_page, int x, int y, int width, int height)
-    //{
-    //    int x2 = x + width;
-    //    int y2 = y + height;
-    //    ReadOnlySpan<Control> children = gump.Children;
-
-    //    for (int i = 0; i < children.Length; i++)
-    //    {
-    //        Control child = children[i];
-    //        bool canDraw = child.Page == 0 || current_page == child.Page;
-
-    //        bool overlap =
-    //            (x < child.X + child.Width)
-    //            && (child.X < x2)
-    //            && (y < child.Y + child.Height)
-    //            && (child.Y < y2);
-
-    //        if (canDraw && child.IsVisible && overlap)
-    //            child.Alpha = 0.5f;
-    //    }
-    //}
 
     [Flags]
     private enum AffixType
