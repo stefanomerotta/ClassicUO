@@ -55,7 +55,7 @@ internal abstract class Pipe
         _buffer = new byte[roundedSize];
     }
 
-    public Span<byte> GetAvailableSpanToWrite()
+    public virtual Span<byte> GetAvailableSpanToWrite()
     {
         int readIndex = (int)(_readIndex & _mask);
         int writeIndex = (int)(_writeIndex & _mask);
