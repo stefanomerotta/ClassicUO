@@ -66,44 +66,6 @@ internal static partial class IncomingPackets
         return ParsePackets(world, _buffer, true) + ParsePackets(world, _pluginsBuffer, false);
     }
 
-    //private static unsafe int ParsePacketsNew(World world, NetClient socket)
-    //{
-    //    int packetsCount = 0;
-
-    //    Span<byte> data = socket.CollectAvailableData();
-    //    if (data.IsEmpty)
-    //        return 0;
-
-    //    while (buffer.Length > 0)
-    //    {
-    //        if (!GetPacketInfo(buffer, out int packetlength, out bool dynamicLength, out delegate*<World, ref SpanReader, void> handler))
-    //            break;
-
-    //        while (packetlength > packetBuffer.Length)
-    //        {
-    //            Array.Resize(ref packetBuffer, packetBuffer.Length * 2);
-    //        }
-
-    //        _ = buffer.Dequeue(packetBuffer, 0, packetlength);
-
-    //        PacketLogger.Default?.Log(packetBuffer.AsSpan(0, packetlength), false);
-
-    //        // TODO: the pluging function should allow Span<byte> or unsafe type only.
-    //        // The current one is a bad style decision.
-    //        // It will be fixed once the new plugin system is done.
-    //        if (allowPlugins && !Plugin.ProcessRecvPacket(packetBuffer, ref packetlength))
-    //            continue;
-
-    //        SpanReader reader = new(packetBuffer.AsSpan(0, packetlength));
-    //        reader.Skip(dynamicLength ? 3 : 1);
-
-    //        handler(world, ref reader);
-    //        packetsCount++;
-    //    }
-
-    //    return packetsCount;
-    //}
-
     private static unsafe int ParsePackets(World world, CircularBuffer stream, bool allowPlugins)
     {
         int packetsCount = 0;
